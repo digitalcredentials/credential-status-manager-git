@@ -1,4 +1,4 @@
-import { VerifiableCredential } from '@digitalcredentials/vc-data-model'
+import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import { Octokit } from '@octokit/rest';
 import {
   CREDENTIAL_STATUS_CONFIG_FILE,
