@@ -1,6 +1,6 @@
 import { createList, createCredential } from '@digitalbazaar/vc-status-list';
 import { CONTEXT_URL_V1 } from '@digitalbazaar/vc-status-list-context';
-import { VerifiableCredential } from '@digitalcredentials/vc-data-model'
+import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 
 // Number of credentials tracked in a list
 const CREDENTIAL_STATUS_LIST_SIZE = 100000;

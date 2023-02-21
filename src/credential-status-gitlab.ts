@@ -1,4 +1,4 @@
-import { VerifiableCredential } from '@digitalcredentials/vc-data-model'
+import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import axios, { AxiosInstance } from 'axios';
 import {
   CREDENTIAL_STATUS_CONFIG_FILE,

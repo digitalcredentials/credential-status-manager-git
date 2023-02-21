@@ -5,7 +5,7 @@
     "lib": ["es2022", "dom"],
     "module": "es6",
     "moduleResolution": "node",
-    "outDir": "dist",
+    "outDir": "dist/esm",
     "noImplicitAny": true,
     "removeComments": false,
     "preserveConstEnums": true,
