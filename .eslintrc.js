@@ -6,7 +6,7 @@ module.exports = {
   parserOptions: {
     project: './tsconfig.json'
   },
-  ignorePatterns: ['dist/', 'test'],
+  ignorePatterns: ['dist', 'test'],
   rules: {
     'prettier/prettier': 'off',
     'arrow-body-style': 'off',
