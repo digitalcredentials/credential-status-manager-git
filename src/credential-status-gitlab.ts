@@ -8,8 +8,8 @@ import {
   CredentialStatusConfigData,
   CredentialStatusLogData,
   VisibilityLevel,
-  decodeSystemData,
-} from './credential-status';
+  decodeSystemData
+} from './credential-status-base';
 
 const CREDENTIAL_STATUS_CONFIG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_CONFIG_FILE);
 const CREDENTIAL_STATUS_LOG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_LOG_FILE);
@@ -44,75 +44,100 @@ const CREDENTIAL_STATUS_WEBSITE_GEMFILE =
 
 gem "jekyll"`;
 
-// Type definition for GitlabCredentialStatusClient constructor method
-type GitlabCredentialStatusClientParameters = {
-  credStatusRepoName: string;
-  credStatusMetaRepoName: string;
-  credStatusRepoOrgName: string;
-  credStatusRepoOrgId: string;
-  credStatusRepoVisibility: VisibilityLevel;
-  credStatusClientAccessToken: string;
+// Type definition for GitlabCredentialStatusClient constructor method input
+export type GitlabCredentialStatusClientOptions = {
+  repoName: string;
+  metaRepoName: string;
+  repoOrgName: string;
+  repoOrgId: string;
+  repoVisibility: VisibilityLevel;
+  accessToken: string;
 };
+
+// Minimal set of options required for configuring GitlabCredentialStatusClient
+const GITLAB_CLIENT_REQUIRED_OPTIONS: (keyof GitlabCredentialStatusClientOptions)[] = [
+  'repoOrgName',
+  'repoOrgId',
+  'accessToken'
+];
 
 // Implementation of BaseCredentialStatusClient for GitLab
 export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
-  private credStatusRepoName: string;
-  private credStatusRepoId: string;
-  private credStatusMetaRepoName: string;
-  private credStatusMetaRepoId: string;
-  private credStatusRepoOrgName: string;
-  private credStatusRepoOrgId: string;
-  private credStatusRepoVisibility: VisibilityLevel;
+  private repoName: string;
+  private repoId: string;
+  private metaRepoName: string;
+  private metaRepoId: string;
+  private repoOrgName: string;
+  private repoOrgId: string;
+  private repoVisibility: VisibilityLevel;
   private client: AxiosInstance;
 
-  constructor(config: GitlabCredentialStatusClientParameters) {
+  constructor(options: GitlabCredentialStatusClientOptions) {
     super();
-    this.credStatusRepoName = config.credStatusRepoName;
-    this.credStatusRepoId = ''; // This value is set in createStatusRepo
-    this.credStatusMetaRepoName = config.credStatusMetaRepoName;
-    this.credStatusMetaRepoId = ''; // This value is set in createStatusRepo
-    this.credStatusRepoOrgName = config.credStatusRepoOrgName;
-    this.credStatusRepoOrgId = config.credStatusRepoOrgId;
-    this.credStatusRepoVisibility = config.credStatusRepoVisibility;
+    this.assureProperConfiguration(options);
+    this.repoName = options.repoName;
+    this.repoId = ''; // This value is set in createStatusRepo
+    this.metaRepoName = options.metaRepoName;
+    this.metaRepoId = ''; // This value is set in createStatusRepo
+    this.repoOrgName = options.repoOrgName;
+    this.repoOrgId = options.repoOrgId;
+    this.repoVisibility = options.repoVisibility;
     this.client = axios.create({
       baseURL: 'https://gitlab.com/api/v4',
       timeout: 6000,
       headers: {
-        'Authorization': `Bearer ${config.credStatusClientAccessToken}`
+        'Authorization': `Bearer ${options.accessToken}`
       }
     });
   }
 
-  // Retrieve endpoint for repos in org
-  reposInOrgEndpoint(): string {
-    return `/groups/${this.credStatusRepoOrgId}/projects`;
+  // assures proper configuration of status client
+  assureProperConfiguration(options: GitlabCredentialStatusClientOptions): void {
+    options.repoName = options.repoName || 'credential-status';
+    options.metaRepoName = options.metaRepoName || 'credential-status-metadata';
+    options.repoVisibility = options.repoVisibility || VisibilityLevel.Public;
+
+    const isProperlyConfigured = GITLAB_CLIENT_REQUIRED_OPTIONS.every((option: keyof GitlabCredentialStatusClientOptions) => {
+      return !!options[option];
+    });
+    if (!isProperlyConfigured) {
+      throw new Error(
+        'The following environment variables must be set for the GitLab credential status client:' +
+        `${GITLAB_CLIENT_REQUIRED_OPTIONS.map(o => `'${o}'`).join(', ')}.`
+      );
+    }
   }
 
-  // Retrieve endpoint for repos
+  // retrieves endpoint for repos in org
+  reposInOrgEndpoint(): string {
+    return `/groups/${this.repoOrgId}/projects`;
+  }
+
+  // retrieves endpoint for repos
   reposEndpoint(): string {
     return '/projects';
   }
 
-  // Retrieve endpoint for files
+  // retrieves endpoint for files
   filesEndpoint(repoId: string, path: string): string {
     return `/projects/${repoId}/repository/files/${path}`;
   }
 
-  // Retrieve endpoint for commits
+  // retrieves endpoint for commits
   commitsEndpoint(repoId: string): string {
     return `/projects/${repoId}/repository/commits`;
   }
 
-  // Get credential status url
+  // retrieves credential status url
   getCredentialStatusUrl(): string {
-    return `https://${this.credStatusRepoOrgName}.gitlab.io/${this.credStatusRepoName}`;
+    return `https://${this.repoOrgName}.gitlab.io/${this.repoName}`;
   }
 
-  // Setup website to host credential status management resources
-  async setupCredentialStatusWebsite(): Promise<void> {
+  // deploys website to host credential status management resources
+  async deployCredentialStatusWebsite(): Promise<void> {
     const timestamp = (new Date()).toISOString();
     const message = `[${timestamp}]: setup status website`;
-    const websiteRequestConfig = {
+    const websiteRequestOptions = {
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       commit_message: message,
       actions: [
@@ -133,10 +158,10 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
         }
       ]
     };
-    await this.client.post(this.commitsEndpoint(this.credStatusRepoId), websiteRequestConfig);
+    await this.client.post(this.commitsEndpoint(this.repoId), websiteRequestOptions);
   }
 
-  // Reset client authorization
+  // resets client authorization
   resetClientAuthorization(accessToken: string): void {
     this.client = axios.create({
       baseURL: 'https://gitlab.com/api/v4',
@@ -147,223 +172,223 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
     });
   }
 
-  // Check if issuer client has access to status repo
+  // checks if issuer client has access to status repo
   async hasStatusRepoAccess(accessToken: string): Promise<boolean> {
     this.resetClientAuthorization(accessToken);
-    const repoRequestConfig = {
+    const repoRequestOptions = {
       params: {
         owned: true,
         simple: true
       }
     };
-    const repos = (await this.client.get(`/projects`, repoRequestConfig)).data;
+    const repos = (await this.client.get(`/projects`, repoRequestOptions)).data;
     return repos.some((repo: any) => {
-      return repo.path_with_namespace === `${this.credStatusRepoOrgName}/${this.credStatusRepoName}`;
+      return repo.path_with_namespace === `${this.repoOrgName}/${this.repoName}`;
     });
   }
 
-  // Retrieve list of repos in org
+  // retrieves list of repos in org
   async getReposInOrg(): Promise<any[]> {
-    const repoRequestConfig = {
+    const repoRequestOptions = {
       params: {
         owned: true,
         simple: true
       }
     };
-    const repoResponse = await this.client.get(this.reposInOrgEndpoint(), repoRequestConfig);
+    const repoResponse = await this.client.get(this.reposInOrgEndpoint(), repoRequestOptions);
     return repoResponse.data as any[];
   }
 
-  // Check if status repo exists
+  // checks if status repo exists
   async statusRepoExists(): Promise<boolean> {
     const repos = await this.getReposInOrg();
     return repos.some((repo) => {
-      return repo.name === this.credStatusRepoName;
+      return repo.name === this.repoName;
     });
   }
 
-  // Create status repo
+  // creates status repo
   async createStatusRepo(): Promise<void> {
-    // Create status repo
-    const repoRequestConfig = {
-      name: this.credStatusRepoName,
-      namespace_id: this.credStatusRepoOrgId,
-      visibility: this.credStatusRepoVisibility,
+    // create status repo
+    const repoRequestOptions = {
+      name: this.repoName,
+      namespace_id: this.repoOrgId,
+      visibility: this.repoVisibility,
       pages_access_level: 'public',
       description: 'Manages credential status for instance of VC-API'
     };
-    const statusRepo = (await this.client.post(this.reposEndpoint(), repoRequestConfig)).data;
-    this.credStatusRepoId = statusRepo.id;
+    const statusRepo = (await this.client.post(this.reposEndpoint(), repoRequestOptions)).data;
+    this.repoId = statusRepo.id;
 
-    // Create status metadata repo
-    const metaRepoRequestConfig = {
-      name: this.credStatusMetaRepoName,
-      namespace_id: this.credStatusRepoOrgId,
+    // create status metadata repo
+    const metaRepoRequestOptions = {
+      name: this.metaRepoName,
+      namespace_id: this.repoOrgId,
       visibility: VisibilityLevel.Private,
       description: 'Manages credential status metadata for instance of VC-API'
     };
-    const metaRepo = (await this.client.post(this.reposEndpoint(), metaRepoRequestConfig)).data;
-    this.credStatusMetaRepoId = metaRepo.id;
+    const metaRepo = (await this.client.post(this.reposEndpoint(), metaRepoRequestOptions)).data;
+    this.metaRepoId = metaRepo.id;
   }
 
-  // Sync status repo state
+  // syncs status repo state
   async syncStatusRepoState(): Promise<void> {
     const repos = await this.getReposInOrg();
     const repo = repos.find((r) => {
-      return r.name === this.credStatusRepoName;
+      return r.name === this.repoName;
     });
-    this.credStatusRepoId = repo.id;
+    this.repoId = repo.id;
 
     const metaRepo = repos.find((r) => {
-      return r.name === this.credStatusMetaRepoName;
+      return r.name === this.metaRepoName;
     });
-    this.credStatusMetaRepoId = metaRepo.id;
+    this.metaRepoId = metaRepo.id;
   }
 
-  // Create data in config file
+  // creates data in config file
   async createConfigData(data: CredentialStatusConfigData): Promise<void> {
     const timestamp = (new Date()).toISOString();
     const message = `[${timestamp}]: created status credential config`;
     const content = JSON.stringify(data, null, 2);
-    const configRequestConfig = {
+    const configRequestOptions = {
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       commit_message: message,
       content
     };
-    const configRequestEndpoint = this.filesEndpoint(this.credStatusMetaRepoId, CREDENTIAL_STATUS_CONFIG_PATH_ENCODED);
-    await this.client.post(configRequestEndpoint, configRequestConfig);
+    const configRequestEndpoint = this.filesEndpoint(this.metaRepoId, CREDENTIAL_STATUS_CONFIG_PATH_ENCODED);
+    await this.client.post(configRequestEndpoint, configRequestOptions);
   }
 
-  // Retrieve response from fetching config file
+  // retrieves response from fetching config file
   async readConfigResponse(): Promise<any> {
-    const configRequestConfig = {
+    const configRequestOptions = {
       params: {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
       }
     };
-    const configRequestEndpoint = this.filesEndpoint(this.credStatusMetaRepoId, CREDENTIAL_STATUS_CONFIG_PATH_ENCODED);
-    const configResponse = await this.client.get(configRequestEndpoint, configRequestConfig);
+    const configRequestEndpoint = this.filesEndpoint(this.metaRepoId, CREDENTIAL_STATUS_CONFIG_PATH_ENCODED);
+    const configResponse = await this.client.get(configRequestEndpoint, configRequestOptions);
     return configResponse.data as any;
   }
 
-  // Retrieve data from config file
+  // retrieves data from config file
   async readConfigData(): Promise<CredentialStatusConfigData> {
     const configResponse = await this.readConfigResponse();
     return decodeSystemData(configResponse.content);
   }
 
-  // Update data in config file
+  // updates data in config file
   async updateConfigData(data: CredentialStatusConfigData): Promise<void> {
     const timestamp = (new Date()).toISOString();
     const message = `[${timestamp}]: updated status credential config`;
     const content = JSON.stringify(data, null, 2);
-    const configRequestConfig = {
+    const configRequestOptions = {
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       commit_message: message,
       content
     };
-    const configRequestEndpoint = this.filesEndpoint(this.credStatusMetaRepoId, CREDENTIAL_STATUS_CONFIG_PATH_ENCODED);
-    await this.client.put(configRequestEndpoint, configRequestConfig);
+    const configRequestEndpoint = this.filesEndpoint(this.metaRepoId, CREDENTIAL_STATUS_CONFIG_PATH_ENCODED);
+    await this.client.put(configRequestEndpoint, configRequestOptions);
   }
 
-  // Create data in log file
+  // creates data in log file
   async createLogData(data: CredentialStatusLogData): Promise<void> {
     const timestamp = (new Date()).toISOString();
     const message = `[${timestamp}]: created status log`;
     const content = JSON.stringify(data, null, 2);
-    const logRequestConfig = {
+    const logRequestOptions = {
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       commit_message: message,
       content
     };
-    const logRequestEndpoint = this.filesEndpoint(this.credStatusMetaRepoId, CREDENTIAL_STATUS_LOG_PATH_ENCODED);
-    await this.client.post(logRequestEndpoint, logRequestConfig);
+    const logRequestEndpoint = this.filesEndpoint(this.metaRepoId, CREDENTIAL_STATUS_LOG_PATH_ENCODED);
+    await this.client.post(logRequestEndpoint, logRequestOptions);
   }
 
-  // Retrieve response from fetching log file
+  // retrieves response from fetching log file
   async readLogResponse(): Promise<any> {
-    const logRequestConfig = {
+    const logRequestOptions = {
       params: {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
       }
     };
-    const logRequestEndpoint = this.filesEndpoint(this.credStatusMetaRepoId, CREDENTIAL_STATUS_LOG_PATH_ENCODED);
-    const logResponse = await this.client.get(logRequestEndpoint, logRequestConfig);
+    const logRequestEndpoint = this.filesEndpoint(this.metaRepoId, CREDENTIAL_STATUS_LOG_PATH_ENCODED);
+    const logResponse = await this.client.get(logRequestEndpoint, logRequestOptions);
     return logResponse.data as any;
   }
 
-  // Retrieve data from log file
+  // retrieves data from log file
   async readLogData(): Promise<CredentialStatusLogData> {
     const logResponse = await this.readLogResponse();
     return decodeSystemData(logResponse.content);
   }
 
-  // Update data in log file
+  // updates data in log file
   async updateLogData(data: CredentialStatusLogData): Promise<void> {
     const timestamp = (new Date()).toISOString();
     const message = `[${timestamp}]: updated status log`;
     const content = JSON.stringify(data, null, 2);
-    const logRequestConfig = {
+    const logRequestOptions = {
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       commit_message: message,
       content
     };
-    const logRequestEndpoint = this.filesEndpoint(this.credStatusMetaRepoId, CREDENTIAL_STATUS_LOG_PATH_ENCODED);
-    await this.client.put(logRequestEndpoint, logRequestConfig);
+    const logRequestEndpoint = this.filesEndpoint(this.metaRepoId, CREDENTIAL_STATUS_LOG_PATH_ENCODED);
+    await this.client.put(logRequestEndpoint, logRequestOptions);
   }
 
-  // Create data in status file
+  // creates data in status file
   async createStatusData(data: VerifiableCredential): Promise<void> {
     const configData = await this.readConfigData();
     const { latestList } = configData;
     const timestamp = (new Date()).toISOString();
     const message = `[${timestamp}]: created status credential`;
     const content = JSON.stringify(data, null, 2);
-    const statusRequestConfig = {
+    const statusRequestOptions = {
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       commit_message: message,
       content
     };
     const statusPath = encodeURIComponent(latestList);
-    const statusRequestEndpoint = this.filesEndpoint(this.credStatusRepoId, statusPath);
-    await this.client.post(statusRequestEndpoint, statusRequestConfig);
+    const statusRequestEndpoint = this.filesEndpoint(this.repoId, statusPath);
+    await this.client.post(statusRequestEndpoint, statusRequestOptions);
   }
 
-  // Retrieve response from fetching status file
+  // retrieves response from fetching status file
   async readStatusResponse(): Promise<any> {
     const configData = await this.readConfigData();
     const { latestList } = configData;
-    const statusRequestConfig = {
+    const statusRequestOptions = {
       params: {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
       }
     };
     const statusPath = encodeURIComponent(latestList);
-    const statusRequestEndpoint = this.filesEndpoint(this.credStatusRepoId, statusPath);
-    const statusResponse = await this.client.get(statusRequestEndpoint, statusRequestConfig);
+    const statusRequestEndpoint = this.filesEndpoint(this.repoId, statusPath);
+    const statusResponse = await this.client.get(statusRequestEndpoint, statusRequestOptions);
     return statusResponse.data as any;
   }
 
-  // Retrieve data from status file
+  // retrieves data from status file
   async readStatusData(): Promise<VerifiableCredential> {
     const statusResponse = await this.readStatusResponse();
     return decodeSystemData(statusResponse.content);
   }
 
-  // Update data in status file
+  // updates data in status file
   async updateStatusData(data: VerifiableCredential): Promise<void> {
     const configData = await this.readConfigData();
     const { latestList } = configData;
     const timestamp = (new Date()).toISOString();
     const message = `[${timestamp}]: updated status credential`;
     const content = JSON.stringify(data, null, 2);
-    const statusRequestConfig = {
+    const statusRequestOptions = {
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       commit_message: message,
       content
     };
     const statusPath = encodeURIComponent(latestList);
-    const statusRequestEndpoint = this.filesEndpoint(this.credStatusRepoId, statusPath);
-    await this.client.put(statusRequestEndpoint, statusRequestConfig);
+    const statusRequestEndpoint = this.filesEndpoint(this.repoId, statusPath);
+    await this.client.put(statusRequestEndpoint, statusRequestOptions);
   }
 }
