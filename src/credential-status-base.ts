@@ -18,8 +18,7 @@ export const CREDENTIAL_STATUS_LOG_FILE = 'log.json';
 // Type of credential status client
 export enum CredentialStatusClientType {
   Github = 'github',
-  Gitlab = 'gitlab',
-  Internal = 'internal'
+  Gitlab = 'gitlab'
 }
 
 // Level of visibility of credential status management repo
@@ -76,7 +75,7 @@ export type CredentialStatusRequest = {
 };
 
 // Type definition for composeStatusCredential function input
-type ComposeStatusCredentialParameters = {
+type ComposeStatusCredentialOptions = {
   issuerDid: string;
   credentialId: string;
   statusList?: any;
@@ -84,7 +83,7 @@ type ComposeStatusCredentialParameters = {
 };
 
 // Type definition for embedCredentialStatus method input
-type EmbedCredentialStatusParameters = {
+type EmbedCredentialStatusOptions = {
   credential: any;
   statusPurpose?: string;
 };
@@ -97,32 +96,32 @@ type EmbedCredentialStatusResult = {
 
 // Base class for credential status clients
 export abstract class BaseCredentialStatusClient {
-  // Generate new status list ID
+  // generates new status list ID
   generateStatusListId(): string {
     return Math.random().toString(36).substring(2,12).toUpperCase();
   }
 
-  // Embed status into credential
-  async embedCredentialStatus({ credential, statusPurpose = 'revocation' }: EmbedCredentialStatusParameters): Promise<EmbedCredentialStatusResult> {
-    // Retrieve status config
+  // embeds status into credential
+  async embedCredentialStatus({ credential, statusPurpose = 'revocation' }: EmbedCredentialStatusOptions): Promise<EmbedCredentialStatusResult> {
+    // retrieve status config
     const configData = await this.readConfigData();
 
     let { credentialsIssued, latestList } = configData;
     let newList;
     if (credentialsIssued >= CREDENTIAL_STATUS_LIST_SIZE) {
-      // Update status config data
+      // update status config data
       latestList = this.generateStatusListId();
       newList = latestList;
       credentialsIssued = 0;
     }
     credentialsIssued++;
 
-    // Update status config
+    // update status config
     configData.credentialsIssued = credentialsIssued;
     configData.latestList = latestList;
     await this.updateConfigData(configData);
 
-    // Attach credential status
+    // attach credential status
     const statusUrl = this.getCredentialStatusUrl();
     const statusListCredential = `${statusUrl}/${latestList}`;
     const statusListIndex = credentialsIssued;
@@ -144,54 +143,59 @@ export abstract class BaseCredentialStatusClient {
     };
   }
 
-  // Get credential status url
+  // retrieves credential status url
   abstract getCredentialStatusUrl(): string;
 
-  // Setup website to host credential status management resources
-  async setupCredentialStatusWebsite(): Promise<void> {};
+  // deploys website to host credential status management resources
+  async deployCredentialStatusWebsite(): Promise<void> {};
 
-  // Check if issuer client has access to status repo
+  // checks if issuer client has access to status repo
   abstract hasStatusRepoAccess(accessToken: string): Promise<boolean>;
 
-  // Check if status repo exists
+  // checks if status repo exists
   abstract statusRepoExists(): Promise<boolean>;
 
-  // Create status repo
+  // creates status repo
   abstract createStatusRepo(): Promise<void>;
 
-  // Sync status repo state
+  // syncs status repo state
   async syncStatusRepoState(): Promise<void> {};
 
-  // Create data in config file
+  // creates data in config file
   abstract createConfigData(data: CredentialStatusConfigData): Promise<void>;
 
-  // Retrieve data from config file
+  // retrieves data from config file
   abstract readConfigData(): Promise<CredentialStatusConfigData>;
 
-  // Update data in config file
+  // updates data in config file
   abstract updateConfigData(data: CredentialStatusConfigData): Promise<void>;
 
-  // Create data in log file
+  // creates data in log file
   abstract createLogData(data: CredentialStatusLogData): Promise<void>;
 
-  // Retrieve data from log file
+  // retrieves data from log file
   abstract readLogData(): Promise<CredentialStatusLogData>;
 
-  // Update data in log file
+  // updates data in log file
   abstract updateLogData(data: CredentialStatusLogData): Promise<void>;
 
-  // Create data in status file
+  // creates data in status file
   abstract createStatusData(data: VerifiableCredential): Promise<void>;
 
-  // Retrieve data from status file
+  // retrieves data from status file
   abstract readStatusData(): Promise<VerifiableCredential>;
 
-  // Update data in status file
+  // updates data in status file
   abstract updateStatusData(data: VerifiableCredential): Promise<void>;
 }
 
-// Compose StatusList2021Credential
-export const composeStatusCredential = async ({ issuerDid, credentialId, statusList, statusPurpose = 'revocation' }: ComposeStatusCredentialParameters): Promise<any> => {
+// composes StatusList2021Credential
+export async function composeStatusCredential({
+  issuerDid,
+  credentialId,
+  statusList,
+  statusPurpose = 'revocation'
+}: ComposeStatusCredentialOptions): Promise<any> {
   if (!statusList) {
     statusList = await createList({ length: CREDENTIAL_STATUS_LIST_SIZE });
   }
@@ -205,14 +209,17 @@ export const composeStatusCredential = async ({ issuerDid, credentialId, statusL
   return credential;
 }
 
-export const decodeSystemData = (text: string): any => {
+// decodes system data as JSON
+export function decodeSystemData(text: string): any {
   return JSON.parse(decodeBase64AsAscii(text));
-};
+}
 
-export const encodeAsciiAsBase64 = (text: string): string => {
+// encodes ASCII text as Bas64
+export function encodeAsciiAsBase64(text: string): string {
   return Buffer.from(text).toString('base64');
-};
+}
 
-const decodeBase64AsAscii = (text: string): string => {
+// decodes Bas64 text as ASCII
+function decodeBase64AsAscii(text: string): string {
   return Buffer.from(text, 'base64').toString('ascii');
-};
+}
