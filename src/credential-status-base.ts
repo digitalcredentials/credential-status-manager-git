@@ -42,13 +42,13 @@ export enum CredentialState {
 }
 
 // Type definition for credential status config file
-export type CredentialStatusConfigData = {
+export interface CredentialStatusConfigData {
   credentialsIssued: number;
   latestList: string;
-};
+}
 
 // Type definition for credential status log entry
-export type CredentialStatusLogEntry = {
+export interface CredentialStatusLogEntry {
   timestamp: string;
   credentialId: string;
   credentialIssuer: string;
@@ -57,42 +57,42 @@ export type CredentialStatusLogEntry = {
   verificationMethod: string;
   statusListId: string;
   statusListIndex: number;
-};
+}
 
 // Type definition for credential status log
 export type CredentialStatusLogData = CredentialStatusLogEntry[];
 
 // Type definition for item of credential status api request body
-type CredentialStatusRequestItem = {
+interface CredentialStatusRequestItem {
   type: string;
   status: string;
 }
 
 // Type definition for credential status api request body
-export type CredentialStatusRequest = {
+export interface CredentialStatusRequest {
   credentialId: string;
   credentialStatus: CredentialStatusRequestItem[];
-};
+}
 
 // Type definition for composeStatusCredential function input
-type ComposeStatusCredentialOptions = {
+interface ComposeStatusCredentialOptions {
   issuerDid: string;
   credentialId: string;
   statusList?: any;
   statusPurpose?: string;
-};
+}
 
 // Type definition for embedCredentialStatus method input
-type EmbedCredentialStatusOptions = {
+interface EmbedCredentialStatusOptions {
   credential: any;
   statusPurpose?: string;
-};
+}
 
 // Type definition for embedCredentialStatus method output
-type EmbedCredentialStatusResult = {
+interface EmbedCredentialStatusResult {
   credential: any;
   newList: string | undefined;
-};
+}
 
 // Base class for credential status clients
 export abstract class BaseCredentialStatusClient {

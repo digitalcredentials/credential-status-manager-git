@@ -45,17 +45,17 @@ const CREDENTIAL_STATUS_WEBSITE_GEMFILE =
 gem "jekyll"`;
 
 // Type definition for GitlabCredentialStatusClient constructor method input
-export type GitlabCredentialStatusClientOptions = {
+export interface GitlabCredentialStatusClientOptions {
   repoName: string;
   metaRepoName: string;
   repoOrgName: string;
   repoOrgId: string;
   repoVisibility: VisibilityLevel;
   accessToken: string;
-};
+}
 
 // Minimal set of options required for configuring GitlabCredentialStatusClient
-const GITLAB_CLIENT_REQUIRED_OPTIONS: (keyof GitlabCredentialStatusClientOptions)[] = [
+const GITLAB_CLIENT_REQUIRED_OPTIONS: Array<keyof GitlabCredentialStatusClientOptions> = [
   'repoOrgName',
   'repoOrgId',
   'accessToken'
@@ -63,13 +63,13 @@ const GITLAB_CLIENT_REQUIRED_OPTIONS: (keyof GitlabCredentialStatusClientOptions
 
 // Implementation of BaseCredentialStatusClient for GitLab
 export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
-  private repoName: string;
+  private readonly repoName: string;
   private repoId: string;
-  private metaRepoName: string;
+  private readonly metaRepoName: string;
   private metaRepoId: string;
-  private repoOrgName: string;
-  private repoOrgId: string;
-  private repoVisibility: VisibilityLevel;
+  private readonly repoOrgName: string;
+  private readonly repoOrgId: string;
+  private readonly repoVisibility: VisibilityLevel;
   private client: AxiosInstance;
 
   constructor(options: GitlabCredentialStatusClientOptions) {
@@ -136,7 +136,7 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
   // deploys website to host credential status management resources
   async deployCredentialStatusWebsite(): Promise<void> {
     const timestamp = (new Date()).toISOString();
-    const message = `[${timestamp}]: setup status website`;
+    const message = `[${timestamp}]: deployed status website`;
     const websiteRequestOptions = {
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       commit_message: message,
@@ -268,7 +268,7 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
     };
     const configRequestEndpoint = this.filesEndpoint(this.metaRepoId, CREDENTIAL_STATUS_CONFIG_PATH_ENCODED);
     const configResponse = await this.client.get(configRequestEndpoint, configRequestOptions);
-    return configResponse.data as any;
+    return configResponse.data;
   }
 
   // retrieves data from config file
@@ -314,7 +314,7 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
     };
     const logRequestEndpoint = this.filesEndpoint(this.metaRepoId, CREDENTIAL_STATUS_LOG_PATH_ENCODED);
     const logResponse = await this.client.get(logRequestEndpoint, logRequestOptions);
-    return logResponse.data as any;
+    return logResponse.data;
   }
 
   // retrieves data from log file
@@ -366,7 +366,7 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
     const statusPath = encodeURIComponent(latestList);
     const statusRequestEndpoint = this.filesEndpoint(this.repoId, statusPath);
     const statusResponse = await this.client.get(statusRequestEndpoint, statusRequestOptions);
-    return statusResponse.data as any;
+    return statusResponse.data;
   }
 
   // retrieves data from status file

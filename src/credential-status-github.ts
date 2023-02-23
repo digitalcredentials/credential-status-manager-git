@@ -13,26 +13,26 @@ import {
 } from './credential-status-base';
 
 // Type definition for GithubCredentialStatusClient constructor method input
-export type GithubCredentialStatusClientOptions = {
+export interface GithubCredentialStatusClientOptions {
   repoName: string;
   metaRepoName: string;
   repoOrgName: string;
   repoVisibility: VisibilityLevel;
   accessToken: string;
-};
+}
 
 // Minimal set of options required for configuring GithubCredentialStatusClient
-const GITHUB_CLIENT_REQUIRED_OPTIONS: (keyof GithubCredentialStatusClientOptions)[] = [
+const GITHUB_CLIENT_REQUIRED_OPTIONS: Array<keyof GithubCredentialStatusClientOptions> = [
   'repoOrgName',
   'accessToken'
 ];
 
 // Implementation of BaseCredentialStatusClient for GitHub
 export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
-  private repoName: string;
-  private metaRepoName: string;
-  private repoOrgName: string;
-  private repoVisibility: VisibilityLevel;
+  private readonly repoName: string;
+  private readonly metaRepoName: string;
+  private readonly repoOrgName: string;
+  private readonly repoVisibility: VisibilityLevel;
   private client: Octokit;
 
   constructor(options: GithubCredentialStatusClientOptions) {
@@ -69,8 +69,6 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
 
   // deploys website to host credential status management resources
   async deployCredentialStatusWebsite(): Promise<void> {
-    const timestamp = (new Date()).toISOString();
-    const message = `[${timestamp}]: setup status website`;
     await this.client.repos.createPagesSite({
       owner: this.repoOrgName,
       repo: this.repoName,
