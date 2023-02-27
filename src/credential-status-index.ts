@@ -4,6 +4,7 @@ import {
   CredentialStatusClientType,
   CredentialStatusConfigData,
   CredentialStatusLogData,
+  SignCredentialOptions,
   composeStatusCredential
 } from './credential-status-base';
 import {
@@ -14,15 +15,6 @@ import {
   GitlabCredentialStatusClient,
   GitlabCredentialStatusClientOptions
 } from './credential-status-gitlab';
-
-// Type definition for signCredential function options input
-type SignCredentialOptions = {
-  verificationMethod: string;
-  proofPurpose?: string;
-  created?: string;
-  domain?: string;
-  challenge?: string;
-};
 
 // Type definition for createStatusListManager function input
 type StatusListManagerOptions = {
