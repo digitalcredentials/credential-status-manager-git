@@ -1,12 +1,12 @@
 import { createList, createCredential } from '@digitalbazaar/vc-status-list';
 import { CONTEXT_URL_V1 } from '@digitalbazaar/vc-status-list-context';
-import { Credential, VerifiableCredential } from '@digitalcredentials/vc-data-model';
+import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 
 // Number of credentials tracked in a list
 const CREDENTIAL_STATUS_LIST_SIZE = 100000;
 
 // Credential status type
-export const CREDENTIAL_STATUS_TYPE = 'StatusList2021Entry';
+const CREDENTIAL_STATUS_TYPE = 'StatusList2021Entry';
 
 // Name of credential status branch
 export const CREDENTIAL_STATUS_REPO_BRANCH_NAME = 'main';
@@ -35,7 +35,7 @@ export enum SystemFile {
 }
 
 // States of credential resulting from issuer actions and tracked in status log
-export enum CredentialState {
+enum CredentialState {
   Issued = 'issued',
   Revoked = 'revoked',
   Suspended = 'suspended'
@@ -48,7 +48,7 @@ export interface CredentialStatusConfigData {
 }
 
 // Type definition for credential status log entry
-export interface CredentialStatusLogEntry {
+interface CredentialStatusLogEntry {
   timestamp: string;
   credentialId: string;
   credentialIssuer: string;
@@ -61,18 +61,6 @@ export interface CredentialStatusLogEntry {
 
 // Type definition for credential status log
 export type CredentialStatusLogData = CredentialStatusLogEntry[];
-
-// Type definition for item of credential status api request body
-interface CredentialStatusRequestItem {
-  type: string;
-  status: string;
-}
-
-// Type definition for credential status api request body
-export interface CredentialStatusRequest {
-  credentialId: string;
-  credentialStatus: CredentialStatusRequestItem[];
-}
 
 // Type definition for signCredential function options input
 export type SignCredentialOptions = {
@@ -97,13 +85,13 @@ interface EmbedCredentialStatusOptions {
   statusPurpose?: string;
 }
 
-// Type definition for updateCredentialStatus method input
-interface UpdateCredentialStatusOptions {
+// Type definition for signCredentialWithStatus method input
+interface SignCredentialWithStatusOptions {
   credential: any;
   statusPurpose?: string;
   issuerDid: string;
   signCredentialOptions: SignCredentialOptions;
-  signCredential: (credential: Credential, options: SignCredentialOptions) => Promise<VerifiableCredential>;
+  signCredential: (credential: VerifiableCredential, options: SignCredentialOptions) => Promise<VerifiableCredential>;
 }
 
 // Type definition for embedCredentialStatus method output
@@ -162,12 +150,12 @@ export abstract class BaseCredentialStatusClient {
   }
 
   // updates credential status
-  async updateCredentialStatus({
+  async signCredentialWithStatus({
     credential,
     issuerDid,
     signCredentialOptions,
     signCredential
-  }: UpdateCredentialStatusOptions): Promise<Credential> {
+  }: SignCredentialWithStatusOptions): Promise<VerifiableCredential> {
     // attach status to credential
     const { credential: credentialWithStatus, newList } = await this.embedCredentialStatus({ credential });
 
@@ -183,7 +171,28 @@ export abstract class BaseCredentialStatusClient {
       await this.createStatusData(statusCredentialData);
     }
 
-    return credentialWithStatus;
+    // sign credential
+    const signedCredentialWithStatus = await signCredential(credentialWithStatus, signCredentialOptions);
+    const { verificationMethod } = signCredentialOptions;
+
+    // add new entry to status log
+    const { id: credentialStatusId, statusListCredential, statusListIndex } = credentialWithStatus.credentialStatus;
+    const statusListId = statusListCredential.split('/').slice(-1).pop(); // retrieve status list id from status credential url
+    const statusLogEntry: CredentialStatusLogEntry = {
+      timestamp: (new Date()).toISOString(),
+      credentialId: credential.id || credentialStatusId,
+      credentialIssuer: issuerDid,
+      credentialSubject: credential.credentialSubject?.id,
+      credentialState: CredentialState.Issued,
+      verificationMethod,
+      statusListId,
+      statusListIndex
+    };
+    const statusLogData = await this.readLogData();
+    statusLogData.push(statusLogEntry);
+    await this.updateLogData(statusLogData);
+
+    return signedCredentialWithStatus;
   }
 
   // retrieves credential status url
