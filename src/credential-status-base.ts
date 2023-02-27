@@ -1,6 +1,6 @@
 import { createList, createCredential } from '@digitalbazaar/vc-status-list';
 import { CONTEXT_URL_V1 } from '@digitalbazaar/vc-status-list-context';
-import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
+import { Credential, VerifiableCredential } from '@digitalcredentials/vc-data-model';
 
 // Number of credentials tracked in a list
 const CREDENTIAL_STATUS_LIST_SIZE = 100000;
@@ -74,6 +74,15 @@ export interface CredentialStatusRequest {
   credentialStatus: CredentialStatusRequestItem[];
 }
 
+// Type definition for signCredential function options input
+export type SignCredentialOptions = {
+  verificationMethod: string;
+  proofPurpose?: string;
+  created?: string;
+  domain?: string;
+  challenge?: string;
+};
+
 // Type definition for composeStatusCredential function input
 interface ComposeStatusCredentialOptions {
   issuerDid: string;
@@ -86,6 +95,15 @@ interface ComposeStatusCredentialOptions {
 interface EmbedCredentialStatusOptions {
   credential: any;
   statusPurpose?: string;
+}
+
+// Type definition for updateCredentialStatus method input
+interface UpdateCredentialStatusOptions {
+  credential: any;
+  statusPurpose?: string;
+  issuerDid: string;
+  signCredentialOptions: SignCredentialOptions;
+  signCredential: (credential: Credential, options: SignCredentialOptions) => Promise<VerifiableCredential>;
 }
 
 // Type definition for embedCredentialStatus method output
@@ -141,6 +159,31 @@ export abstract class BaseCredentialStatusClient {
       },
       newList
     };
+  }
+
+  // updates credential status
+  async updateCredentialStatus({
+    credential,
+    issuerDid,
+    signCredentialOptions,
+    signCredential
+  }: UpdateCredentialStatusOptions): Promise<Credential> {
+    // attach status to credential
+    const { credential: credentialWithStatus, newList } = await this.embedCredentialStatus({ credential });
+
+    // create new status credential only if a new list was created
+    if (newList) {
+      // create and sign status credential
+      const credentialStatusUrl = this.getCredentialStatusUrl();
+      const statusCredentialId = `${credentialStatusUrl}/${newList}`;
+      const statusCredentialDataUnsigned = await composeStatusCredential({ issuerDid, credentialId: statusCredentialId });
+      const statusCredentialData = await signCredential(statusCredentialDataUnsigned, signCredentialOptions);
+
+      // create and persist status data
+      await this.createStatusData(statusCredentialData);
+    }
+
+    return credentialWithStatus;
   }
 
   // retrieves credential status url
