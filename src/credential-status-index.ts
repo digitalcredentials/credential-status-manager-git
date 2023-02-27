@@ -17,7 +17,7 @@ import {
 
 // Type definition for signCredential function options input
 type SignCredentialOptions = {
-  verificationMethod?: string;
+  verificationMethod: string;
   proofPurpose?: string;
   created?: string;
   domain?: string;
