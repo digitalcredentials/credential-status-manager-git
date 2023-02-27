@@ -1,4 +1,4 @@
-import { Credential, VerifiableCredential } from '@digitalcredentials/vc-data-model';
+import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import {
   BaseCredentialStatusClient,
   CredentialStatusClientType,
@@ -21,7 +21,7 @@ type StatusListManagerOptions = {
   clientType: CredentialStatusClientType;
   issuerDid: string;
   signCredentialOptions: SignCredentialOptions;
-  signCredential: (credential: Credential, options: SignCredentialOptions) => Promise<VerifiableCredential>;
+  signCredential: (credential: VerifiableCredential, options: SignCredentialOptions) => Promise<VerifiableCredential>;
 } & GithubCredentialStatusClientOptions & GitlabCredentialStatusClientOptions;
 
 // creates credential status list manager
@@ -31,8 +31,8 @@ export async function createStatusListManager(
   const {
     clientType,
     issuerDid,
-    signCredential,
     signCredentialOptions,
+    signCredential,
     repoName,
     metaRepoName,
     repoOrgName,
