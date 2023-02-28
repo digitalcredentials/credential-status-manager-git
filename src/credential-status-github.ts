@@ -37,7 +37,7 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
 
   constructor(options: GithubCredentialStatusClientOptions) {
     super();
-    this.assureProperConfiguration(options);
+    this.ensureProperConfiguration(options);
     this.repoName = options.repoName;
     this.metaRepoName = options.metaRepoName;
     this.repoOrgName = options.repoOrgName;
@@ -45,8 +45,8 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
     this.client = new Octokit({ auth: options.accessToken });
   }
 
-  // assures proper configuration of status client
-  assureProperConfiguration(options: GithubCredentialStatusClientOptions): void {
+  // ensures proper configuration of status client
+  ensureProperConfiguration(options: GithubCredentialStatusClientOptions): void {
     options.repoName = options.repoName || 'credential-status';
     options.metaRepoName = options.metaRepoName || 'credential-status-metadata';
     options.repoVisibility = options.repoVisibility || VisibilityLevel.Public;
