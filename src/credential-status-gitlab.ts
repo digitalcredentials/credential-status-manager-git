@@ -77,7 +77,7 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
 
   constructor(options: GitlabCredentialStatusClientOptions) {
     super();
-    this.assureProperConfiguration(options);
+    this.ensureProperConfiguration(options);
     this.repoName = options.repoName;
     this.repoId = ''; // This value is set in createStatusRepo
     this.metaRepoName = options.metaRepoName;
@@ -94,8 +94,8 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
     });
   }
 
-  // assures proper configuration of status client
-  assureProperConfiguration(options: GitlabCredentialStatusClientOptions): void {
+  // ensures proper configuration of status client
+  ensureProperConfiguration(options: GitlabCredentialStatusClientOptions): void {
     options.repoName = options.repoName || 'credential-status';
     options.metaRepoName = options.metaRepoName || 'credential-status-metadata';
     options.repoVisibility = options.repoVisibility || VisibilityLevel.Public;
