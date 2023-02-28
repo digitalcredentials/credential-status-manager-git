@@ -51,12 +51,15 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
     options.metaRepoName = options.metaRepoName || 'credential-status-metadata';
     options.repoVisibility = options.repoVisibility || VisibilityLevel.Public;
 
-    const isProperlyConfigured = GITHUB_CLIENT_REQUIRED_OPTIONS.every((option: keyof GithubCredentialStatusClientOptions) => {
-      return !!options[option];
-    });
+    const isProperlyConfigured = GITHUB_CLIENT_REQUIRED_OPTIONS.every(
+      (option: keyof GithubCredentialStatusClientOptions) => {
+        return !!options[option];
+      }
+    );
     if (!isProperlyConfigured) {
       throw new Error(
-        'The following environment variables must be set for the GitHub credential status client:' +
+        'The following environment variables must be set for the ' +
+        'GitHub credential status client: ' +
         `${GITHUB_CLIENT_REQUIRED_OPTIONS.map(o => `'${o}'`).join(', ')}.`
       );
     }
@@ -87,7 +90,9 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
     const repos = (await this.client.repos.listForOrg({ org: this.repoOrgName })).data;
     return repos.some((repo) => {
       const hasAccess = repo.full_name === `${this.repoOrgName}/${this.repoName}`;
-      const hasScope = repo.permissions?.admin && repo.permissions?.push && repo.permissions?.pull;
+      const hasScope = repo.permissions?.admin &&
+        repo.permissions?.push &&
+        repo.permissions?.pull;
       return hasAccess && hasScope;
     });
   }
