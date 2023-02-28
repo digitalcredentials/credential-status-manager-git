@@ -21,7 +21,10 @@ type StatusListManagerOptions = {
   clientType: CredentialStatusClientType;
   issuerDid: string;
   signCredentialOptions: SignCredentialOptions;
-  signCredential: (credential: VerifiableCredential, options: SignCredentialOptions) => Promise<VerifiableCredential>;
+  signCredential: (
+    credential: VerifiableCredential,
+    options: SignCredentialOptions
+  ) => Promise<VerifiableCredential>;
 } & GithubCredentialStatusClientOptions & GitlabCredentialStatusClientOptions;
 
 // creates credential status list manager
@@ -89,8 +92,14 @@ export async function createStatusListManager(
 
     // create and sign status credential
     const credentialId = `${credentialStatusUrl}/${listId}`;
-    const statusCredentialDataUnsigned = await composeStatusCredential({ issuerDid, credentialId });
-    const statusCredentialData = await signCredential(statusCredentialDataUnsigned, signCredentialOptions);
+    const statusCredentialDataUnsigned = await composeStatusCredential({
+      issuerDid,
+      credentialId
+    });
+    const statusCredentialData = await signCredential(
+      statusCredentialDataUnsigned,
+      signCredentialOptions
+    );
 
     // create and persist status data
     await credStatusClient.createStatusData(statusCredentialData);

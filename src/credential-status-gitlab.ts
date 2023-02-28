@@ -21,7 +21,10 @@ const CREDENTIAL_STATUS_WEBSITE_HOME_PAGE =
     <title>Credential Status Management Service</title>
   </head>
   <body>
-    <h1>We manage credential status for an instance of the <a href="https://w3c-ccg.github.io/vc-api">VC-API</a></h1>
+    <h1>
+      We manage credential status for an instance of the
+      <a href="https://w3c-ccg.github.io/vc-api">VC-API</a>
+    </h1>
   </body>
 </html>`;
 
@@ -97,12 +100,15 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
     options.metaRepoName = options.metaRepoName || 'credential-status-metadata';
     options.repoVisibility = options.repoVisibility || VisibilityLevel.Public;
 
-    const isProperlyConfigured = GITLAB_CLIENT_REQUIRED_OPTIONS.every((option: keyof GitlabCredentialStatusClientOptions) => {
-      return !!options[option];
-    });
+    const isProperlyConfigured = GITLAB_CLIENT_REQUIRED_OPTIONS.every(
+      (option: keyof GitlabCredentialStatusClientOptions) => {
+        return !!options[option];
+      }
+    );
     if (!isProperlyConfigured) {
       throw new Error(
-        'The following environment variables must be set for the GitLab credential status client:' +
+        'The following environment variables must be set for the ' +
+        'GitLab credential status client: ' +
         `${GITLAB_CLIENT_REQUIRED_OPTIONS.map(o => `'${o}'`).join(', ')}.`
       );
     }
@@ -255,7 +261,10 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
       commit_message: message,
       content
     };
-    const configRequestEndpoint = this.filesEndpoint(this.metaRepoId, CREDENTIAL_STATUS_CONFIG_PATH_ENCODED);
+    const configRequestEndpoint = this.filesEndpoint(
+      this.metaRepoId,
+      CREDENTIAL_STATUS_CONFIG_PATH_ENCODED
+    );
     await this.client.post(configRequestEndpoint, configRequestOptions);
   }
 
@@ -266,7 +275,10 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
       }
     };
-    const configRequestEndpoint = this.filesEndpoint(this.metaRepoId, CREDENTIAL_STATUS_CONFIG_PATH_ENCODED);
+    const configRequestEndpoint = this.filesEndpoint(
+      this.metaRepoId,
+      CREDENTIAL_STATUS_CONFIG_PATH_ENCODED
+    );
     const configResponse = await this.client.get(configRequestEndpoint, configRequestOptions);
     return configResponse.data;
   }
@@ -287,7 +299,10 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
       commit_message: message,
       content
     };
-    const configRequestEndpoint = this.filesEndpoint(this.metaRepoId, CREDENTIAL_STATUS_CONFIG_PATH_ENCODED);
+    const configRequestEndpoint = this.filesEndpoint(
+      this.metaRepoId,
+      CREDENTIAL_STATUS_CONFIG_PATH_ENCODED
+    );
     await this.client.put(configRequestEndpoint, configRequestOptions);
   }
 
@@ -301,7 +316,10 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
       commit_message: message,
       content
     };
-    const logRequestEndpoint = this.filesEndpoint(this.metaRepoId, CREDENTIAL_STATUS_LOG_PATH_ENCODED);
+    const logRequestEndpoint = this.filesEndpoint(
+      this.metaRepoId,
+      CREDENTIAL_STATUS_LOG_PATH_ENCODED
+    );
     await this.client.post(logRequestEndpoint, logRequestOptions);
   }
 
@@ -312,7 +330,10 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
       }
     };
-    const logRequestEndpoint = this.filesEndpoint(this.metaRepoId, CREDENTIAL_STATUS_LOG_PATH_ENCODED);
+    const logRequestEndpoint = this.filesEndpoint(
+      this.metaRepoId,
+      CREDENTIAL_STATUS_LOG_PATH_ENCODED
+    );
     const logResponse = await this.client.get(logRequestEndpoint, logRequestOptions);
     return logResponse.data;
   }
@@ -333,7 +354,10 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
       commit_message: message,
       content
     };
-    const logRequestEndpoint = this.filesEndpoint(this.metaRepoId, CREDENTIAL_STATUS_LOG_PATH_ENCODED);
+    const logRequestEndpoint = this.filesEndpoint(
+      this.metaRepoId,
+      CREDENTIAL_STATUS_LOG_PATH_ENCODED
+    );
     await this.client.put(logRequestEndpoint, logRequestOptions);
   }
 

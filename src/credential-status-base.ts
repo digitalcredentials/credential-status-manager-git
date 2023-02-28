@@ -85,13 +85,16 @@ interface EmbedCredentialStatusOptions {
   statusPurpose?: string;
 }
 
-// Type definition for signCredentialWithStatus method input
-interface SignCredentialWithStatusOptions {
+// Type definition for allocateStatusWithSignature method input
+interface AllocateStatusWithSignatureOptions {
   credential: any;
   statusPurpose?: string;
   issuerDid: string;
   signCredentialOptions: SignCredentialOptions;
-  signCredential: (credential: VerifiableCredential, options: SignCredentialOptions) => Promise<VerifiableCredential>;
+  signCredential: (
+    credential: VerifiableCredential,
+    options: SignCredentialOptions
+  ) => Promise<VerifiableCredential>;
 }
 
 // Type definition for embedCredentialStatus method output
@@ -149,34 +152,50 @@ export abstract class BaseCredentialStatusClient {
     };
   }
 
-  // updates credential status
-  async signCredentialWithStatus({
+  // allocates status and applies signature to credential
+  async allocateStatusWithSignature({
     credential,
     issuerDid,
     signCredentialOptions,
     signCredential
-  }: SignCredentialWithStatusOptions): Promise<VerifiableCredential> {
+  }: AllocateStatusWithSignatureOptions): Promise<VerifiableCredential> {
     // attach status to credential
-    const { credential: credentialWithStatus, newList } = await this.embedCredentialStatus({ credential });
+    const {
+      credential: credentialWithStatus,
+      newList
+    } = await this.embedCredentialStatus({ credential });
 
     // create new status credential only if a new list was created
     if (newList) {
       // create and sign status credential
       const credentialStatusUrl = this.getCredentialStatusUrl();
       const statusCredentialId = `${credentialStatusUrl}/${newList}`;
-      const statusCredentialDataUnsigned = await composeStatusCredential({ issuerDid, credentialId: statusCredentialId });
-      const statusCredentialData = await signCredential(statusCredentialDataUnsigned, signCredentialOptions);
+      const statusCredentialDataUnsigned = await composeStatusCredential({
+        issuerDid,
+        credentialId: statusCredentialId
+      });
+      const statusCredentialData = await signCredential(
+        statusCredentialDataUnsigned,
+        signCredentialOptions
+      );
 
       // create and persist status data
       await this.createStatusData(statusCredentialData);
     }
 
     // sign credential
-    const signedCredentialWithStatus = await signCredential(credentialWithStatus, signCredentialOptions);
+    const signedCredentialWithStatus = await signCredential(
+      credentialWithStatus,
+      signCredentialOptions
+    );
     const { verificationMethod } = signCredentialOptions;
 
     // add new entry to status log
-    const { id: credentialStatusId, statusListCredential, statusListIndex } = credentialWithStatus.credentialStatus;
+    const {
+      id: credentialStatusId,
+      statusListCredential,
+      statusListIndex
+    } = credentialWithStatus.credentialStatus;
     const statusListId = statusListCredential.split('/').slice(-1).pop(); // retrieve status list id from status credential url
     const statusLogEntry: CredentialStatusLogEntry = {
       timestamp: (new Date()).toISOString(),
@@ -252,7 +271,11 @@ export async function composeStatusCredential({
     statusList = await createList({ length: CREDENTIAL_STATUS_LIST_SIZE });
   }
   const issuanceDate = (new Date()).toISOString();
-  let credential = await createCredential({ id: credentialId, list: statusList, statusPurpose });
+  let credential = await createCredential({
+    id: credentialId,
+    list: statusList,
+    statusPurpose
+  });
   credential = {
     ...credential,
     issuer: issuerDid,
