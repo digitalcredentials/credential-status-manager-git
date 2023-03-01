@@ -22,8 +22,8 @@ export enum DidMethod {
   Web = 'web'
 }
 
-// Type definition for doSignCredential method input
-interface DoSignCredentialOptions {
+// Type definition for signCredential method input
+interface SignCredentialOptions {
   credential: any;
   didMethod: DidMethod;
   didSeed: string;
@@ -46,12 +46,12 @@ interface GetSigningKeysResult {
 }
 
 // signs credential
-export async function doSignCredential({
+export async function signCredential({
   credential,
   didMethod,
   didSeed,
   didWebUrl
-}: DoSignCredentialOptions): Promise<VerifiableCredential> {
+}: SignCredentialOptions): Promise<VerifiableCredential> {
   const {
     didDocument,
     keyPairs,

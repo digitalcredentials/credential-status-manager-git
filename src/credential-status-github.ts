@@ -9,7 +9,7 @@ import {
   CredentialStatusLogData,
   VisibilityLevel
 } from './credential-status-base';
-import { decodeSystemData, encodeAsciiAsBase64 } from './helpers';
+import { DidMethod, decodeSystemData, encodeAsciiAsBase64 } from './helpers';
 
 // Type definition for GithubCredentialStatusClient constructor method input
 export interface GithubCredentialStatusClientOptions {
@@ -18,6 +18,11 @@ export interface GithubCredentialStatusClientOptions {
   repoOrgName: string;
   repoVisibility: VisibilityLevel;
   accessToken: string;
+  didMethod: DidMethod;
+  didSeed: string;
+  didWebUrl?: string;
+  signUserCredential?: boolean;
+  signStatusCredential?: boolean;
 }
 
 // Minimal set of options required for configuring GithubCredentialStatusClient
@@ -35,7 +40,20 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
   private client: Octokit;
 
   constructor(options: GithubCredentialStatusClientOptions) {
-    super();
+    const {
+      didMethod,
+      didSeed,
+      didWebUrl,
+      signUserCredential,
+      signStatusCredential
+    } = options;
+    super({
+      didMethod,
+      didSeed,
+      didWebUrl,
+      signUserCredential,
+      signStatusCredential
+    });
     this.ensureProperConfiguration(options);
     this.repoName = options.repoName;
     this.metaRepoName = options.metaRepoName;
@@ -44,7 +62,7 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
     this.client = new Octokit({ auth: options.accessToken });
   }
 
-  // ensures proper configuration of status client
+  // ensures proper configuration of GitHub status client
   ensureProperConfiguration(options: GithubCredentialStatusClientOptions): void {
     const isProperlyConfigured = GITHUB_CLIENT_REQUIRED_OPTIONS.every(
       (option: keyof GithubCredentialStatusClientOptions) => {

@@ -14,7 +14,7 @@ import {
   GitlabCredentialStatusClient,
   GitlabCredentialStatusClientOptions
 } from './credential-status-gitlab';
-import { DidMethod, doSignCredential, getSigningMaterial } from './helpers';
+import { DidMethod, signCredential, getSigningMaterial } from './helpers';
 
 // Type definition for createStatusListManager function input
 type StatusListManagerOptions = {
@@ -22,6 +22,7 @@ type StatusListManagerOptions = {
   didMethod: DidMethod;
   didSeed: string;
   didWebUrl?: string;
+  signUserCredential?: boolean;
   signStatusCredential?: boolean;
 } & GithubCredentialStatusClientOptions & GitlabCredentialStatusClientOptions;
 
@@ -31,6 +32,7 @@ export async function createStatusListManager({
     didMethod,
     didSeed,
     didWebUrl,
+    signUserCredential=false,
     signStatusCredential=false,
     repoName='credential-status',
     metaRepoName='credential-status-metadata',
@@ -47,7 +49,12 @@ export async function createStatusListManager({
         metaRepoName,
         repoOrgName,
         repoVisibility,
-        accessToken
+        accessToken,
+        didMethod,
+        didSeed,
+        didWebUrl,
+        signUserCredential,
+        signStatusCredential
       });
       break;
     case CredentialStatusClientType.Gitlab:
@@ -57,7 +64,12 @@ export async function createStatusListManager({
         repoOrgName,
         repoOrgId,
         repoVisibility,
-        accessToken
+        accessToken,
+        didMethod,
+        didSeed,
+        didWebUrl,
+        signUserCredential,
+        signStatusCredential
       });
       break;
     default:
@@ -102,7 +114,7 @@ export async function createStatusListManager({
 
     // sign status credential if necessary
     if (signStatusCredential) {
-      statusCredentialData = await doSignCredential({
+      statusCredentialData = await signCredential({
         credential: statusCredentialData,
         didMethod,
         didSeed,

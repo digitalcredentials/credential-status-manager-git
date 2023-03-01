@@ -9,7 +9,7 @@ import {
   CredentialStatusLogData,
   VisibilityLevel
 } from './credential-status-base';
-import { decodeSystemData } from './helpers';
+import { DidMethod, decodeSystemData } from './helpers';
 
 const CREDENTIAL_STATUS_CONFIG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_CONFIG_FILE);
 const CREDENTIAL_STATUS_LOG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_LOG_FILE);
@@ -55,6 +55,11 @@ export interface GitlabCredentialStatusClientOptions {
   repoOrgId: string;
   repoVisibility: VisibilityLevel;
   accessToken: string;
+  didMethod: DidMethod;
+  didSeed: string;
+  didWebUrl?: string;
+  signUserCredential?: boolean;
+  signStatusCredential?: boolean;
 }
 
 // Minimal set of options required for configuring GitlabCredentialStatusClient
@@ -76,7 +81,20 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
   private client: AxiosInstance;
 
   constructor(options: GitlabCredentialStatusClientOptions) {
-    super();
+    const {
+      didMethod,
+      didSeed,
+      didWebUrl,
+      signUserCredential,
+      signStatusCredential
+    } = options;
+    super({
+      didMethod,
+      didSeed,
+      didWebUrl,
+      signUserCredential,
+      signStatusCredential
+    });
     this.ensureProperConfiguration(options);
     this.repoName = options.repoName;
     this.repoId = ''; // This value is set in createStatusRepo
@@ -94,7 +112,7 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
     });
   }
 
-  // ensures proper configuration of status client
+  // ensures proper configuration of GitLab status client
   ensureProperConfiguration(options: GitlabCredentialStatusClientOptions): void {
     const isProperlyConfigured = GITLAB_CLIENT_REQUIRED_OPTIONS.every(
       (option: keyof GitlabCredentialStatusClientOptions) => {

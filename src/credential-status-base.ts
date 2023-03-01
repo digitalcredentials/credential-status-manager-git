@@ -1,7 +1,7 @@
 import { createList, createCredential } from '@digitalbazaar/vc-status-list';
 import { CONTEXT_URL_V1 } from '@digitalbazaar/vc-status-list-context';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
-import { DidMethod, doSignCredential, getSigningMaterial } from './helpers';
+import { DidMethod, signCredential, getSigningMaterial } from './helpers';
 
 // Number of credentials tracked in a list
 const CREDENTIAL_STATUS_LIST_SIZE = 100000;
@@ -63,15 +63,6 @@ interface CredentialStatusLogEntry {
 // Type definition for credential status log
 export type CredentialStatusLogData = CredentialStatusLogEntry[];
 
-// Type definition for signCredential function options input
-export type SignCredentialOptions = {
-  verificationMethod: string;
-  proofPurpose?: string;
-  created?: string;
-  domain?: string;
-  challenge?: string;
-};
-
 // Type definition for composeStatusCredential function input
 interface ComposeStatusCredentialOptions {
   issuerDid: string;
@@ -86,24 +77,66 @@ interface EmbedCredentialStatusOptions {
   statusPurpose?: string;
 }
 
-// Type definition for allocateStatus method input
-interface AllocateStatusOptions {
-  credential: any;
-  didMethod: DidMethod;
-  didSeed: string;
-  didWebUrl?: string;
-  signCredential?: boolean;
-  signStatusCredential?: boolean;
-}
-
 // Type definition for embedCredentialStatus method output
 interface EmbedCredentialStatusResult {
   credential: any;
   newList: string | undefined;
 }
 
+// Type definition for BaseCredentialStatusClient constructor method input
+export interface BaseCredentialStatusClientOptions {
+  didMethod: DidMethod;
+  didSeed: string;
+  didWebUrl?: string;
+  signUserCredential?: boolean;
+  signStatusCredential?: boolean;
+}
+
+// Minimal set of options required for configuring BaseCredentialStatusClient
+const BASE_CLIENT_REQUIRED_OPTIONS: Array<keyof BaseCredentialStatusClientOptions> = [
+  'didMethod',
+  'didSeed',
+];
+
 // Base class for credential status clients
 export abstract class BaseCredentialStatusClient {
+  private readonly didMethod: DidMethod;
+  private readonly didSeed: string;
+  private readonly didWebUrl: string;
+  private readonly signUserCredential: boolean;
+  private readonly signStatusCredential: boolean;
+
+  constructor(options: BaseCredentialStatusClientOptions) {
+    this.ensureProperConfiguration(options);
+    this.didMethod = options.didMethod;
+    this.didSeed = options.didSeed;
+    this.didWebUrl = options.didWebUrl || '';
+    this.signUserCredential = options.signUserCredential || false;
+    this.signStatusCredential = options.signUserCredential || false;
+  }
+
+  // ensures proper configuration of Base status client
+  ensureProperConfiguration(options: BaseCredentialStatusClientOptions): void {
+    const isProperlyConfigured = BASE_CLIENT_REQUIRED_OPTIONS.every(
+      (option: keyof BaseCredentialStatusClientOptions) => {
+        return !!options[option];
+      }
+    );
+    if (!isProperlyConfigured) {
+      throw new Error(
+        'The following environment variables must be set for the ' +
+        'Base credential status client: ' +
+        `${BASE_CLIENT_REQUIRED_OPTIONS.map(o => `'${o}'`).join(', ')}.`
+      );
+    }
+    if (this.didMethod === DidMethod.Web && !this.didWebUrl) {
+      throw new Error(
+        'The value of "didWebUrl" must be provided ' +
+        'when using "didMethod" of type "web".'
+      );
+    }
+  }
+
   // generates new status list ID
   generateStatusListId(): string {
     return Math.random().toString(36).substring(2,12).toUpperCase();
@@ -152,14 +185,8 @@ export abstract class BaseCredentialStatusClient {
   }
 
   // allocates status for credential
-  async allocateStatus({
-    credential,
-    didMethod,
-    didSeed,
-    didWebUrl,
-    signCredential=false,
-    signStatusCredential=false
-  }: AllocateStatusOptions): Promise<VerifiableCredential> {
+  // Replace any with VerifiableCredential after fixing compilation errors
+  async allocateStatus(credential: any): Promise<VerifiableCredential> {
     // attach status to credential
     const {
       credential: credentialWithStatus,
@@ -167,6 +194,7 @@ export abstract class BaseCredentialStatusClient {
     } = await this.embedCredentialStatus({ credential });
 
     // retrieve signing material
+    const { didMethod, didSeed, didWebUrl, signUserCredential, signStatusCredential } = this;
     const { issuerDid, verificationMethod } = await getSigningMaterial({
       didMethod,
       didSeed,
@@ -185,7 +213,7 @@ export abstract class BaseCredentialStatusClient {
 
       // sign status credential if necessary
       if (signStatusCredential) {
-        statusCredentialData = await doSignCredential({
+        statusCredentialData = await signCredential({
           credential: statusCredentialData,
           didMethod,
           didSeed,
@@ -198,9 +226,9 @@ export abstract class BaseCredentialStatusClient {
     }
 
     let signedCredentialWithStatus;
-    if (signCredential) {
+    if (signUserCredential) {
       // sign credential
-      signedCredentialWithStatus = await doSignCredential({
+      signedCredentialWithStatus = await signCredential({
         credential: credentialWithStatus,
         didMethod,
         didSeed,
@@ -229,7 +257,7 @@ export abstract class BaseCredentialStatusClient {
     statusLogData.push(statusLogEntry);
     await this.updateLogData(statusLogData);
 
-    return signCredential ? signedCredentialWithStatus : credentialWithStatus;
+    return signUserCredential ? signedCredentialWithStatus : credentialWithStatus;
   }
 
   // retrieves credential status url
