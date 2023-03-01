@@ -194,7 +194,13 @@ export abstract class BaseCredentialStatusClient {
     } = await this.embedCredentialStatus({ credential });
 
     // retrieve signing material
-    const { didMethod, didSeed, didWebUrl, signUserCredential, signStatusCredential } = this;
+    const {
+      didMethod,
+      didSeed,
+      didWebUrl,
+      signUserCredential,
+      signStatusCredential
+    } = this;
     const { issuerDid, verificationMethod } = await getSigningMaterial({
       didMethod,
       didSeed,
