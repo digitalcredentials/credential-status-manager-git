@@ -1,0 +1,148 @@
+import { decodeSecretKeySeed } from '@digitalcredentials/bnid';
+import { Ed25519Signature2020 } from '@digitalcredentials/ed25519-signature-2020';
+import { Ed25519VerificationKey2020 } from '@digitalcredentials/ed25519-verification-key-2020';
+import { X25519KeyAgreementKey2020 } from '@digitalcredentials/x25519-key-agreement-key-2020';
+import { securityLoader as documentLoader } from '@digitalcredentials/security-document-loader';
+import vc from '@digitalcredentials/vc';
+import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
+import * as DidKey from '@digitalcredentials/did-method-key';
+import * as DidWeb from '@interop/did-web-resolver';
+import { CryptoLD } from 'crypto-ld';
+
+const cryptoLd = new CryptoLD();
+cryptoLd.use(Ed25519VerificationKey2020);
+cryptoLd.use(X25519KeyAgreementKey2020);
+
+const didWebDriver = DidWeb.driver({ cryptoLd }); 
+const didKeyDriver = DidKey.driver();
+
+// DID method used to sign credentials
+export enum DidMethod {
+  Key = 'key',
+  Web = 'web'
+}
+
+// Type definition for doSignCredential method input
+interface DoSignCredentialOptions {
+  credential: any;
+  didMethod: DidMethod;
+  didSeed: string;
+  didWebUrl?: string;
+}
+
+// Type definition for getSigningKeys method input
+interface GetSigningKeysOptions {
+  didMethod: DidMethod;
+  didSeed: string;
+  didWebUrl?: string;
+}
+
+// Type definition for getSigningKeys method output
+interface GetSigningKeysResult {
+  didDocument: any;
+  issuerDid: string;
+  keyPairs: Map<string, any>;
+  verificationMethod: string;
+}
+
+// signs credential
+export async function doSignCredential({
+  credential,
+  didMethod,
+  didSeed,
+  didWebUrl
+}: DoSignCredentialOptions): Promise<VerifiableCredential> {
+  const {
+    didDocument,
+    keyPairs,
+    verificationMethod
+  } = await getSigningMaterial({
+    didMethod,
+    didSeed,
+    didWebUrl
+  });
+  const key = keyPairs.get(verificationMethod);
+  const date = (new Date()).toISOString();
+  const suite = new Ed25519Signature2020({ key, date });
+  return vc.issue({
+    credential,
+    documentLoader,
+    suite
+  });
+}
+
+// retrieves signing material
+export async function getSigningMaterial({
+  didMethod,
+  didSeed,
+  didWebUrl
+}: GetSigningKeysOptions)
+: Promise<GetSigningKeysResult> {
+  let didDocument;
+  let keyPairs;
+  let verificationMethod;
+  const didSeedBytes = decodeSeed(didSeed);
+  switch (didMethod) {
+    case DidMethod.Key:
+      ({ didDocument, keyPairs } = await didKeyDriver.generate({
+        seed: didSeedBytes
+      }));
+      break;
+    case DidMethod.Web:
+      ({ didDocument, keyPairs } = await didWebDriver.generate({
+        seed: didSeedBytes,
+        url: didWebUrl
+      }));
+      break;
+    default:
+      throw new Error(
+        '"didMethod" must be one of the following values: ' +
+        `${Object.values(DidMethod).map(v => `'${v}'`).join(', ')}.`
+      );
+  }
+  const issuerDid = didDocument.id;
+  verificationMethod = extractId(didDocument.assertionMethod[0]);
+  return {
+    didDocument,
+    issuerDid,
+    keyPairs,
+    verificationMethod
+  };
+}
+
+// decodes system data as JSON
+export function decodeSystemData(text: string): any {
+  return JSON.parse(decodeBase64AsAscii(text));
+}
+
+// encodes ASCII text as Bas64
+export function encodeAsciiAsBase64(text: string): string {
+  return Buffer.from(text).toString('base64');
+}
+
+// decodes Bas64 text as ASCII
+function decodeBase64AsAscii(text: string): string {
+  return Buffer.from(text, 'base64').toString('ascii');
+}
+
+// decodes DID seed
+function decodeSeed(secretKeySeed: string) {
+  let secretKeySeedBytes;
+  if (secretKeySeed.startsWith('z')) {
+    // This is a multibase-encoded seed
+    secretKeySeedBytes = decodeSecretKeySeed({secretKeySeed});
+  } else if (secretKeySeed.length >= 32) {
+      secretKeySeedBytes = (new TextEncoder()).encode(secretKeySeed).slice(0, 32);
+  } else {
+    throw Error('"secretKeySeed" must be a multibase-encoded value with at least 32 bytes');
+  }
+  return secretKeySeedBytes;
+}
+
+// extracts ID from object or string
+function extractId(objectOrString: any) {
+  if (typeof objectOrString === 'string') {
+    return objectOrString;
+  } 
+  return objectOrString.id;
+}

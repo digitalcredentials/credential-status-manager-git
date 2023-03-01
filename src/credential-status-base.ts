@@ -1,6 +1,7 @@
 import { createList, createCredential } from '@digitalbazaar/vc-status-list';
 import { CONTEXT_URL_V1 } from '@digitalbazaar/vc-status-list-context';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
+import { DidMethod, doSignCredential, getSigningMaterial } from './helpers';
 
 // Number of credentials tracked in a list
 const CREDENTIAL_STATUS_LIST_SIZE = 100000;
@@ -85,16 +86,14 @@ interface EmbedCredentialStatusOptions {
   statusPurpose?: string;
 }
 
-// Type definition for allocateStatusWithSignature method input
-interface AllocateStatusWithSignatureOptions {
+// Type definition for allocateStatus method input
+interface AllocateStatusOptions {
   credential: any;
-  statusPurpose?: string;
-  issuerDid: string;
-  signCredentialOptions: SignCredentialOptions;
-  signCredential: (
-    credential: VerifiableCredential,
-    options: SignCredentialOptions
-  ) => Promise<VerifiableCredential>;
+  didMethod: DidMethod;
+  didSeed: string;
+  didWebUrl?: string;
+  signCredential?: boolean;
+  signStatusCredential?: boolean;
 }
 
 // Type definition for embedCredentialStatus method output
@@ -152,43 +151,62 @@ export abstract class BaseCredentialStatusClient {
     };
   }
 
-  // allocates status and applies signature to credential
-  async allocateStatusWithSignature({
+  // allocates status for credential
+  async allocateStatus({
     credential,
-    issuerDid,
-    signCredentialOptions,
-    signCredential
-  }: AllocateStatusWithSignatureOptions): Promise<VerifiableCredential> {
+    didMethod,
+    didSeed,
+    didWebUrl,
+    signCredential=false,
+    signStatusCredential=false
+  }: AllocateStatusOptions): Promise<VerifiableCredential> {
     // attach status to credential
     const {
       credential: credentialWithStatus,
       newList
     } = await this.embedCredentialStatus({ credential });
 
+    // retrieve signing material
+    const { issuerDid, verificationMethod } = await getSigningMaterial({
+      didMethod,
+      didSeed,
+      didWebUrl
+    });
+
     // create new status credential only if a new list was created
     if (newList) {
-      // create and sign status credential
+      // create status credential
       const credentialStatusUrl = this.getCredentialStatusUrl();
       const statusCredentialId = `${credentialStatusUrl}/${newList}`;
-      const statusCredentialDataUnsigned = await composeStatusCredential({
+      let statusCredentialData = await composeStatusCredential({
         issuerDid,
         credentialId: statusCredentialId
       });
-      const statusCredentialData = await signCredential(
-        statusCredentialDataUnsigned,
-        signCredentialOptions
-      );
+
+      // sign status credential if necessary
+      if (signStatusCredential) {
+        statusCredentialData = await doSignCredential({
+          credential: statusCredentialData,
+          didMethod,
+          didSeed,
+          didWebUrl
+        });
+      }
 
       // create and persist status data
       await this.createStatusData(statusCredentialData);
     }
 
-    // sign credential
-    const signedCredentialWithStatus = await signCredential(
-      credentialWithStatus,
-      signCredentialOptions
-    );
-    const { verificationMethod } = signCredentialOptions;
+    let signedCredentialWithStatus;
+    if (signCredential) {
+      // sign credential
+      signedCredentialWithStatus = await doSignCredential({
+        credential: credentialWithStatus,
+        didMethod,
+        didSeed,
+        didWebUrl
+      });
+    }
 
     // add new entry to status log
     const {
@@ -211,7 +229,7 @@ export abstract class BaseCredentialStatusClient {
     statusLogData.push(statusLogEntry);
     await this.updateLogData(statusLogData);
 
-    return signedCredentialWithStatus;
+    return signCredential ? signedCredentialWithStatus : credentialWithStatus;
   }
 
   // retrieves credential status url
@@ -282,19 +300,4 @@ export async function composeStatusCredential({
     issuanceDate
   };
   return credential;
-}
-
-// decodes system data as JSON
-export function decodeSystemData(text: string): any {
-  return JSON.parse(decodeBase64AsAscii(text));
-}
-
-// encodes ASCII text as Bas64
-export function encodeAsciiAsBase64(text: string): string {
-  return Buffer.from(text).toString('base64');
-}
-
-// decodes Bas64 text as ASCII
-function decodeBase64AsAscii(text: string): string {
-  return Buffer.from(text, 'base64').toString('ascii');
 }

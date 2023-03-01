@@ -7,9 +7,9 @@ import {
   BaseCredentialStatusClient,
   CredentialStatusConfigData,
   CredentialStatusLogData,
-  VisibilityLevel,
-  decodeSystemData
+  VisibilityLevel
 } from './credential-status-base';
+import { decodeSystemData } from './helpers';
 
 const CREDENTIAL_STATUS_CONFIG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_CONFIG_FILE);
 const CREDENTIAL_STATUS_LOG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_LOG_FILE);
@@ -96,10 +96,6 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
 
   // ensures proper configuration of status client
   ensureProperConfiguration(options: GitlabCredentialStatusClientOptions): void {
-    options.repoName = options.repoName || 'credential-status';
-    options.metaRepoName = options.metaRepoName || 'credential-status-metadata';
-    options.repoVisibility = options.repoVisibility || VisibilityLevel.Public;
-
     const isProperlyConfigured = GITLAB_CLIENT_REQUIRED_OPTIONS.every(
       (option: keyof GitlabCredentialStatusClientOptions) => {
         return !!options[option];
