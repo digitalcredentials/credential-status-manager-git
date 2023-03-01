@@ -1,10 +1,9 @@
-import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import {
   BaseCredentialStatusClient,
   CredentialStatusClientType,
   CredentialStatusConfigData,
   CredentialStatusLogData,
-  SignCredentialOptions,
+  VisibilityLevel,
   composeStatusCredential
 } from './credential-status-base';
 import {
@@ -15,34 +14,31 @@ import {
   GitlabCredentialStatusClient,
   GitlabCredentialStatusClientOptions
 } from './credential-status-gitlab';
+import { DidMethod, doSignCredential, getSigningMaterial } from './helpers';
 
 // Type definition for createStatusListManager function input
 type StatusListManagerOptions = {
   clientType: CredentialStatusClientType;
-  issuerDid: string;
-  signCredentialOptions: SignCredentialOptions;
-  signCredential: (
-    credential: VerifiableCredential,
-    options: SignCredentialOptions
-  ) => Promise<VerifiableCredential>;
+  didMethod: DidMethod;
+  didSeed: string;
+  didWebUrl?: string;
+  signStatusCredential?: boolean;
 } & GithubCredentialStatusClientOptions & GitlabCredentialStatusClientOptions;
 
 // creates credential status list manager
-export async function createStatusListManager(
-  options: StatusListManagerOptions
-): Promise<BaseCredentialStatusClient> {
-  const {
+export async function createStatusListManager({
     clientType,
-    issuerDid,
-    signCredentialOptions,
-    signCredential,
-    repoName,
-    metaRepoName,
+    didMethod,
+    didSeed,
+    didWebUrl,
+    signStatusCredential=false,
+    repoName='credential-status',
+    metaRepoName='credential-status-metadata',
     repoOrgName,
     repoOrgId,
-    repoVisibility,
+    repoVisibility=VisibilityLevel.Public,
     accessToken
-  } = options;
+  }: StatusListManagerOptions): Promise<BaseCredentialStatusClient> {
   let credStatusClient: BaseCredentialStatusClient;
   switch (clientType) {
     case CredentialStatusClientType.Github:
@@ -71,6 +67,13 @@ export async function createStatusListManager(
       );
   }
 
+  // retrieve signing material
+  const { issuerDid } = await getSigningMaterial({
+    didMethod,
+    didSeed,
+    didWebUrl
+  });
+
   // setup status credential
   const credentialStatusUrl = credStatusClient.getCredentialStatusUrl();
   const repoExists = await credStatusClient.statusRepoExists();
@@ -90,16 +93,22 @@ export async function createStatusListManager(
     const logData: CredentialStatusLogData = [];
     await credStatusClient.createLogData(logData);
 
-    // create and sign status credential
-    const credentialId = `${credentialStatusUrl}/${listId}`;
-    const statusCredentialDataUnsigned = await composeStatusCredential({
+    // create status credential
+    const statusCredentialId = `${credentialStatusUrl}/${listId}`;
+    let statusCredentialData = await composeStatusCredential({
       issuerDid,
-      credentialId
+      credentialId: statusCredentialId
     });
-    const statusCredentialData = await signCredential(
-      statusCredentialDataUnsigned,
-      signCredentialOptions
-    );
+
+    // sign status credential if necessary
+    if (signStatusCredential) {
+      statusCredentialData = await doSignCredential({
+        credential: statusCredentialData,
+        didMethod,
+        didSeed,
+        didWebUrl
+      });
+    }
 
     // create and persist status data
     await credStatusClient.createStatusData(statusCredentialData);

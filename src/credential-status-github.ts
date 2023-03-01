@@ -7,10 +7,9 @@ import {
   BaseCredentialStatusClient,
   CredentialStatusConfigData,
   CredentialStatusLogData,
-  VisibilityLevel,
-  decodeSystemData,
-  encodeAsciiAsBase64
+  VisibilityLevel
 } from './credential-status-base';
+import { decodeSystemData, encodeAsciiAsBase64 } from './helpers';
 
 // Type definition for GithubCredentialStatusClient constructor method input
 export interface GithubCredentialStatusClientOptions {
@@ -47,10 +46,6 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
 
   // ensures proper configuration of status client
   ensureProperConfiguration(options: GithubCredentialStatusClientOptions): void {
-    options.repoName = options.repoName || 'credential-status';
-    options.metaRepoName = options.metaRepoName || 'credential-status-metadata';
-    options.repoVisibility = options.repoVisibility || VisibilityLevel.Public;
-
     const isProperlyConfigured = GITHUB_CLIENT_REQUIRED_OPTIONS.every(
       (option: keyof GithubCredentialStatusClientOptions) => {
         return !!options[option];
