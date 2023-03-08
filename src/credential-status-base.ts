@@ -1,7 +1,11 @@
-import { createList, createCredential } from '@digitalbazaar/vc-status-list';
+import { createCredential, createList, decodeList } from '@digitalbazaar/vc-status-list';
 import { CONTEXT_URL_V1 } from '@digitalbazaar/vc-status-list-context';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
-import { DidMethod, signCredential, getSigningMaterial } from './helpers';
+import {
+  DidMethod,
+  getSigningMaterial,
+  signCredential
+} from './helpers';
 
 // Number of credentials tracked in a list
 const CREDENTIAL_STATUS_LIST_SIZE = 100000;
@@ -83,6 +87,12 @@ interface EmbedCredentialStatusResult {
   newList: string | undefined;
 }
 
+// Type definition for updateStatus method input
+interface UpdateStatusCredentialOptions {
+  credentialId: string;
+  credentialStatus: CredentialState;
+}
+
 // Type definition for BaseCredentialStatusClient constructor method input
 export interface BaseCredentialStatusClientOptions {
   didMethod: DidMethod;
@@ -110,9 +120,9 @@ export abstract class BaseCredentialStatusClient {
     this.ensureProperConfiguration(options);
     this.didMethod = options.didMethod;
     this.didSeed = options.didSeed;
-    this.didWebUrl = options.didWebUrl || '';
-    this.signUserCredential = options.signUserCredential || false;
-    this.signStatusCredential = options.signUserCredential || false;
+    this.didWebUrl = options.didWebUrl ?? '';
+    this.signUserCredential = options.signUserCredential ?? false;
+    this.signStatusCredential = options.signUserCredential ?? false;
   }
 
   // ensures proper configuration of Base status client
@@ -185,8 +195,12 @@ export abstract class BaseCredentialStatusClient {
   }
 
   // allocates status for credential
-  // Replace any with VerifiableCredential after fixing compilation errors
-  async allocateStatus(credential: any): Promise<VerifiableCredential> {
+  async allocateStatus(credential: VerifiableCredential): Promise<VerifiableCredential> {
+    // report error for compact JWT credentials
+    if (typeof credential === 'string') {
+      throw new Error('This library does not support compact JWT credentials.');
+    }
+
     // attach status to credential
     const {
       credential: credentialWithStatus,
@@ -248,10 +262,11 @@ export abstract class BaseCredentialStatusClient {
       statusListCredential,
       statusListIndex
     } = credentialWithStatus.credentialStatus;
-    const statusListId = statusListCredential.split('/').slice(-1).pop(); // retrieve status list id from status credential url
+    // retrieve status list ID from status credential URL
+    const statusListId = statusListCredential.split('/').slice(-1).pop();
     const statusLogEntry: CredentialStatusLogEntry = {
       timestamp: (new Date()).toISOString(),
-      credentialId: credential.id || credentialStatusId,
+      credentialId: credential.id ?? credentialStatusId,
       credentialIssuer: issuerDid,
       credentialSubject: credential.credentialSubject?.id,
       credentialState: CredentialState.Issued,
@@ -266,7 +281,89 @@ export abstract class BaseCredentialStatusClient {
     return signUserCredential ? signedCredentialWithStatus : credentialWithStatus;
   }
 
-  // retrieves credential status url
+  // updates status for credential
+  async updateStatus({
+    credentialId,
+    credentialStatus
+  }: UpdateStatusCredentialOptions): Promise<VerifiableCredential> {
+    // find relevant log entry for credential with given ID
+    const logData: CredentialStatusLogData = await this.readLogData();
+    const logEntry = logData.find((entry) => {
+      return entry.credentialId === credentialId;
+    });
+
+    // unable to find credential with given ID
+    if (!logEntry) {
+      throw new Error(`Unable to find credential with given ID "${credentialId}"`);
+    }
+
+    // retrieve signing material
+    const {
+      didMethod,
+      didSeed,
+      didWebUrl,
+      signStatusCredential
+    } = this;
+    const { issuerDid, verificationMethod } = await getSigningMaterial({
+      didMethod,
+      didSeed,
+      didWebUrl
+    });
+
+    // retrieve status credential
+    const statusCredentialDataBefore = await this.readStatusData();
+
+    // report error for compact JWT credentials
+    if (typeof statusCredentialDataBefore === 'string') {
+      throw new Error('This library does not support compact JWT credentials.');
+    }
+
+    // update status credential
+    const statusCredentialListEncodedBefore = statusCredentialDataBefore.credentialSubject.encodedList;
+    const statusCredentialListDecoded = await decodeList({
+      encodedList: statusCredentialListEncodedBefore
+    });
+    const { statusListId, statusListIndex } = logEntry;
+    statusCredentialListDecoded.setStatus(statusListIndex, true);
+    const credentialStatusUrl = this.getCredentialStatusUrl();
+    const statusCredentialId = `${credentialStatusUrl}/${statusListId}`;
+    let statusCredentialData = await composeStatusCredential({
+      issuerDid,
+      credentialId: statusCredentialId,
+      statusList: statusCredentialListDecoded
+    });
+
+    // sign status credential if necessary
+    if (signStatusCredential) {
+      statusCredentialData = await signCredential({
+        credential: statusCredentialData,
+        didMethod,
+        didSeed,
+        didWebUrl
+      });
+    }
+
+    // persist status credential
+    await this.updateStatusData(statusCredentialData);
+
+    // add new entries to status log
+    const statusLogData = await this.readLogData();
+    const statusLogEntry: CredentialStatusLogEntry = {
+      timestamp: (new Date()).toISOString(),
+      credentialId,
+      credentialIssuer: issuerDid,
+      credentialState: credentialStatus,
+      verificationMethod,
+      statusListId,
+      statusListIndex
+    };
+    statusLogData.push(statusLogEntry);
+    await this.updateLogData(statusLogData);
+
+    return statusCredentialData;
+  }
+
+  // retrieves credential status URL
   abstract getCredentialStatusUrl(): string;
 
   // deploys website to host credential status management resources

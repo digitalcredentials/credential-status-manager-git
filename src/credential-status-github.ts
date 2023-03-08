@@ -78,7 +78,7 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
     }
   }
 
-  // retrieves credential status url
+  // retrieves credential status URL
   getCredentialStatusUrl(): string {
     return `https://${this.repoOrgName}.github.io/${this.repoName}`;
   }
