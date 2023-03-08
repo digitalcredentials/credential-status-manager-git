@@ -1,6 +1,6 @@
 {
-  "name": "@digitalcredentials/isomorphic-lib-template",
-  "description": "A Typescript/Javascript isomorphic library template, for use in the browser, Node.js, and React Native.",
+  "name": "@digitalcredentials/status-list-manager-git",
+  "description": "A Typescript library for managing the status of verifiable credentials.",
   "version": "0.0.1",
   "scripts": {
     "build": "npm run clear && tsc -d && tsc -p tsconfig.json",
@@ -73,10 +73,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/digitalcredentials/isomorphic-lib-template"
+    "url": "https://github.com/digitalcredentials/status-list-manager-git"
   },
-  "homepage": "https://github.com/digitalcredentials/isomorphic-lib-template",
-  "bugs": "https://github.com/digitalcredentials/isomorphic-lib-template/issues",
+  "homepage": "https://github.com/digitalcredentials/status-list-manager-git",
+  "bugs": "https://github.com/digitalcredentials/status-list-manager-git/issues",
   "dependencies": {
     "@digitalbazaar/vc-status-list": "^7.0.0",
     "@digitalbazaar/vc-status-list-context": "^3.0.1",
