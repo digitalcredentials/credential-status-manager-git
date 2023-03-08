@@ -148,7 +148,7 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
     return `/projects/${repoId}/repository/commits`;
   }
 
-  // retrieves credential status url
+  // retrieves credential status URL
   getCredentialStatusUrl(): string {
     return `https://${this.repoOrgName}.gitlab.io/${this.repoName}`;
   }

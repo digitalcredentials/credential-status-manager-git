@@ -53,7 +53,6 @@ export async function signCredential({
   didWebUrl
 }: SignCredentialOptions): Promise<VerifiableCredential> {
   const {
-    didDocument,
     keyPairs,
     verificationMethod
   } = await getSigningMaterial({
@@ -80,7 +79,6 @@ export async function getSigningMaterial({
 : Promise<GetSigningKeysResult> {
   let didDocument;
   let keyPairs;
-  let verificationMethod;
   const didSeedBytes = decodeSeed(didSeed);
   switch (didMethod) {
     case DidMethod.Key:
@@ -101,7 +99,7 @@ export async function getSigningMaterial({
       );
   }
   const issuerDid = didDocument.id;
-  verificationMethod = extractId(didDocument.assertionMethod[0]);
+  const verificationMethod = extractId(didDocument.assertionMethod[0]);
   return {
     didDocument,
     issuerDid,
@@ -126,7 +124,7 @@ function decodeBase64AsAscii(text: string): string {
 }
 
 // decodes DID seed
-function decodeSeed(secretKeySeed: string) {
+function decodeSeed(secretKeySeed: string): Uint8Array {
   let secretKeySeedBytes;
   if (secretKeySeed.startsWith('z')) {
     // This is a multibase-encoded seed
@@ -140,7 +138,7 @@ function decodeSeed(secretKeySeed: string) {
 }
 
 // extracts ID from object or string
-function extractId(objectOrString: any) {
+function extractId(objectOrString: any): string {
   if (typeof objectOrString === 'string') {
     return objectOrString;
   } 
