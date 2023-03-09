@@ -88,7 +88,7 @@ interface EmbedCredentialStatusResult {
 }
 
 // Type definition for updateStatus method input
-interface UpdateStatusCredentialOptions {
+interface UpdateStatusOptions {
   credentialId: string;
   credentialStatus: CredentialState;
 }
@@ -285,7 +285,7 @@ export abstract class BaseCredentialStatusClient {
   async updateStatus({
     credentialId,
     credentialStatus
-  }: UpdateStatusCredentialOptions): Promise<VerifiableCredential> {
+  }: UpdateStatusOptions): Promise<VerifiableCredential> {
     // find relevant log entry for credential with given ID
     const logData: CredentialStatusLogData = await this.readLogData();
     const logEntry = logData.find((entry) => {
