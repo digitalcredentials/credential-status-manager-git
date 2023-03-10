@@ -3,7 +3,7 @@
     "strict": true,
     "target": "es2022",
     "lib": ["es2022", "dom"],
-    "module": "commonjs",
+    "module": "es2022",
     "moduleResolution": "node",
     "outDir": "dist",
     "noImplicitAny": true,
