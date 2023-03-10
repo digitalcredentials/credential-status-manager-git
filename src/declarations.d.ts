@@ -1,4 +1,4 @@
-declare module '@digitalbazaar/vc-status-list';
+declare module '@digitalcredentials/vc-status-list';
 declare module '@digitalbazaar/vc-status-list-context';
 declare module '@digitalcredentials/bnid';
 declare module '@digitalcredentials/did-method-key';

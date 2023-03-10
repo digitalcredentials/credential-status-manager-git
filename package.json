@@ -77,7 +77,6 @@
   "homepage": "https://github.com/digitalcredentials/status-list-manager-git",
   "bugs": "https://github.com/digitalcredentials/status-list-manager-git/issues",
   "dependencies": {
-    "@digitalbazaar/vc-status-list": "^7.0.0",
     "@digitalbazaar/vc-status-list-context": "^3.0.1",
     "@digitalcredentials/bnid": "^2.1.2",
     "@digitalcredentials/did-method-key": "^2.0.3",
@@ -86,6 +85,7 @@
     "@digitalcredentials/security-document-loader": "^1.0.0",
     "@digitalcredentials/vc": "^5.0.0",
     "@digitalcredentials/vc-data-model": "^1.1.1",
+    "@digitalcredentials/vc-status-list": "^5.0.2",
     "@digitalcredentials/x25519-key-agreement-key-2020": "^3.0.0",
     "@interop/did-web-resolver": "^3.0.1",
     "@octokit/rest": "^19.0.7",
