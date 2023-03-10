@@ -3,7 +3,7 @@
   "description": "A Typescript library for managing the status of verifiable credentials.",
   "version": "0.0.1",
   "scripts": {
-    "build": "npm run clear && tsc -d && tsc -p tsconfig.json",
+    "build": "npm run clear && tsc -d && tsc -p tsconfig.esm.json",
     "clear": "rimraf dist/*",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
