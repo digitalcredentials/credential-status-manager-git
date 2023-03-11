@@ -10,7 +10,7 @@ import {
   CredentialStatusLogData,
   VisibilityLevel
 } from './credential-status-base';
-import { DidMethod, decodeSystemData } from './helpers';
+import { decodeSystemData } from './helpers';
 
 const CREDENTIAL_STATUS_CONFIG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_CONFIG_FILE);
 const CREDENTIAL_STATUS_LOG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_LOG_FILE);
