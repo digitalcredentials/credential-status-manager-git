@@ -7,7 +7,7 @@ import vc from '@digitalcredentials/vc';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import * as DidKey from '@digitalcredentials/did-method-key';
 import * as DidWeb from '@interop/did-web-resolver';
-import { CryptoLD } from 'crypto-ld';
+import { CryptoLD } from '@digitalcredentials/crypto-ld';
 
 const cryptoLd = new CryptoLD();
 cryptoLd.use(Ed25519VerificationKey2020);

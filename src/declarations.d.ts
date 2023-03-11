@@ -6,4 +6,3 @@ declare module '@digitalcredentials/ed25519-signature-2020';
 declare module '@digitalcredentials/vc';
 declare module '@digitalcredentials/x25519-key-agreement-key-2020';
 declare module '@interop/did-web-resolver';
-declare module 'crypto-ld';
