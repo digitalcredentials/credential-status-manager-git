@@ -5,42 +5,36 @@ import {
   CREDENTIAL_STATUS_LOG_FILE,
   CREDENTIAL_STATUS_REPO_BRANCH_NAME,
   BaseCredentialStatusClient,
+  BaseCredentialStatusClientOptions,
   CredentialStatusConfigData,
   CredentialStatusLogData,
   VisibilityLevel
 } from './credential-status-base';
-import { DidMethod, decodeSystemData, encodeAsciiAsBase64 } from './helpers';
+import { decodeSystemData, encodeAsciiAsBase64 } from './helpers';
 
 // Type definition for GithubCredentialStatusClient constructor method input
-export interface GithubCredentialStatusClientOptions {
-  repoName: string;
-  metaRepoName: string;
+export type GithubCredentialStatusClientOptions = {
   repoOrgName: string;
   repoVisibility: VisibilityLevel;
-  accessToken: string;
-  didMethod: DidMethod;
-  didSeed: string;
-  didWebUrl?: string;
-  signUserCredential?: boolean;
-  signStatusCredential?: boolean;
-}
+} & BaseCredentialStatusClientOptions;
 
 // Minimal set of options required for configuring GithubCredentialStatusClient
 const GITHUB_CLIENT_REQUIRED_OPTIONS: Array<keyof GithubCredentialStatusClientOptions> = [
   'repoOrgName',
-  'accessToken'
+  'repoVisibility'
 ];
 
 // Implementation of BaseCredentialStatusClient for GitHub
 export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
-  private readonly repoName: string;
-  private readonly metaRepoName: string;
   private readonly repoOrgName: string;
   private readonly repoVisibility: VisibilityLevel;
   private client: Octokit;
 
   constructor(options: GithubCredentialStatusClientOptions) {
     const {
+      repoName,
+      metaRepoName,
+      accessToken,
       didMethod,
       didSeed,
       didWebUrl,
@@ -48,6 +42,9 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
       signStatusCredential
     } = options;
     super({
+      repoName,
+      metaRepoName,
+      accessToken,
       didMethod,
       didSeed,
       didWebUrl,
@@ -55,8 +52,6 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
       signStatusCredential
     });
     this.ensureProperConfiguration(options);
-    this.repoName = options.repoName;
-    this.metaRepoName = options.metaRepoName;
     this.repoOrgName = options.repoOrgName;
     this.repoVisibility = options.repoVisibility;
     this.client = new Octokit({ auth: options.accessToken });

@@ -5,6 +5,7 @@ import {
   CREDENTIAL_STATUS_LOG_FILE,
   CREDENTIAL_STATUS_REPO_BRANCH_NAME,
   BaseCredentialStatusClient,
+  BaseCredentialStatusClientOptions,
   CredentialStatusConfigData,
   CredentialStatusLogData,
   VisibilityLevel
@@ -48,32 +49,22 @@ const CREDENTIAL_STATUS_WEBSITE_GEMFILE =
 gem "jekyll"`;
 
 // Type definition for GitlabCredentialStatusClient constructor method input
-export interface GitlabCredentialStatusClientOptions {
-  repoName: string;
-  metaRepoName: string;
+export type GitlabCredentialStatusClientOptions = {
   repoOrgName: string;
   repoOrgId: string;
   repoVisibility: VisibilityLevel;
-  accessToken: string;
-  didMethod: DidMethod;
-  didSeed: string;
-  didWebUrl?: string;
-  signUserCredential?: boolean;
-  signStatusCredential?: boolean;
-}
+} & BaseCredentialStatusClientOptions;
 
 // Minimal set of options required for configuring GitlabCredentialStatusClient
 const GITLAB_CLIENT_REQUIRED_OPTIONS: Array<keyof GitlabCredentialStatusClientOptions> = [
   'repoOrgName',
   'repoOrgId',
-  'accessToken'
+  'repoVisibility'
 ];
 
 // Implementation of BaseCredentialStatusClient for GitLab
 export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
-  private readonly repoName: string;
   private repoId: string;
-  private readonly metaRepoName: string;
   private metaRepoId: string;
   private readonly repoOrgName: string;
   private readonly repoOrgId: string;
@@ -82,6 +73,9 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
 
   constructor(options: GitlabCredentialStatusClientOptions) {
     const {
+      repoName,
+      metaRepoName,
+      accessToken,
       didMethod,
       didSeed,
       didWebUrl,
@@ -89,6 +83,9 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
       signStatusCredential
     } = options;
     super({
+      repoName,
+      metaRepoName,
+      accessToken,
       didMethod,
       didSeed,
       didWebUrl,
@@ -96,9 +93,7 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
       signStatusCredential
     });
     this.ensureProperConfiguration(options);
-    this.repoName = options.repoName;
     this.repoId = ''; // This value is set in createStatusRepo
-    this.metaRepoName = options.metaRepoName;
     this.metaRepoId = ''; // This value is set in createStatusRepo
     this.repoOrgName = options.repoOrgName;
     this.repoOrgId = options.repoOrgId;

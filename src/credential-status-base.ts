@@ -95,6 +95,9 @@ interface UpdateStatusOptions {
 
 // Type definition for BaseCredentialStatusClient constructor method input
 export interface BaseCredentialStatusClientOptions {
+  repoName: string;
+  metaRepoName: string;
+  accessToken: string;
   didMethod: DidMethod;
   didSeed: string;
   didWebUrl?: string;
@@ -104,20 +107,29 @@ export interface BaseCredentialStatusClientOptions {
 
 // Minimal set of options required for configuring BaseCredentialStatusClient
 const BASE_CLIENT_REQUIRED_OPTIONS: Array<keyof BaseCredentialStatusClientOptions> = [
+  'repoName',
+  'metaRepoName',
+  'accessToken',
   'didMethod',
-  'didSeed',
+  'didSeed'
 ];
 
 // Base class for credential status clients
 export abstract class BaseCredentialStatusClient {
-  private readonly didMethod: DidMethod;
-  private readonly didSeed: string;
-  private readonly didWebUrl: string;
-  private readonly signUserCredential: boolean;
-  private readonly signStatusCredential: boolean;
+  protected readonly repoName: string;
+  protected readonly metaRepoName: string;
+  protected readonly accessToken: string;
+  protected readonly didMethod: DidMethod;
+  protected readonly didSeed: string;
+  protected readonly didWebUrl: string;
+  protected readonly signUserCredential: boolean;
+  protected readonly signStatusCredential: boolean;
 
   constructor(options: BaseCredentialStatusClientOptions) {
     this.ensureProperConfiguration(options);
+    this.repoName = options.repoName;
+    this.metaRepoName = options.metaRepoName;
+    this.accessToken = options.accessToken;
     this.didMethod = options.didMethod;
     this.didSeed = options.didSeed;
     this.didWebUrl = options.didWebUrl ?? '';
