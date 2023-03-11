@@ -16,15 +16,15 @@ import {
 } from './credential-status-gitlab';
 import { DidMethod, signCredential, getSigningMaterial } from './helpers';
 
-// Type definition for createStatusListManager function input
-type StatusListManagerOptions = {
+// Type definition for base options of createStatusListManager function input
+type StatusListManagerBaseOptions = {
   clientType: CredentialStatusClientType;
-  didMethod: DidMethod;
-  didSeed: string;
-  didWebUrl?: string;
-  signUserCredential?: boolean;
-  signStatusCredential?: boolean;
-} & GithubCredentialStatusClientOptions & GitlabCredentialStatusClientOptions;
+};
+
+// Type definition for createStatusListManager function input
+type StatusListManagerOptions = StatusListManagerBaseOptions &
+                                GithubCredentialStatusClientOptions &
+                                GitlabCredentialStatusClientOptions;
 
 // creates credential status list manager
 export async function createStatusListManager({
