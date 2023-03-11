@@ -57,7 +57,7 @@ export async function createStatusListManager(options: StatusListManagerOptions)
         signStatusCredential
       });
       break;
-    case CredentialStatusClientType.Gitlab:
+    case CredentialStatusClientType.Gitlab: {
       const { repoOrgId } = options as GitlabCredentialStatusClientOptions;
       credStatusClient = new GitlabCredentialStatusClient({
         repoName,
@@ -73,6 +73,7 @@ export async function createStatusListManager(options: StatusListManagerOptions)
         signStatusCredential
       });
       break;
+    }
     default:
       throw new Error(
         '"clientType" must be one of the following values: ' +
