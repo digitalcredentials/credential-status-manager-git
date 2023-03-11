@@ -23,11 +23,12 @@ interface StatusListManagerBaseOptions {
 
 // Type definition for createStatusListManager function input
 type StatusListManagerOptions = StatusListManagerBaseOptions &
-                                GithubCredentialStatusClientOptions &
-                                GitlabCredentialStatusClientOptions;
+  (GithubCredentialStatusClientOptions | GitlabCredentialStatusClientOptions);
 
 // creates credential status list manager
-export async function createStatusListManager({
+export async function createStatusListManager(options: StatusListManagerOptions)
+: Promise<BaseCredentialStatusClient> {
+  const {
     clientType,
     didMethod,
     didSeed,
@@ -37,10 +38,9 @@ export async function createStatusListManager({
     repoName='credential-status',
     metaRepoName='credential-status-metadata',
     repoOrgName,
-    repoOrgId,
     repoVisibility=VisibilityLevel.Public,
     accessToken
-  }: StatusListManagerOptions): Promise<BaseCredentialStatusClient> {
+  } = options;
   let credStatusClient: BaseCredentialStatusClient;
   switch (clientType) {
     case CredentialStatusClientType.Github:
@@ -58,6 +58,7 @@ export async function createStatusListManager({
       });
       break;
     case CredentialStatusClientType.Gitlab:
+      const { repoOrgId } = options as GitlabCredentialStatusClientOptions;
       credStatusClient = new GitlabCredentialStatusClient({
         repoName,
         metaRepoName,

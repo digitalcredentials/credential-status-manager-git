@@ -102,7 +102,7 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
       baseURL: 'https://gitlab.com/api/v4',
       timeout: 6000,
       headers: {
-        'Authorization': `Bearer ${options.accessToken}`
+        'Authorization': `Bearer ${accessToken}`
       }
     });
   }
