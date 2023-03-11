@@ -54,7 +54,7 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
     this.ensureProperConfiguration(options);
     this.repoOrgName = options.repoOrgName;
     this.repoVisibility = options.repoVisibility;
-    this.client = new Octokit({ auth: options.accessToken });
+    this.client = new Octokit({ auth: accessToken });
   }
 
   // ensures proper configuration of GitHub status client

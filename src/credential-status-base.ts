@@ -126,15 +126,25 @@ export abstract class BaseCredentialStatusClient {
   protected readonly signStatusCredential: boolean;
 
   constructor(options: BaseCredentialStatusClientOptions) {
+    const {
+      repoName,
+      metaRepoName,
+      accessToken,
+      didMethod,
+      didSeed,
+      didWebUrl,
+      signUserCredential,
+      signStatusCredential
+    } = options;
     this.ensureProperConfiguration(options);
-    this.repoName = options.repoName;
-    this.metaRepoName = options.metaRepoName;
-    this.accessToken = options.accessToken;
-    this.didMethod = options.didMethod;
-    this.didSeed = options.didSeed;
-    this.didWebUrl = options.didWebUrl ?? '';
-    this.signUserCredential = options.signUserCredential ?? false;
-    this.signStatusCredential = options.signUserCredential ?? false;
+    this.repoName = repoName;
+    this.metaRepoName = metaRepoName;
+    this.accessToken = accessToken;
+    this.didMethod = didMethod;
+    this.didSeed = didSeed;
+    this.didWebUrl = didWebUrl ?? '';
+    this.signUserCredential = signUserCredential ?? false;
+    this.signStatusCredential = signStatusCredential ?? false;
   }
 
   // ensures proper configuration of Base status client
