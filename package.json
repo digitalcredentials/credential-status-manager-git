@@ -85,7 +85,7 @@
     "@digitalcredentials/security-document-loader": "^1.0.0",
     "@digitalcredentials/vc": "^5.0.0",
     "@digitalcredentials/vc-data-model": "^1.1.1",
-    "@digitalcredentials/vc-status-list": "^5.0.2",
+    "@digitalcredentials/vc-status-list": "github:digitalcredentials/vc-status-list#main",
     "@digitalcredentials/x25519-key-agreement-key-2020": "^3.0.0",
     "@interop/did-web-resolver": "^3.0.1",
     "@octokit/rest": "^19.0.7",
