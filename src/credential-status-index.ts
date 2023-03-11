@@ -14,12 +14,12 @@ import {
   GitlabCredentialStatusClient,
   GitlabCredentialStatusClientOptions
 } from './credential-status-gitlab';
-import { DidMethod, signCredential, getSigningMaterial } from './helpers';
+import { signCredential, getSigningMaterial } from './helpers';
 
 // Type definition for base options of createStatusListManager function input
-type StatusListManagerBaseOptions = {
+interface StatusListManagerBaseOptions {
   clientType: CredentialStatusClientType;
-};
+}
 
 // Type definition for createStatusListManager function input
 type StatusListManagerOptions = StatusListManagerBaseOptions &
