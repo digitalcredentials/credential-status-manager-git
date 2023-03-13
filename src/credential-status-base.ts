@@ -1,11 +1,7 @@
-import { createCredential, createList, decodeList } from '@digitalcredentials/vc-status-list';
 import { CONTEXT_URL_V1 } from '@digitalbazaar/vc-status-list-context';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
-import {
-  DidMethod,
-  getSigningMaterial,
-  signCredential
-} from './helpers';
+import { createCredential, createList, decodeList } from '@digitalcredentials/vc-status-list';
+import { DidMethod, getSigningMaterial, signCredential } from './helpers';
 
 // Number of credentials tracked in a list
 const CREDENTIAL_STATUS_LIST_SIZE = 100000;
@@ -53,7 +49,7 @@ export interface CredentialStatusConfigData {
 }
 
 // Type definition for credential status log entry
-interface CredentialStatusLogEntry {
+export interface CredentialStatusLogEntry {
   timestamp: string;
   credentialId: string;
   credentialIssuer: string;
@@ -106,7 +102,7 @@ export interface BaseCredentialStatusClientOptions {
 }
 
 // Minimal set of options required for configuring BaseCredentialStatusClient
-const BASE_CLIENT_REQUIRED_OPTIONS: Array<keyof BaseCredentialStatusClientOptions> = [
+export const BASE_CLIENT_REQUIRED_OPTIONS: Array<keyof BaseCredentialStatusClientOptions> = [
   'repoName',
   'metaRepoName',
   'accessToken',
@@ -136,7 +132,6 @@ export abstract class BaseCredentialStatusClient {
       signUserCredential,
       signStatusCredential
     } = options;
-    this.ensureProperConfiguration(options);
     this.repoName = repoName;
     this.metaRepoName = metaRepoName;
     this.accessToken = accessToken;
@@ -145,28 +140,6 @@ export abstract class BaseCredentialStatusClient {
     this.didWebUrl = didWebUrl ?? '';
     this.signUserCredential = signUserCredential ?? false;
     this.signStatusCredential = signStatusCredential ?? false;
-  }
-
-  // ensures proper configuration of Base status client
-  ensureProperConfiguration(options: BaseCredentialStatusClientOptions): void {
-    const isProperlyConfigured = BASE_CLIENT_REQUIRED_OPTIONS.every(
-      (option: keyof BaseCredentialStatusClientOptions) => {
-        return !!options[option];
-      }
-    );
-    if (!isProperlyConfigured) {
-      throw new Error(
-        'The following environment variables must be set for the ' +
-        'Base credential status client: ' +
-        `${BASE_CLIENT_REQUIRED_OPTIONS.map(o => `'${o}'`).join(', ')}.`
-      );
-    }
-    if (this.didMethod === DidMethod.Web && !this.didWebUrl) {
-      throw new Error(
-        'The value of "didWebUrl" must be provided ' +
-        'when using "didMethod" of type "web".'
-      );
-    }
   }
 
   // generates new status list ID

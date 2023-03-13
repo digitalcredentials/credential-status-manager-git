@@ -1,6 +1,7 @@
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import axios, { AxiosInstance } from 'axios';
 import {
+  BASE_CLIENT_REQUIRED_OPTIONS,
   CREDENTIAL_STATUS_CONFIG_FILE,
   CREDENTIAL_STATUS_LOG_FILE,
   CREDENTIAL_STATUS_REPO_BRANCH_NAME,
@@ -10,7 +11,7 @@ import {
   CredentialStatusLogData,
   VisibilityLevel
 } from './credential-status-base';
-import { decodeSystemData } from './helpers';
+import { DidMethod, decodeSystemData } from './helpers';
 
 const CREDENTIAL_STATUS_CONFIG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_CONFIG_FILE);
 const CREDENTIAL_STATUS_LOG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_LOG_FILE);
@@ -56,11 +57,12 @@ export type GitlabCredentialStatusClientOptions = {
 } & BaseCredentialStatusClientOptions;
 
 // Minimal set of options required for configuring GitlabCredentialStatusClient
-const GITLAB_CLIENT_REQUIRED_OPTIONS: Array<keyof GitlabCredentialStatusClientOptions> = [
+const GITLAB_CLIENT_REQUIRED_OPTIONS = [
   'repoOrgName',
   'repoOrgId',
   'repoVisibility'
-];
+].concat(BASE_CLIENT_REQUIRED_OPTIONS) as
+  Array<keyof GitlabCredentialStatusClientOptions & BaseCredentialStatusClientOptions>;
 
 // Implementation of BaseCredentialStatusClient for GitLab
 export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
@@ -75,6 +77,9 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
     const {
       repoName,
       metaRepoName,
+      repoOrgName,
+      repoOrgId,
+      repoVisibility,
       accessToken,
       didMethod,
       didSeed,
@@ -95,9 +100,9 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
     this.ensureProperConfiguration(options);
     this.repoId = ''; // This value is set in createStatusRepo
     this.metaRepoId = ''; // This value is set in createStatusRepo
-    this.repoOrgName = options.repoOrgName;
-    this.repoOrgId = options.repoOrgId;
-    this.repoVisibility = options.repoVisibility;
+    this.repoOrgName = repoOrgName;
+    this.repoOrgId = repoOrgId;
+    this.repoVisibility = repoVisibility;
     this.client = axios.create({
       baseURL: 'https://gitlab.com/api/v4',
       timeout: 6000,
@@ -116,9 +121,15 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
     );
     if (!isProperlyConfigured) {
       throw new Error(
-        'The following environment variables must be set for the ' +
+        'The following options must be set for the ' +
         'GitLab credential status client: ' +
         `${GITLAB_CLIENT_REQUIRED_OPTIONS.map(o => `'${o}'`).join(', ')}.`
+      );
+    }
+    if (this.didMethod === DidMethod.Web && !this.didWebUrl) {
+      throw new Error(
+        'The value of "didWebUrl" must be provided ' +
+        'when using "didMethod" of type "web".'
       );
     }
   }
