@@ -30,16 +30,16 @@ export async function createStatusListManager(options: StatusListManagerOptions)
 : Promise<BaseCredentialStatusClient> {
   const {
     clientType,
-    didMethod,
-    didSeed,
-    didWebUrl,
-    signUserCredential=false,
-    signStatusCredential=false,
     repoName='credential-status',
     metaRepoName='credential-status-metadata',
     repoOrgName,
     repoVisibility=VisibilityLevel.Public,
-    accessToken
+    accessToken,
+    didMethod,
+    didSeed,
+    didWebUrl,
+    signUserCredential=false,
+    signStatusCredential=false
   } = options;
   let credStatusClient: BaseCredentialStatusClient;
   switch (clientType) {

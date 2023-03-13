@@ -1,6 +1,7 @@
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import { Octokit } from '@octokit/rest';
 import {
+  BASE_CLIENT_REQUIRED_OPTIONS,
   CREDENTIAL_STATUS_CONFIG_FILE,
   CREDENTIAL_STATUS_LOG_FILE,
   CREDENTIAL_STATUS_REPO_BRANCH_NAME,
@@ -10,7 +11,7 @@ import {
   CredentialStatusLogData,
   VisibilityLevel
 } from './credential-status-base';
-import { decodeSystemData, encodeAsciiAsBase64 } from './helpers';
+import { DidMethod, decodeSystemData, encodeAsciiAsBase64 } from './helpers';
 
 // Type definition for GithubCredentialStatusClient constructor method input
 export type GithubCredentialStatusClientOptions = {
@@ -19,10 +20,11 @@ export type GithubCredentialStatusClientOptions = {
 } & BaseCredentialStatusClientOptions;
 
 // Minimal set of options required for configuring GithubCredentialStatusClient
-const GITHUB_CLIENT_REQUIRED_OPTIONS: Array<keyof GithubCredentialStatusClientOptions> = [
+const GITHUB_CLIENT_REQUIRED_OPTIONS = [
   'repoOrgName',
   'repoVisibility'
-];
+].concat(BASE_CLIENT_REQUIRED_OPTIONS) as
+  Array<keyof GithubCredentialStatusClientOptions & BaseCredentialStatusClientOptions>;
 
 // Implementation of BaseCredentialStatusClient for GitHub
 export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
@@ -34,6 +36,8 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
     const {
       repoName,
       metaRepoName,
+      repoOrgName,
+      repoVisibility,
       accessToken,
       didMethod,
       didSeed,
@@ -52,8 +56,8 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
       signStatusCredential
     });
     this.ensureProperConfiguration(options);
-    this.repoOrgName = options.repoOrgName;
-    this.repoVisibility = options.repoVisibility;
+    this.repoOrgName = repoOrgName;
+    this.repoVisibility = repoVisibility;
     this.client = new Octokit({ auth: accessToken });
   }
 
@@ -66,9 +70,15 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
     );
     if (!isProperlyConfigured) {
       throw new Error(
-        'The following environment variables must be set for the ' +
+        'The following options must be set for the ' +
         'GitHub credential status client: ' +
         `${GITHUB_CLIENT_REQUIRED_OPTIONS.map(o => `'${o}'`).join(', ')}.`
+      );
+    }
+    if (this.didMethod === DidMethod.Web && !this.didWebUrl) {
+      throw new Error(
+        'The value of "didWebUrl" must be provided ' +
+        'when using "didMethod" of type "web".'
       );
     }
   }
