@@ -2,19 +2,24 @@ import { decodeSecretKeySeed } from '@digitalcredentials/bnid';
 import { Ed25519Signature2020 } from '@digitalcredentials/ed25519-signature-2020';
 import { Ed25519VerificationKey2020 } from '@digitalcredentials/ed25519-verification-key-2020';
 import { X25519KeyAgreementKey2020 } from '@digitalcredentials/x25519-key-agreement-key-2020';
-import { securityLoader as documentLoader } from '@digitalcredentials/security-document-loader';
+import { securityLoader } from '@digitalcredentials/security-document-loader';
 import { issue as sign } from '@digitalcredentials/vc';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import * as DidKey from '@digitalcredentials/did-method-key';
 import * as DidWeb from '@interop/did-web-resolver';
 import { CryptoLD } from '@digitalcredentials/crypto-ld';
 
+// Crypto library for linked data
 const cryptoLd = new CryptoLD();
 cryptoLd.use(Ed25519VerificationKey2020);
 cryptoLd.use(X25519KeyAgreementKey2020);
 
+// DID drivers
 const didWebDriver = DidWeb.driver({ cryptoLd }); 
 const didKeyDriver = DidKey.driver();
+
+// Document loader
+const documentLoader = securityLoader().build();
 
 // DID method used to sign credentials
 export enum DidMethod {
