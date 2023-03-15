@@ -1,6 +1,6 @@
-# isomorphic-lib-template Changelog
+# status-list-manager-git Changelog
 
-## 1.0.0 - TBD
+## 1.0.0 - 2023-xx-xx
 
 ### Added
 
