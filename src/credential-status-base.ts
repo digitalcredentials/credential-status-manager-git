@@ -37,9 +37,8 @@ export enum SystemFile {
 
 // States of credential resulting from issuer actions and tracked in status log
 export enum CredentialState {
-  Issued = 'issued',
-  Revoked = 'revoked',
-  Suspended = 'suspended'
+  Active = 'active',
+  Revoked = 'revoked'
 }
 
 // Type definition for credential status config file
@@ -265,7 +264,7 @@ export abstract class BaseCredentialStatusClient {
       credentialId: credential.id ?? credentialStatusId,
       credentialIssuer: issuerDid,
       credentialSubject: credential.credentialSubject?.id,
-      credentialState: CredentialState.Issued,
+      credentialState: CredentialState.Active,
       verificationMethod,
       statusListId,
       statusListIndex
@@ -326,7 +325,19 @@ export abstract class BaseCredentialStatusClient {
     const statusCredentialListDecoded = await decodeList({
       encodedList: statusCredentialListEncodedBefore
     });
-    statusCredentialListDecoded.setStatus(statusListIndex, true);
+    switch (credentialStatus) {
+      case CredentialState.Active:
+        statusCredentialListDecoded.setStatus(statusListIndex, false); // active credential is represented as 0 bit
+        break;
+      case CredentialState.Revoked:
+        statusCredentialListDecoded.setStatus(statusListIndex, true); // revoked credential is represented as 1 bit
+        break;
+      default:
+        throw new Error(
+          '"credentialStatus" must be one of the following values: ' +
+          `${Object.values(CredentialState).map(v => `'${v}'`).join(', ')}.`
+        );
+    }
     const credentialStatusUrl = this.getCredentialStatusUrl();
     const statusCredentialId = `${credentialStatusUrl}/${statusListId}`;
     let statusCredential = await composeStatusCredential({

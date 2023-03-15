@@ -16,6 +16,7 @@ A Typescript library for managing the status of [Verifiable Credentials](https:/
   - [Allocate status for credential](#allocate-status-for-credential)
   - [Update status of credential](#update-status-of-credential)
   - [Check status of credential](#check-status-of-credential)
+  - [Check if caller has authority to update status of credentials](#check-if-caller-has-authority-to-update-status-of-credentials)
 - [Contribute](#contribute)
 - [License](#license)
 
@@ -132,7 +133,7 @@ console.log(credentialWithStatus);
 
 ### Update status of credential
 
-The `updateStatus` is an instance method that is called on a credential status manager initialized by `createStatusListManager`. It is an asynchronous method that accepts a credential ID and desired credential status as input, records its new status in the caller's source control service of choice, and returns the status credential.
+The `updateStatus` is an instance method that is called on a credential status manager initialized by `createStatusListManager`. It is an asynchronous method that accepts a credential ID and desired credential status as input (options: `active` | `revoked`), records its new status in the caller's source control service of choice, and returns the status credential.
 
 Here is a sample call to `updateStatus`:
 
@@ -169,7 +170,7 @@ The `checkStatus` is an instance method that is called on a credential status ma
 Here is a sample call to `checkStatus`:
 
 ```ts
-const credentialStatus = await statusClient.checkStatus(credentialWithStatus.id);
+const credentialStatus = await statusManager.checkStatus(credentialWithStatus.id);
 console.log(credentialStatus);
 /*
 {
@@ -184,6 +185,53 @@ console.log(credentialStatus);
 }
 */
 ```
+
+### Check if caller has authority to update status of credentials
+
+The `hasStatusAuthority` is an instance method that is called on a credential status manager initialized by `createStatusListManager`. It is an asynchronous method that accepts an access token for the API of the caller's source control service of choice, and reports whether the caller has the authority to update the status of credentials.
+
+Here is a sample call to `hasStatusAuthority` in the context of Express.js middleware:
+
+```ts
+// retrieves status list manager
+export async function getCredentialStatusListManager(req, res, next) {
+  try {
+    req.statusManager = await getStatusListManager();
+    next();
+  } catch (error) {
+    return res.send('Failed to retrieve credential status list manager');
+  }
+}
+
+// extracts access token from request header
+function extractAccessToken(headers) {
+  if (!headers.authorization) {
+    return;
+  }
+  const [scheme, token] = headers.authorization.split(' ');
+  if (scheme === 'Bearer') {
+    return token;
+  }
+}
+
+// verifies whether issuer client has access to status repo
+async function verifyStatusRepoAccess(req, res, next) {
+  const { headers } = req;
+  // Verify that access token was included in request
+  const accessToken = extractAccessToken(headers);
+  if (!accessToken) {
+    return res.send('Failed to provide access token in request');
+  }
+  // Check if issuer client has access to status repo
+  const hasAccess = await req.statusManager.hasStatusAuthority(accessToken);
+  if (!hasAccess) {
+    return res.send('Issuer is unauthorized to access status repo');
+  }
+  next();
+}
+```
+
+**Note:** This code assumes that `getStatusListManager` either calls `createStatusListManager` or retrieves an existing status manager instance created at an earlier point in time.
 
 ## Contribute
 
