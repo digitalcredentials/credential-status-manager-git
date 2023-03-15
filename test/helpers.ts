@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { CredentialStatusClientType, VisibilityLevel } from '../src/credential-status-base';
+import { CredentialStatusManagerService, VisibilityLevel } from '../src/credential-status-base';
 import { DidMethod } from '../src/helpers';
 
 const credentialId = 'http://university-xyz.edu/credentials/3732';
@@ -37,14 +37,14 @@ export const statusListId = 'V27UAUYPNR';
 export function checkLocalCredentialStatus(
   credentialWithStatus: any,
   statusListIndex: number,
-  clientType: CredentialStatusClientType
+  service: CredentialStatusManagerService
 ) {
   let statusCredentialId;
-  switch (clientType) {
-    case CredentialStatusClientType.Github:
+  switch (service) {
+    case CredentialStatusManagerService.Github:
       statusCredentialId = `https://${repoOrgName}.github.io/${repoName}/${statusListId}`;
       break;
-    case CredentialStatusClientType.Gitlab:
+    case CredentialStatusManagerService.Gitlab:
       statusCredentialId = `https://${repoOrgName}.gitlab.io/${repoName}/${statusListId}`;
       break;
   }
@@ -84,14 +84,14 @@ export function checkRemoteCredentialStatus(
 
 export function checkStatusCredential(
   statusCredential: any,
-  clientType: CredentialStatusClientType
+  service: CredentialStatusManagerService
 ) {
   let statusListCredentialId;
-  switch (clientType) {
-    case CredentialStatusClientType.Github:
+  switch (service) {
+    case CredentialStatusManagerService.Github:
       statusListCredentialId = `https://${repoOrgName}.github.io/${repoName}/${statusListId}`;
       break;
-    case CredentialStatusClientType.Gitlab:
+    case CredentialStatusManagerService.Gitlab:
       statusListCredentialId = `https://${repoOrgName}.gitlab.io/${repoName}/${statusListId}`;
       break;
   }

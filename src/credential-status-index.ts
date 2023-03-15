@@ -1,35 +1,35 @@
 import {
-  BaseCredentialStatusClient,
-  CredentialStatusClientType,
+  BaseCredentialStatusManager,
   CredentialStatusConfigData,
   CredentialStatusLogData,
+  CredentialStatusManagerService,
   VisibilityLevel,
   composeStatusCredential
 } from './credential-status-base';
 import {
-  GithubCredentialStatusClient,
-  GithubCredentialStatusClientOptions
+  GithubCredentialStatusManager,
+  GithubCredentialStatusManagerOptions
 } from './credential-status-github';
 import {
-  GitlabCredentialStatusClient,
-  GitlabCredentialStatusClientOptions
+  GitlabCredentialStatusManager,
+  GitlabCredentialStatusManagerOptions
 } from './credential-status-gitlab';
 import { signCredential, getSigningMaterial } from './helpers';
 
 // Type definition for base options of createStatusListManager function input
 interface StatusListManagerBaseOptions {
-  clientType: CredentialStatusClientType;
+  service: CredentialStatusManagerService;
 }
 
 // Type definition for createStatusListManager function input
 type StatusListManagerOptions = StatusListManagerBaseOptions &
-  (GithubCredentialStatusClientOptions | GitlabCredentialStatusClientOptions);
+  (GithubCredentialStatusManagerOptions | GitlabCredentialStatusManagerOptions);
 
 // creates credential status list manager
 export async function createStatusListManager(options: StatusListManagerOptions)
-: Promise<BaseCredentialStatusClient> {
+: Promise<BaseCredentialStatusManager> {
   const {
-    clientType,
+    service,
     repoName='credential-status',
     metaRepoName='credential-status-metadata',
     repoOrgName,
@@ -41,10 +41,10 @@ export async function createStatusListManager(options: StatusListManagerOptions)
     signUserCredential=false,
     signStatusCredential=false
   } = options;
-  let credStatusClient: BaseCredentialStatusClient;
-  switch (clientType) {
-    case CredentialStatusClientType.Github:
-      credStatusClient = new GithubCredentialStatusClient({
+  let statusManager: BaseCredentialStatusManager;
+  switch (service) {
+    case CredentialStatusManagerService.Github:
+      statusManager = new GithubCredentialStatusManager({
         repoName,
         metaRepoName,
         repoOrgName,
@@ -57,9 +57,9 @@ export async function createStatusListManager(options: StatusListManagerOptions)
         signStatusCredential
       });
       break;
-    case CredentialStatusClientType.Gitlab: {
-      const { repoOrgId } = options as GitlabCredentialStatusClientOptions;
-      credStatusClient = new GitlabCredentialStatusClient({
+    case CredentialStatusManagerService.Gitlab: {
+      const { repoOrgId } = options as GitlabCredentialStatusManagerOptions;
+      statusManager = new GitlabCredentialStatusManager({
         repoName,
         metaRepoName,
         repoOrgName,
@@ -76,8 +76,8 @@ export async function createStatusListManager(options: StatusListManagerOptions)
     }
     default:
       throw new Error(
-        '"clientType" must be one of the following values: ' +
-        `${Object.values(CredentialStatusClientType).map(v => `'${v}'`).join(', ')}.`
+        '"service" must be one of the following values: ' +
+        `${Object.values(CredentialStatusManagerService).map(v => `'${v}'`).join(', ')}.`
       );
   }
 
@@ -89,23 +89,23 @@ export async function createStatusListManager(options: StatusListManagerOptions)
   });
 
   // setup status credential
-  const credentialStatusUrl = credStatusClient.getCredentialStatusUrl();
-  const repoExists = await credStatusClient.statusRepoExists();
+  const credentialStatusUrl = statusManager.getCredentialStatusUrl();
+  const repoExists = await statusManager.statusRepoExists();
   if (!repoExists) {
     // create status repo
-    await credStatusClient.createStatusRepo();
+    await statusManager.createStatusRepo();
 
     // create and persist status config
-    const listId = credStatusClient.generateStatusListId();
+    const listId = statusManager.generateStatusListId();
     const configData: CredentialStatusConfigData = {
       credentialsIssued: 0,
       latestList: listId
     };
-    await credStatusClient.createConfigData(configData);
+    await statusManager.createConfigData(configData);
 
     // create and persist status log
     const logData: CredentialStatusLogData = [];
-    await credStatusClient.createLogData(logData);
+    await statusManager.createLogData(logData);
 
     // create status credential
     const statusCredentialId = `${credentialStatusUrl}/${listId}`;
@@ -125,14 +125,14 @@ export async function createStatusListManager(options: StatusListManagerOptions)
     }
 
     // create and persist status data
-    await credStatusClient.createStatusData(statusCredential);
+    await statusManager.createStatusData(statusCredential);
 
     // setup credential status website
-    await credStatusClient.deployCredentialStatusWebsite();
+    await statusManager.deployCredentialStatusWebsite();
   } else {
     // sync status repo state
-    await credStatusClient.syncStatusRepoState();
+    await statusManager.syncStatusRepoState();
   }
 
-  return credStatusClient;
+  return statusManager;
 }

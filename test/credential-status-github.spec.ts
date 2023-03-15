@@ -5,14 +5,14 @@ import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import * as OctokitClient from '@octokit/rest';
 import { createStatusListManager } from '../src';
 import {
-  BaseCredentialStatusClient,
+  BaseCredentialStatusManager,
   CredentialState,
-  CredentialStatusClientType,
   CredentialStatusConfigData,
   CredentialStatusLogData,
-  CredentialStatusLogEntry
+  CredentialStatusLogEntry,
+  CredentialStatusManagerService
 } from '../src/credential-status-base';
-import * as GithubCredentialStatus from '../src/credential-status-github';
+import * as GithubStatus from '../src/credential-status-github';
 import {
   accessToken,
   checkLocalCredentialStatus,
@@ -30,12 +30,12 @@ import {
 
 const sandbox = createSandbox();
 
-class MockGithubCredentialStatusClient extends GithubCredentialStatus.GithubCredentialStatusClient {
+class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialStatusManager {
   private statusList: any;
   private statusConfig: CredentialStatusConfigData;
   private statusLog: CredentialStatusLogEntry[];
 
-  constructor(options: GithubCredentialStatus.GithubCredentialStatusClientOptions) {
+  constructor(options: GithubStatus.GithubCredentialStatusManagerOptions) {
     const {
       repoName,
       metaRepoName,
@@ -67,7 +67,7 @@ class MockGithubCredentialStatusClient extends GithubCredentialStatus.GithubCred
   // deploys website to host credential status management resources
   async deployCredentialStatusWebsite(): Promise<void> {}
 
-  // checks if issuer client has authority to update status
+  // checks if caller has authority to update status
   async hasStatusAuthority(accessToken: string): Promise<boolean> { return true; }
 
   // checks if status repo exists
@@ -124,15 +124,15 @@ class MockGithubCredentialStatusClient extends GithubCredentialStatus.GithubCred
   }
 }
 
-describe('GitHub Status Client', () => {
-  const clientType = 'github' as CredentialStatusClientType;
-  let statusClient: GithubCredentialStatus.GithubCredentialStatusClient;
+describe('GitHub Credential Status Manager', () => {
+  const service = 'github' as CredentialStatusManagerService;
+  let statusManager: GithubStatus.GithubCredentialStatusManager;
   sandbox.stub(OctokitClient.Octokit.prototype, 'constructor').returns(null);
-  sandbox.stub(GithubCredentialStatus, 'GithubCredentialStatusClient').value(MockGithubCredentialStatusClient);
+  sandbox.stub(GithubStatus, 'GithubCredentialStatusManager').value(MockGithubCredentialStatusManager);
 
   beforeEach(async () => {
-    statusClient = await createStatusListManager({
-      clientType,
+    statusManager = await createStatusListManager({
+      service,
       repoName,
       metaRepoName,
       repoOrgName,
@@ -140,43 +140,43 @@ describe('GitHub Status Client', () => {
       accessToken,
       didMethod,
       didSeed
-    }) as GithubCredentialStatus.GithubCredentialStatusClient;
+    }) as GithubStatus.GithubCredentialStatusManager;
   });
 
   it('tests output of createStatusListManager', async () => {
-    expect(statusClient).to.be.instanceof(BaseCredentialStatusClient);
-    expect(statusClient).to.be.instanceof(GithubCredentialStatus.GithubCredentialStatusClient);
+    expect(statusManager).to.be.instanceof(BaseCredentialStatusManager);
+    expect(statusManager).to.be.instanceof(GithubStatus.GithubCredentialStatusManager);
   });
 
   it('tests allocateStatus', async () => {
     // allocate and check status for first credential
-    const credentialWithStatus1 = await statusClient.allocateStatus(unsignedCredential) as any;
-    checkLocalCredentialStatus(credentialWithStatus1, 1, clientType);
+    const credentialWithStatus1 = await statusManager.allocateStatus(unsignedCredential) as any;
+    checkLocalCredentialStatus(credentialWithStatus1, 1, service);
 
     // allocate and check status for second credential
-    const credentialWithStatus2 = await statusClient.allocateStatus(unsignedCredential) as any;
-    checkLocalCredentialStatus(credentialWithStatus2, 2, clientType);
+    const credentialWithStatus2 = await statusManager.allocateStatus(unsignedCredential) as any;
+    checkLocalCredentialStatus(credentialWithStatus2, 2, service);
 
     // allocate and check status for third credential
-    const credentialWithStatus3 = await statusClient.allocateStatus(unsignedCredential) as any;
-    checkLocalCredentialStatus(credentialWithStatus3, 3, clientType);
+    const credentialWithStatus3 = await statusManager.allocateStatus(unsignedCredential) as any;
+    checkLocalCredentialStatus(credentialWithStatus3, 3, service);
   });
 
   it('tests updateStatus and checkStatus', async () => {
     // allocate status for credential
-    const credentialWithStatus = await statusClient.allocateStatus(unsignedCredential) as any;
+    const credentialWithStatus = await statusManager.allocateStatus(unsignedCredential) as any;
 
     // update status of credential
-    const statusCredential = await statusClient.updateStatus({
+    const statusCredential = await statusManager.updateStatus({
       credentialId: credentialWithStatus.id,
       credentialStatus: 'revoked' as CredentialState
     }) as any;
 
     // check status credential
-    checkStatusCredential(statusCredential, clientType);
+    checkStatusCredential(statusCredential, service);
 
     // check status of credential
-    const credentialStatus = await statusClient.checkStatus(credentialWithStatus.id);
+    const credentialStatus = await statusManager.checkStatus(credentialWithStatus.id);
     checkRemoteCredentialStatus(credentialStatus, 1);
   });
 });
