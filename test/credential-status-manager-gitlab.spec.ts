@@ -2,7 +2,7 @@ import 'mocha';
 import { expect } from 'chai';
 import { createSandbox } from 'sinon';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
-import * as OctokitClient from '@octokit/rest';
+import * as AxiosClient from 'axios';
 import { createStatusListManager } from '../src';
 import {
   BaseCredentialStatusManager,
@@ -11,8 +11,8 @@ import {
   CredentialStatusLogData,
   CredentialStatusLogEntry,
   CredentialStatusManagerService
-} from '../src/credential-status-base';
-import * as GithubStatus from '../src/credential-status-github';
+} from '../src/credential-status-manager-base';
+import * as GitlabStatus from '../src/credential-status-manager-gitlab';
 import {
   accessToken,
   checkLocalCredentialStatus,
@@ -22,6 +22,7 @@ import {
   didSeed,
   metaRepoName,
   repoName,
+  repoOrgId,
   repoOrgName,
   repoVisibility,
   statusListId,
@@ -30,16 +31,17 @@ import {
 
 const sandbox = createSandbox();
 
-class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialStatusManager {
+class MockGitlabCredentialStatusManager extends GitlabStatus.GitlabCredentialStatusManager {
   private statusList: any;
   private statusConfig: CredentialStatusConfigData;
   private statusLog: CredentialStatusLogEntry[];
 
-  constructor(options: GithubStatus.GithubCredentialStatusManagerOptions) {
+  constructor(options: GitlabStatus.GitlabCredentialStatusManagerOptions) {
     const {
       repoName,
       metaRepoName,
       repoOrgName,
+      repoOrgId,
       repoVisibility,
       accessToken,
       didMethod,
@@ -49,6 +51,7 @@ class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialSta
       repoName,
       metaRepoName,
       repoOrgName,
+      repoOrgId,
       repoVisibility,
       accessToken,
       didMethod,
@@ -124,11 +127,11 @@ class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialSta
   }
 }
 
-describe('GitHub Credential Status Manager', () => {
-  const service = 'github' as CredentialStatusManagerService;
-  let statusManager: GithubStatus.GithubCredentialStatusManager;
-  sandbox.stub(OctokitClient.Octokit.prototype, 'constructor').returns(null);
-  sandbox.stub(GithubStatus, 'GithubCredentialStatusManager').value(MockGithubCredentialStatusManager);
+describe('GitLab Credential Status Manager', () => {
+  const service = 'gitlab' as CredentialStatusManagerService;
+  let statusManager: GitlabStatus.GitlabCredentialStatusManager;
+  sandbox.stub(AxiosClient.default, 'create').returnsThis();
+  sandbox.stub(GitlabStatus, 'GitlabCredentialStatusManager').value(MockGitlabCredentialStatusManager);
 
   beforeEach(async () => {
     statusManager = await createStatusListManager({
@@ -136,16 +139,17 @@ describe('GitHub Credential Status Manager', () => {
       repoName,
       metaRepoName,
       repoOrgName,
+      repoOrgId,
       repoVisibility,
       accessToken,
       didMethod,
       didSeed
-    }) as GithubStatus.GithubCredentialStatusManager;
+    }) as GitlabStatus.GitlabCredentialStatusManager;
   });
 
   it('tests output of createStatusListManager', async () => {
     expect(statusManager).to.be.instanceof(BaseCredentialStatusManager);
-    expect(statusManager).to.be.instanceof(GithubStatus.GithubCredentialStatusManager);
+    expect(statusManager).to.be.instanceof(GitlabStatus.GitlabCredentialStatusManager);
   });
 
   it('tests allocateStatus', async () => {

@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { CredentialStatusManagerService, VisibilityLevel } from '../src/credential-status-base';
+import { CredentialStatusManagerService, VisibilityLevel } from '../src/credential-status-manager-base';
 import { DidMethod } from '../src/helpers';
 
 const credentialId = 'http://university-xyz.edu/credentials/3732';
