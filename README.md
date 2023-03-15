@@ -50,7 +50,7 @@ npm install
 
 ### Create credential status manager
 
-The `createStatusListManager` function is the only exported pure function of this library. It is an asynchronous function accepts configuration options and returns a credential status manager that aligns with these options. Here are all the possible configuration options:
+The `createStatusManager` function is the only exported pure function of this library. It is an asynchronous function accepts configuration options and returns a credential status manager that aligns with these options. Here are all the possible configuration options:
 
 | Key | Description | Type | Required |
 | --- | --- | --- | --- |
@@ -67,12 +67,12 @@ The `createStatusListManager` function is the only exported pure function of thi
 | `signUserCredential` | whether or not to sign user credentials | boolean | no (default: `false`) |
 | `signStatusCredential` | whether or not to sign status credentials | boolean | no (default: `false`) |
 
-Here is a sample call to `createStatusListManager`:
+Here is a sample call to `createStatusManager`:
 
 ```ts
-import { createStatusListManager } from '@digitalcredentials/status-list-manager-git';
+import { createStatusManager } from '@digitalcredentials/status-list-manager-git';
 
-const statusManager = await createStatusListManager({
+const statusManager = await createStatusManager({
   service: 'github',
   repoOrgName: 'university-xyz', // Please create your own organization on your source control service of choice
   accessToken: '@cc3$$t0k3n123',
@@ -82,11 +82,11 @@ const statusManager = await createStatusListManager({
 });
 ```
 
-**Note:** A Status List 2021 credential can be found in the automatically generated repository, `repoName` in the organization, `repoOrgName` that was configured with `createStatusListManager`. Additionally, relevant historical data can be found in the automatically generated metadata repository (`metaRepoName`) in the same organization. Finally, you can find a publicly visible version of the aforementioned Status List 2021 credential at the relevant URL for hosted sites in the source control service of choice (e.g., https://`repoOrgName`.github.io/`repoName`/`statusListId` for GitHub, where `statusListId` is the name of a file that was automatically generated in `repoName`).
+**Note:** A Status List 2021 credential can be found in the automatically generated repository, `repoName` in the organization, `repoOrgName` that was configured with `createStatusManager`. Additionally, relevant historical data can be found in the automatically generated metadata repository (`metaRepoName`) in the same organization. Finally, you can find a publicly visible version of the aforementioned Status List 2021 credential at the relevant URL for hosted sites in the source control service of choice (e.g., https://`repoOrgName`.github.io/`repoName`/`statusListId` for GitHub, where `statusListId` is the name of a file that was automatically generated in `repoName`).
 
 ### Allocate status for credential
 
-The `allocateStatus` is an instance method that is called on a credential status manager initialized by `createStatusListManager`. It is an asynchronous method that accepts a credential as input, records its status in the caller's source control service of choice, and returns the credential with status metadata attached.
+The `allocateStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts a credential as input, records its status in the caller's source control service of choice, and returns the credential with status metadata attached.
 
 Here is a sample call to `allocateStatus`:
 
@@ -133,7 +133,7 @@ console.log(credentialWithStatus);
 
 ### Update status of credential
 
-The `updateStatus` is an instance method that is called on a credential status manager initialized by `createStatusListManager`. It is an asynchronous method that accepts a credential ID and desired credential status as input (options: `active` | `revoked`), records its new status in the caller's source control service of choice, and returns the status credential.
+The `updateStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts a credential ID and desired credential status as input (options: `active` | `revoked`), records its new status in the caller's source control service of choice, and returns the status credential.
 
 Here is a sample call to `updateStatus`:
 
@@ -165,7 +165,7 @@ console.log(statusCredential);
 
 ### Check status of credential
 
-The `checkStatus` is an instance method that is called on a credential status manager initialized by `createStatusListManager`. It is an asynchronous method that accepts a credential ID as input and returns status information for the credential.
+The `checkStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts a credential ID as input and returns status information for the credential.
 
 Here is a sample call to `checkStatus`:
 
@@ -188,7 +188,7 @@ console.log(credentialStatus);
 
 ### Check if caller has authority to update status of credentials
 
-The `hasStatusAuthority` is an instance method that is called on a credential status manager initialized by `createStatusListManager`. It is an asynchronous method that accepts an access token for the API of the caller's source control service of choice, and reports whether the caller has the authority to update the status of credentials.
+The `hasStatusAuthority` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts an access token for the API of the caller's source control service of choice, and reports whether the caller has the authority to update the status of credentials.
 
 Here is a sample call to `hasStatusAuthority` in the context of Express.js middleware:
 
@@ -231,7 +231,7 @@ async function verifyStatusRepoAccess(req, res, next) {
 }
 ```
 
-**Note:** This code assumes that `getStatusListManager` either calls `createStatusListManager` or retrieves an existing status manager instance created at an earlier point in time.
+**Note:** This code assumes that `getStatusListManager` either calls `createStatusManager` or retrieves an existing status manager instance created at an earlier point in time.
 
 ## Contribute
 
