@@ -10,6 +10,8 @@ A Typescript library for managing the status of [Verifiable Credentials](https:/
 - [Background](#background)
 - [Install](#install)
 - [Usage](#usage)
+  - [Create credential status manager](#create-credential-status-manager)
+  - [Allocate status for credential](#allocate-status-for-credential)
 - [Contribute](#contribute)
 - [License](#license)
 
@@ -43,7 +45,7 @@ npm install
 
 ### Create credential status manager
 
-The `createStatusListManager` function is the only exported pure function of this library. It accepts configuration options and outputs an instance of a credential status manager that complies with these options. Here are all the possible configuration options:
+The `createStatusListManager` function is the only exported pure function of this library. It is an asynchronous function accepts configuration options and returns a credential status manager that aligns with these options. Here are all the possible configuration options:
 
 | Key | Description | Type | Required |
 | --- | --- | --- | --- |
@@ -57,8 +59,72 @@ The `createStatusListManager` function is the only exported pure function of thi
 | `didMethod` | name of the DID method used for signing | `key` \| `web` | yes |
 | `didSeed` | seed used to deterministically generate DID | string | yes |
 | `didWebUrl` | URL for `did:web` | string | yes (if `didMethod` = `web`) |
-| `signUserCredential` | whether or not to sign user credential | boolean | no (default: `false`) |
-| `signStatusCredential` | whether or not to sign status credential | boolean | no (default: `false`) |
+| `signUserCredential` | whether or not to sign user credentials | boolean | no (default: `false`) |
+| `signStatusCredential` | whether or not to sign status credentials | boolean | no (default: `false`) |
+
+Here is a sample call to `createStatusListManager`:
+
+```ts
+import { createStatusListManager } from '@digitalcredentials/status-list-manager-git';
+
+const statusManager = await createStatusListManager({
+  clientType: 'github',
+  repoOrgName: 'university-xyz', // Please create your own organization on your source control service of choice
+  accessToken: '@cc3$$t0k3n123',
+  didMethod: 'key',
+  didSeed: 'DsnrHBHFQP0ab59dQELh3uEwy7i5ArcOTwxkwRO2hM87CBRGWBEChPO7AjmwkAZ2', // Please create your own DID seed
+  signStatusCredential: true
+});
+```
+
+**Note:** A status credential can be found in the automatically generated repository, `repoName` in the organization, `repoOrgName` that was configured with `createStatusListManager`. Additionally, relevant historical data can be found in the automatically generated metadata repository (`metaRepoName`) in the same organization. Finally, you can find a publicly visible Status List 2021 credential at the relevant URL for hosted sites in the source control service of choice (e.g., https://`repoOrgName`.github.io/`repoName`/`statusListId` for GitHub, where `statusListId` is the name of a file that was automatically generated in `repoName`).
+
+### Allocate status for credential
+
+The `allocateStatus` is an instance method that is called on a credential status manager initialized by `createStatusListManager`. It is an asynchronous method that accepts a credential as input, records its status in the caller's source control service of choice, and returns the credential with status metadata attached.
+
+Here is a sample call to `allocateStatus`:
+
+```ts
+const credential = {
+  '@context': [
+    'https://www.w3.org/2018/credentials/v1',
+    'https://w3id.org/security/suites/ed25519-2020/v1'
+  ],
+  id: 'http://university-xyz.edu/credentials/3732',
+  type: [
+    'VerifiableCredential'
+  ],
+  issuer: 'did:key:z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC',
+  issuanceDate: '2020-03-10T04:24:12.164Z',
+  credentialSubject: {
+    id: 'did:example:abcdef'
+  }
+};
+const credentialWithStatus = await statusManager.allocateStatus(credential);
+console.log(credentialWithStatus);
+/*
+{
+  '@context': [
+    'https://www.w3.org/2018/credentials/v1',
+    'https://w3id.org/security/suites/ed25519-2020/v1',
+    'https://w3id.org/vc/status-list/2021/v1'
+  ],
+  id: 'http://university-xyz.edu/credentials/3732',
+  type: [ 'VerifiableCredential' ],
+  issuer: 'did:key:z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC',
+  issuanceDate: '2020-03-10T04:24:12.164Z',
+  credentialSubject: { id: 'did:example:abcdef' },
+  credentialStatus: {
+    id: 'https://university-xyz.github.io/credential-status/V27UAUYPNR#1',
+    type: 'StatusList2021Entry',
+    statusPurpose: 'revocation',
+    statusListIndex: 1,
+    statusListCredential: 'https://university-xyz.github.io/credential-status/V27UAUYPNR'
+  }
+}
+*/
+```
 
 ## Contribute
 
