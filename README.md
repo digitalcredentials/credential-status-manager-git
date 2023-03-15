@@ -15,6 +15,7 @@ A Typescript library for managing the status of [Verifiable Credentials](https:/
   - [Create credential status manager](#create-credential-status-manager)
   - [Allocate status for credential](#allocate-status-for-credential)
   - [Update status of credential](#update-status-of-credential)
+  - [Check status of credential](#check-status-of-credential)
 - [Contribute](#contribute)
 - [License](#license)
 
@@ -133,11 +134,11 @@ console.log(credentialWithStatus);
 
 The `updateStatus` is an instance method that is called on a credential status manager initialized by `createStatusListManager`. It is an asynchronous method that accepts a credential ID and desired credential status as input, records its new status in the caller's source control service of choice, and returns the status credential.
 
-Here is a sample call to `allocateStatus`:
+Here is a sample call to `updateStatus`:
 
 ```ts
 const statusCredential = await statusManager.updateStatus({
-  credentialId: 'http://university-xyz.edu/credentials/3732',
+  credentialId: credentialWithStatus.id,
   credentialStatus: 'revoked'
 });
 console.log(statusCredential);
@@ -157,6 +158,29 @@ console.log(statusCredential);
   },
   issuer: 'did:key:z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC',
   issuanceDate: '2023-03-15T19:21:54.093Z'
+}
+*/
+```
+
+### Check status of credential
+
+The `checkStatus` is an instance method that is called on a credential status manager initialized by `createStatusListManager`. It is an asynchronous method that accepts a credential ID as input and returns status information for the credential.
+
+Here is a sample call to `checkStatus`:
+
+```ts
+const credentialStatus = await statusClient.checkStatus(credentialWithStatus.id);
+console.log(credentialStatus);
+/*
+{
+  timestamp: '2023-03-15T19:39:06.023Z',
+  credentialId: 'http://university-xyz.edu/credentials/3732',
+  credentialIssuer: 'did:key:z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC',
+  credentialSubject: 'did:example:abcdef',
+  credentialState: 'revoked',
+  verificationMethod: 'did:key:z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC#z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC',
+  statusListId: 'V27UAUYPNR',
+  statusListIndex: 1
 }
 */
 ```
