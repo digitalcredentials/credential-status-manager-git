@@ -1,6 +1,6 @@
 {
   "name": "@digitalcredentials/status-list-manager-git",
-  "description": "A Typescript library for managing the status of verifiable credentials.",
+  "description": "A Typescript library for managing the status of Verifiable Credentials in Git using Status List 2021",
   "version": "0.0.1",
   "scripts": {
     "build": "npm run clear && tsc -d && tsc -p tsconfig.json",
