@@ -15,7 +15,7 @@ cryptoLd.use(Ed25519VerificationKey2020);
 cryptoLd.use(X25519KeyAgreementKey2020);
 
 // DID drivers
-const didWebDriver = DidWeb.driver({ cryptoLd }); 
+const didWebDriver = DidWeb.driver({ cryptoLd });
 const didKeyDriver = DidKey.driver();
 
 // Document loader
