@@ -54,11 +54,11 @@ The `createStatusListManager` function is the only exported pure function of thi
 
 | Key | Description | Type | Required |
 | --- | --- | --- | --- |
-| `clientType` | name of the source control service that will host the credential status resources | `github` \| `gitlab` | yes |
+| `service` | name of the source control service that will host the credential status resources | `github` \| `gitlab` | yes |
 | `repoName` | name of the credential status repository | string | no (default: `credential-status`) |
 | `metaRepoName` | name of the credential status metadata repository | string | no (default: `credential-status-metadata`) |
 | `repoOrgName` | name of the organization in the source control service that will host the credential status resources | string | yes |
-| `repoOrgId` | ID of the organization in the source control service that will host the credential status resources | string | yes (if `clientType` = `gitlab`) |
+| `repoOrgId` | ID of the organization in the source control service that will host the credential status resources | string | yes (if `service` = `gitlab`) |
 | `repoVisibility` | level of visibility of the credential status repository | `public` \| `private` | no (default: `public`) |
 | `accessToken` | access token for the source control service API | string | yes |
 | `didMethod` | name of the DID method used for signing | `key` \| `web` | yes |
@@ -73,7 +73,7 @@ Here is a sample call to `createStatusListManager`:
 import { createStatusListManager } from '@digitalcredentials/status-list-manager-git';
 
 const statusManager = await createStatusListManager({
-  clientType: 'github',
+  service: 'github',
   repoOrgName: 'university-xyz', // Please create your own organization on your source control service of choice
   accessToken: '@cc3$$t0k3n123',
   didMethod: 'key',
@@ -214,18 +214,18 @@ function extractAccessToken(headers) {
   }
 }
 
-// verifies whether issuer client has access to status repo
+// verifies whether caller has access to status repo
 async function verifyStatusRepoAccess(req, res, next) {
   const { headers } = req;
-  // Verify that access token was included in request
+  // verify that access token was included in request
   const accessToken = extractAccessToken(headers);
   if (!accessToken) {
     return res.send('Failed to provide access token in request');
   }
-  // Check if issuer client has access to status repo
+  // check if caller has access to status repo
   const hasAccess = await req.statusManager.hasStatusAuthority(accessToken);
   if (!hasAccess) {
-    return res.send('Issuer is unauthorized to access status repo');
+    return res.send('Caller is unauthorized to access status repo');
   }
   next();
 }

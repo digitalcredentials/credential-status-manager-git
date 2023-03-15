@@ -1,38 +1,38 @@
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import { Octokit } from '@octokit/rest';
 import {
-  BASE_CLIENT_REQUIRED_OPTIONS,
+  BASE_MANAGER_REQUIRED_OPTIONS,
   CREDENTIAL_STATUS_CONFIG_FILE,
   CREDENTIAL_STATUS_LOG_FILE,
   CREDENTIAL_STATUS_REPO_BRANCH_NAME,
-  BaseCredentialStatusClient,
-  BaseCredentialStatusClientOptions,
+  BaseCredentialStatusManager,
+  BaseCredentialStatusManagerOptions,
   CredentialStatusConfigData,
   CredentialStatusLogData,
   VisibilityLevel
 } from './credential-status-base';
 import { DidMethod, decodeSystemData, encodeAsciiAsBase64 } from './helpers';
 
-// Type definition for GithubCredentialStatusClient constructor method input
-export type GithubCredentialStatusClientOptions = {
+// Type definition for GithubCredentialStatusManager constructor method input
+export type GithubCredentialStatusManagerOptions = {
   repoOrgName: string;
   repoVisibility: VisibilityLevel;
-} & BaseCredentialStatusClientOptions;
+} & BaseCredentialStatusManagerOptions;
 
-// Minimal set of options required for configuring GithubCredentialStatusClient
-const GITHUB_CLIENT_REQUIRED_OPTIONS = [
+// Minimal set of options required for configuring GithubCredentialStatusManager
+const GITHUB_MANAGER_REQUIRED_OPTIONS = [
   'repoOrgName',
   'repoVisibility'
-].concat(BASE_CLIENT_REQUIRED_OPTIONS) as
-  Array<keyof GithubCredentialStatusClientOptions & BaseCredentialStatusClientOptions>;
+].concat(BASE_MANAGER_REQUIRED_OPTIONS) as
+  Array<keyof GithubCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 
-// Implementation of BaseCredentialStatusClient for GitHub
-export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
+// Implementation of BaseCredentialStatusManager for GitHub
+export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   private readonly repoOrgName: string;
   private readonly repoVisibility: VisibilityLevel;
   private client: Octokit;
 
-  constructor(options: GithubCredentialStatusClientOptions) {
+  constructor(options: GithubCredentialStatusManagerOptions) {
     const {
       repoName,
       metaRepoName,
@@ -61,18 +61,18 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
     this.client = new Octokit({ auth: accessToken });
   }
 
-  // ensures proper configuration of GitHub status client
-  ensureProperConfiguration(options: GithubCredentialStatusClientOptions): void {
-    const isProperlyConfigured = GITHUB_CLIENT_REQUIRED_OPTIONS.every(
-      (option: keyof GithubCredentialStatusClientOptions) => {
+  // ensures proper configuration of GitHub status manager
+  ensureProperConfiguration(options: GithubCredentialStatusManagerOptions): void {
+    const isProperlyConfigured = GITHUB_MANAGER_REQUIRED_OPTIONS.every(
+      (option: keyof GithubCredentialStatusManagerOptions) => {
         return !!options[option];
       }
     );
     if (!isProperlyConfigured) {
       throw new Error(
         'The following options must be set for the ' +
-        'GitHub credential status client: ' +
-        `${GITHUB_CLIENT_REQUIRED_OPTIONS.map(o => `'${o}'`).join(', ')}.`
+        'GitHub credential status manager: ' +
+        `${GITHUB_MANAGER_REQUIRED_OPTIONS.map(o => `'${o}'`).join(', ')}.`
       );
     }
     if (this.didMethod === DidMethod.Web && !this.didWebUrl) {
@@ -102,7 +102,7 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
     this.client = new Octokit({ auth: accessToken });
   }
 
-  // checks if issuer client has authority to update status
+  // checks if caller has authority to update status
   async hasStatusAuthority(accessToken: string): Promise<boolean> {
     this.resetClientAuthorization(accessToken);
     const repos = (await this.client.repos.listForOrg({ org: this.repoOrgName })).data;

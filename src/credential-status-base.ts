@@ -16,8 +16,8 @@ export const CREDENTIAL_STATUS_REPO_BRANCH_NAME = 'main';
 export const CREDENTIAL_STATUS_CONFIG_FILE = 'config.json';
 export const CREDENTIAL_STATUS_LOG_FILE = 'log.json';
 
-// Type of credential status client
-export enum CredentialStatusClientType {
+// Credential status manager source control service
+export enum CredentialStatusManagerService {
   Github = 'github',
   Gitlab = 'gitlab'
 }
@@ -35,7 +35,7 @@ export enum SystemFile {
   Status = 'status'
 }
 
-// States of credential resulting from issuer actions and tracked in status log
+// States of credential resulting from caller actions and tracked in status log
 export enum CredentialState {
   Active = 'active',
   Revoked = 'revoked'
@@ -88,8 +88,8 @@ interface UpdateStatusOptions {
   credentialStatus: CredentialState;
 }
 
-// Type definition for BaseCredentialStatusClient constructor method input
-export interface BaseCredentialStatusClientOptions {
+// Type definition for BaseCredentialStatusManager constructor method input
+export interface BaseCredentialStatusManagerOptions {
   repoName: string;
   metaRepoName: string;
   accessToken: string;
@@ -100,8 +100,8 @@ export interface BaseCredentialStatusClientOptions {
   signStatusCredential?: boolean;
 }
 
-// Minimal set of options required for configuring BaseCredentialStatusClient
-export const BASE_CLIENT_REQUIRED_OPTIONS: Array<keyof BaseCredentialStatusClientOptions> = [
+// Minimal set of options required for configuring BaseCredentialStatusManager
+export const BASE_MANAGER_REQUIRED_OPTIONS: Array<keyof BaseCredentialStatusManagerOptions> = [
   'repoName',
   'metaRepoName',
   'accessToken',
@@ -109,8 +109,8 @@ export const BASE_CLIENT_REQUIRED_OPTIONS: Array<keyof BaseCredentialStatusClien
   'didSeed'
 ];
 
-// Base class for credential status clients
-export abstract class BaseCredentialStatusClient {
+// Base class for credential status managers
+export abstract class BaseCredentialStatusManager {
   protected readonly repoName: string;
   protected readonly metaRepoName: string;
   protected readonly accessToken: string;
@@ -120,7 +120,7 @@ export abstract class BaseCredentialStatusClient {
   protected readonly signUserCredential: boolean;
   protected readonly signStatusCredential: boolean;
 
-  constructor(options: BaseCredentialStatusClientOptions) {
+  constructor(options: BaseCredentialStatusManagerOptions) {
     const {
       repoName,
       metaRepoName,
@@ -399,7 +399,7 @@ export abstract class BaseCredentialStatusClient {
   // deploys website to host credential status management resources
   async deployCredentialStatusWebsite(): Promise<void> {};
 
-  // checks if issuer client has authority to update status
+  // checks if caller has authority to update status
   abstract hasStatusAuthority(accessToken: string): Promise<boolean>;
 
   // checks if status repo exists

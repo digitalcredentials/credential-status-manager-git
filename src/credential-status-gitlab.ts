@@ -1,12 +1,12 @@
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import axios, { AxiosInstance } from 'axios';
 import {
-  BASE_CLIENT_REQUIRED_OPTIONS,
+  BASE_MANAGER_REQUIRED_OPTIONS,
   CREDENTIAL_STATUS_CONFIG_FILE,
   CREDENTIAL_STATUS_LOG_FILE,
   CREDENTIAL_STATUS_REPO_BRANCH_NAME,
-  BaseCredentialStatusClient,
-  BaseCredentialStatusClientOptions,
+  BaseCredentialStatusManager,
+  BaseCredentialStatusManagerOptions,
   CredentialStatusConfigData,
   CredentialStatusLogData,
   VisibilityLevel
@@ -49,23 +49,23 @@ const CREDENTIAL_STATUS_WEBSITE_GEMFILE =
 
 gem "jekyll"`;
 
-// Type definition for GitlabCredentialStatusClient constructor method input
-export type GitlabCredentialStatusClientOptions = {
+// Type definition for GitlabCredentialStatusManager constructor method input
+export type GitlabCredentialStatusManagerOptions = {
   repoOrgName: string;
   repoOrgId: string;
   repoVisibility: VisibilityLevel;
-} & BaseCredentialStatusClientOptions;
+} & BaseCredentialStatusManagerOptions;
 
-// Minimal set of options required for configuring GitlabCredentialStatusClient
-const GITLAB_CLIENT_REQUIRED_OPTIONS = [
+// Minimal set of options required for configuring GitlabCredentialStatusManager
+const GITLAB_MANAGER_REQUIRED_OPTIONS = [
   'repoOrgName',
   'repoOrgId',
   'repoVisibility'
-].concat(BASE_CLIENT_REQUIRED_OPTIONS) as
-  Array<keyof GitlabCredentialStatusClientOptions & BaseCredentialStatusClientOptions>;
+].concat(BASE_MANAGER_REQUIRED_OPTIONS) as
+  Array<keyof GitlabCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 
-// Implementation of BaseCredentialStatusClient for GitLab
-export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
+// Implementation of BaseCredentialStatusManager for GitLab
+export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
   private repoId: string;
   private metaRepoId: string;
   private readonly repoOrgName: string;
@@ -73,7 +73,7 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
   private readonly repoVisibility: VisibilityLevel;
   private client: AxiosInstance;
 
-  constructor(options: GitlabCredentialStatusClientOptions) {
+  constructor(options: GitlabCredentialStatusManagerOptions) {
     const {
       repoName,
       metaRepoName,
@@ -112,18 +112,18 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
     });
   }
 
-  // ensures proper configuration of GitLab status client
-  ensureProperConfiguration(options: GitlabCredentialStatusClientOptions): void {
-    const isProperlyConfigured = GITLAB_CLIENT_REQUIRED_OPTIONS.every(
-      (option: keyof GitlabCredentialStatusClientOptions) => {
+  // ensures proper configuration of GitLab status manager
+  ensureProperConfiguration(options: GitlabCredentialStatusManagerOptions): void {
+    const isProperlyConfigured = GITLAB_MANAGER_REQUIRED_OPTIONS.every(
+      (option: keyof GitlabCredentialStatusManagerOptions) => {
         return !!options[option];
       }
     );
     if (!isProperlyConfigured) {
       throw new Error(
         'The following options must be set for the ' +
-        'GitLab credential status client: ' +
-        `${GITLAB_CLIENT_REQUIRED_OPTIONS.map(o => `'${o}'`).join(', ')}.`
+        'GitLab credential status manager: ' +
+        `${GITLAB_MANAGER_REQUIRED_OPTIONS.map(o => `'${o}'`).join(', ')}.`
       );
     }
     if (this.didMethod === DidMethod.Web && !this.didWebUrl) {
@@ -198,7 +198,7 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
     });
   }
 
-  // checks if issuer client has authority to update status
+  // checks if caller has authority to update status
   async hasStatusAuthority(accessToken: string): Promise<boolean> {
     this.resetClientAuthorization(accessToken);
     const repoRequestOptions = {
