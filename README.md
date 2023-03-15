@@ -9,9 +9,12 @@ A Typescript library for managing the status of [Verifiable Credentials](https:/
 
 - [Background](#background)
 - [Install](#install)
+  - [NPM](#npm)
+  - [Development](#development)
 - [Usage](#usage)
   - [Create credential status manager](#create-credential-status-manager)
   - [Allocate status for credential](#allocate-status-for-credential)
+  - [Update status of credential](#update-status-of-credential)
 - [Contribute](#contribute)
 - [License](#license)
 
@@ -77,7 +80,7 @@ const statusManager = await createStatusListManager({
 });
 ```
 
-**Note:** A status credential can be found in the automatically generated repository, `repoName` in the organization, `repoOrgName` that was configured with `createStatusListManager`. Additionally, relevant historical data can be found in the automatically generated metadata repository (`metaRepoName`) in the same organization. Finally, you can find a publicly visible Status List 2021 credential at the relevant URL for hosted sites in the source control service of choice (e.g., https://`repoOrgName`.github.io/`repoName`/`statusListId` for GitHub, where `statusListId` is the name of a file that was automatically generated in `repoName`).
+**Note:** A Status List 2021 credential can be found in the automatically generated repository, `repoName` in the organization, `repoOrgName` that was configured with `createStatusListManager`. Additionally, relevant historical data can be found in the automatically generated metadata repository (`metaRepoName`) in the same organization. Finally, you can find a publicly visible version of the aforementioned Status List 2021 credential at the relevant URL for hosted sites in the source control service of choice (e.g., https://`repoOrgName`.github.io/`repoName`/`statusListId` for GitHub, where `statusListId` is the name of a file that was automatically generated in `repoName`).
 
 ### Allocate status for credential
 
@@ -122,6 +125,38 @@ console.log(credentialWithStatus);
     statusListIndex: 1,
     statusListCredential: 'https://university-xyz.github.io/credential-status/V27UAUYPNR'
   }
+}
+*/
+```
+
+### Update status of credential
+
+The `updateStatus` is an instance method that is called on a credential status manager initialized by `createStatusListManager`. It is an asynchronous method that accepts a credential ID and desired credential status as input, records its new status in the caller's source control service of choice, and returns the status credential.
+
+Here is a sample call to `allocateStatus`:
+
+```ts
+const statusCredential = await statusManager.updateStatus({
+  credentialId: 'http://university-xyz.edu/credentials/3732',
+  credentialStatus: 'revoked'
+});
+console.log(statusCredential);
+/*
+{
+  '@context': [
+    'https://www.w3.org/2018/credentials/v1',
+    'https://w3id.org/vc/status-list/2021/v1'
+  ],
+  id: 'https://university-xyz.github.io/credential-status/V27UAUYPNR',
+  type: [ 'VerifiableCredential', 'StatusList2021Credential' ],
+  credentialSubject: {
+    id: 'https://university-xyz.github.io/credential-status/V27UAUYPNR#list',
+    type: 'StatusList2021',
+    encodedList: 'H4sIAAAAAAAAA-3BMQ0AAAACIGf_0LbwAhoAAAAAAAAAAAAAAIC_AfqBUGnUMAAA',
+    statusPurpose: 'revocation'
+  },
+  issuer: 'did:key:z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC',
+  issuanceDate: '2023-03-15T19:21:54.093Z'
 }
 */
 ```
