@@ -16,17 +16,17 @@ import {
 } from './credential-status-manager-gitlab';
 import { signCredential, getSigningMaterial } from './helpers';
 
-// Type definition for base options of createStatusListManager function input
+// Type definition for base options of createStatusManager function input
 interface StatusListManagerBaseOptions {
   service: CredentialStatusManagerService;
 }
 
-// Type definition for createStatusListManager function input
+// Type definition for createStatusManager function input
 type StatusListManagerOptions = StatusListManagerBaseOptions &
   (GithubCredentialStatusManagerOptions | GitlabCredentialStatusManagerOptions);
 
 // creates credential status list manager
-export async function createStatusListManager(options: StatusListManagerOptions)
+export async function createStatusManager(options: StatusListManagerOptions)
 : Promise<BaseCredentialStatusManager> {
   const {
     service,

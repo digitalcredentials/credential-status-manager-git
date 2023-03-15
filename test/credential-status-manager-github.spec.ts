@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { createSandbox } from 'sinon';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import * as OctokitClient from '@octokit/rest';
-import { createStatusListManager } from '../src';
+import { createStatusManager } from '../src';
 import {
   BaseCredentialStatusManager,
   CredentialState,
@@ -131,7 +131,7 @@ describe('GitHub Credential Status Manager', () => {
   sandbox.stub(GithubStatus, 'GithubCredentialStatusManager').value(MockGithubCredentialStatusManager);
 
   beforeEach(async () => {
-    statusManager = await createStatusListManager({
+    statusManager = await createStatusManager({
       service,
       repoName,
       metaRepoName,
@@ -143,7 +143,7 @@ describe('GitHub Credential Status Manager', () => {
     }) as GithubStatus.GithubCredentialStatusManager;
   });
 
-  it('tests output of createStatusListManager', async () => {
+  it('tests output of createStatusManager', async () => {
     expect(statusManager).to.be.instanceof(BaseCredentialStatusManager);
     expect(statusManager).to.be.instanceof(GithubStatus.GithubCredentialStatusManager);
   });

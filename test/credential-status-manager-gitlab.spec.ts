@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { createSandbox } from 'sinon';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import * as AxiosClient from 'axios';
-import { createStatusListManager } from '../src';
+import { createStatusManager } from '../src';
 import {
   BaseCredentialStatusManager,
   CredentialState,
@@ -134,7 +134,7 @@ describe('GitLab Credential Status Manager', () => {
   sandbox.stub(GitlabStatus, 'GitlabCredentialStatusManager').value(MockGitlabCredentialStatusManager);
 
   beforeEach(async () => {
-    statusManager = await createStatusListManager({
+    statusManager = await createStatusManager({
       service,
       repoName,
       metaRepoName,
@@ -147,7 +147,7 @@ describe('GitLab Credential Status Manager', () => {
     }) as GitlabStatus.GitlabCredentialStatusManager;
   });
 
-  it('tests output of createStatusListManager', async () => {
+  it('tests output of createStatusManager', async () => {
     expect(statusManager).to.be.instanceof(BaseCredentialStatusManager);
     expect(statusManager).to.be.instanceof(GitlabStatus.GitlabCredentialStatusManager);
   });
