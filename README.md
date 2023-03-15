@@ -15,7 +15,7 @@ A Typescript library for managing the status of [Verifiable Credentials](https:/
 
 ## Background
 
-Credentials are dynamic artifacts with a robust lifecycle that goes well beyond issuance. This lifecycle is liable to span revocation, suspension, and expiry, among other common states. Many proposals have been put forth to capture this model in Verifiable Credentials. One of the most mature specifications for this is [Status List 2021](https://w3c-ccg.github.io/vc-status-list-2021). This library provides an implementation of this specification that leverages version control systems like GitHub and GitLab for storage and authentication.
+Credentials are dynamic artifacts with a robust lifecycle that goes well beyond issuance. This lifecycle is liable to span revocation, suspension, and expiry, among other common states. Many proposals have been put forth to capture this model in Verifiable Credentials. One of the most mature specifications for this is [Status List 2021](https://w3c-ccg.github.io/vc-status-list-2021). This library provides an implementation of this specification that leverages Git source control services like GitHub and GitLab for storage and authentication.
 
 ## Install
 
@@ -41,22 +41,24 @@ npm install
 
 ## Usage
 
-### Create status list manager
+### Create credential status manager
 
-The `createStatusListManager` function is the only exported pure function of this library. It accepts configuration options and outputs an instance of a status list manager that complies with these options. Here are all the possible configuration options:
+The `createStatusListManager` function is the only exported pure function of this library. It accepts configuration options and outputs an instance of a credential status manager that complies with these options. Here are all the possible configuration options:
 
-- `clientType`: credential status management service - options: `github` | `gitlab` (required)
-- `repoName`: name of the credential status repository (optional, default: `credential-status`)
-- `metaRepoName`: name of the credential status metadata repository (optional, default: `credential-status-metadata`)
-- `repoOrgName`: name of the organization in the source control service that will host the credential status repository (required)
-- `repoOrgId`: ID of the organization in the source control service that will host the credential status repository (required if `clientType` = `gitlab`)
-- `repoVisibility`: level of visibility of the credential status repository - options: `public` | `private` (optional, default: `public`)
-- `accessToken`: access token for the source control service API (required)
-- `didMethod`: DID method used for signing - options: `key` | `web` (required)
-- `didSeed`: seed used to deterministically generate DID (required)
-- `didWebUrl`: URL for `did:web` (required if `didMethod` = `web`)
-- `signUserCredential`: whether or not to sign user credential - options: `true` | `false` (optional, default: `false`)
-- `signStatusCredential`: whether or not to sign status credential - options: `true` | `false` (optional, default: `false`)
+| Key | Description | Type | Required |
+| --- | --- | --- | --- |
+| `clientType` | name of the source control service that will host the credential status resources | `github` \| `gitlab` | yes |
+| `repoName` | name of the credential status repository | string | no (default: `credential-status`) |
+| `metaRepoName` | name of the credential status metadata repository | string | no (default: `credential-status-metadata`) |
+| `repoOrgName` | name of the organization in the source control service that will host the credential status resources | string | yes |
+| `repoOrgId` | ID of the organization in the source control service that will host the credential status resources | string | yes (if `clientType` = `gitlab`) |
+| `repoVisibility` | level of visibility of the credential status repository | `public` \| `private` | no (default: `public`) |
+| `accessToken` | access token for the source control service API | string | yes |
+| `didMethod` | name of the DID method used for signing | `key` \| `web` | yes |
+| `didSeed` | seed used to deterministically generate DID | string | yes |
+| `didWebUrl` | URL for `did:web` | string | yes (if `didMethod` = `web`) |
+| `signUserCredential` | whether or not to sign user credential | boolean | no (default: `false`) |
+| `signStatusCredential` | whether or not to sign status credential | boolean | no (default: `false`) |
 
 ## Contribute
 
