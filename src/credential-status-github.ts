@@ -102,8 +102,8 @@ export class GithubCredentialStatusClient extends BaseCredentialStatusClient {
     this.client = new Octokit({ auth: accessToken });
   }
 
-  // checks if issuer client has access to status repo
-  async hasStatusRepoAccess(accessToken: string): Promise<boolean> {
+  // checks if issuer client has authority to update status
+  async hasStatusAuthority(accessToken: string): Promise<boolean> {
     this.resetClientAuthorization(accessToken);
     const repos = (await this.client.repos.listForOrg({ org: this.repoOrgName })).data;
     return repos.some((repo) => {

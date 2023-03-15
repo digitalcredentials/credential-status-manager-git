@@ -198,8 +198,8 @@ export class GitlabCredentialStatusClient extends BaseCredentialStatusClient {
     });
   }
 
-  // checks if issuer client has access to status repo
-  async hasStatusRepoAccess(accessToken: string): Promise<boolean> {
+  // checks if issuer client has authority to update status
+  async hasStatusAuthority(accessToken: string): Promise<boolean> {
     this.resetClientAuthorization(accessToken);
     const repoRequestOptions = {
       params: {

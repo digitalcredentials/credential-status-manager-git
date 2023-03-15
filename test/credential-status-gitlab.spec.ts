@@ -70,8 +70,8 @@ class MockGitlabCredentialStatusClient extends GitlabCredentialStatus.GitlabCred
   // deploys website to host credential status management resources
   async deployCredentialStatusWebsite(): Promise<void> {}
 
-  // checks if issuer client has access to status repo
-  async hasStatusRepoAccess(accessToken: string): Promise<boolean> { return true; }
+  // checks if issuer client has authority to update status
+  async hasStatusAuthority(accessToken: string): Promise<boolean> { return true; }
 
   // checks if status repo exists
   async statusRepoExists(): Promise<boolean> {

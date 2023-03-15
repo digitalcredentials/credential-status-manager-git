@@ -388,8 +388,8 @@ export abstract class BaseCredentialStatusClient {
   // deploys website to host credential status management resources
   async deployCredentialStatusWebsite(): Promise<void> {};
 
-  // checks if issuer client has access to status repo
-  abstract hasStatusRepoAccess(accessToken: string): Promise<boolean>;
+  // checks if issuer client has authority to update status
+  abstract hasStatusAuthority(accessToken: string): Promise<boolean>;
 
   // checks if status repo exists
   abstract statusRepoExists(): Promise<boolean>;
