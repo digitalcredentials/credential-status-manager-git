@@ -36,7 +36,7 @@ export enum SystemFile {
 }
 
 // States of credential resulting from issuer actions and tracked in status log
-enum CredentialState {
+export enum CredentialState {
   Issued = 'issued',
   Revoked = 'revoked',
   Suspended = 'suspended'
@@ -179,6 +179,7 @@ export abstract class BaseCredentialStatusClient {
       statusListIndex,
       statusListCredential
     };
+
     return {
       credential: {
         ...credential,
@@ -197,7 +198,7 @@ export abstract class BaseCredentialStatusClient {
     }
 
     // attach status to credential
-    const {
+    let {
       credential: credentialWithStatus,
       newList
     } = await this.embedCredentialStatus({ credential });
@@ -221,15 +222,15 @@ export abstract class BaseCredentialStatusClient {
       // create status credential
       const credentialStatusUrl = this.getCredentialStatusUrl();
       const statusCredentialId = `${credentialStatusUrl}/${newList}`;
-      let statusCredentialData = await composeStatusCredential({
+      let statusCredential = await composeStatusCredential({
         issuerDid,
         credentialId: statusCredentialId
       });
 
       // sign status credential if necessary
       if (signStatusCredential) {
-        statusCredentialData = await signCredential({
-          credential: statusCredentialData,
+        statusCredential = await signCredential({
+          credential: statusCredential,
           didMethod,
           didSeed,
           didWebUrl
@@ -237,13 +238,12 @@ export abstract class BaseCredentialStatusClient {
       }
 
       // create and persist status data
-      await this.createStatusData(statusCredentialData);
+      await this.createStatusData(statusCredential);
     }
 
-    let signedCredentialWithStatus;
     if (signUserCredential) {
       // sign credential
-      signedCredentialWithStatus = await signCredential({
+      credentialWithStatus = await signCredential({
         credential: credentialWithStatus,
         didMethod,
         didSeed,
@@ -257,6 +257,7 @@ export abstract class BaseCredentialStatusClient {
       statusListCredential,
       statusListIndex
     } = credentialWithStatus.credentialStatus;
+
     // retrieve status list ID from status credential URL
     const statusListId = statusListCredential.split('/').slice(-1).pop();
     const statusLogEntry: CredentialStatusLogEntry = {
@@ -273,10 +274,10 @@ export abstract class BaseCredentialStatusClient {
     statusLogData.push(statusLogEntry);
     await this.updateLogData(statusLogData);
 
-    return signUserCredential ? signedCredentialWithStatus : credentialWithStatus;
+    return credentialWithStatus;
   }
 
-  // updates status for credential
+  // updates status of credential
   async updateStatus({
     credentialId,
     credentialStatus
@@ -292,6 +293,13 @@ export abstract class BaseCredentialStatusClient {
       throw new Error(`Unable to find credential with given ID "${credentialId}"`);
     }
 
+    // retrieve relevant log data
+    const {
+      credentialSubject,
+      statusListId,
+      statusListIndex
+    } = logEntry;
+
     // retrieve signing material
     const {
       didMethod,
@@ -306,23 +314,22 @@ export abstract class BaseCredentialStatusClient {
     });
 
     // retrieve status credential
-    const statusCredentialDataBefore = await this.readStatusData();
+    const statusCredentialBefore = await this.readStatusData();
 
     // report error for compact JWT credentials
-    if (typeof statusCredentialDataBefore === 'string') {
+    if (typeof statusCredentialBefore === 'string') {
       throw new Error('This library does not support compact JWT credentials.');
     }
 
     // update status credential
-    const statusCredentialListEncodedBefore = statusCredentialDataBefore.credentialSubject.encodedList;
+    const statusCredentialListEncodedBefore = statusCredentialBefore.credentialSubject.encodedList;
     const statusCredentialListDecoded = await decodeList({
       encodedList: statusCredentialListEncodedBefore
     });
-    const { statusListId, statusListIndex } = logEntry;
     statusCredentialListDecoded.setStatus(statusListIndex, true);
     const credentialStatusUrl = this.getCredentialStatusUrl();
     const statusCredentialId = `${credentialStatusUrl}/${statusListId}`;
-    let statusCredentialData = await composeStatusCredential({
+    let statusCredential = await composeStatusCredential({
       issuerDid,
       credentialId: statusCredentialId,
       statusList: statusCredentialListDecoded
@@ -330,8 +337,8 @@ export abstract class BaseCredentialStatusClient {
 
     // sign status credential if necessary
     if (signStatusCredential) {
-      statusCredentialData = await signCredential({
-        credential: statusCredentialData,
+      statusCredential = await signCredential({
+        credential: statusCredential,
         didMethod,
         didSeed,
         didWebUrl
@@ -339,7 +346,7 @@ export abstract class BaseCredentialStatusClient {
     }
 
     // persist status credential
-    await this.updateStatusData(statusCredentialData);
+    await this.updateStatusData(statusCredential);
 
     // add new entries to status log
     const statusLogData = await this.readLogData();
@@ -347,6 +354,7 @@ export abstract class BaseCredentialStatusClient {
       timestamp: (new Date()).toISOString(),
       credentialId,
       credentialIssuer: issuerDid,
+      credentialSubject,
       credentialState: credentialStatus,
       verificationMethod,
       statusListId,
@@ -355,7 +363,23 @@ export abstract class BaseCredentialStatusClient {
     statusLogData.push(statusLogEntry);
     await this.updateLogData(statusLogData);
 
-    return statusCredentialData;
+    return statusCredential;
+  }
+
+  // checks status of credential
+  async checkStatus(credentialId: string): Promise<CredentialStatusLogEntry> {
+    // find relevant log entry for credential with given ID
+    const logData: CredentialStatusLogData = await this.readLogData();
+    const logEntry = logData.findLast((entry) => {
+      return entry.credentialId === credentialId;
+    }) as CredentialStatusLogEntry;
+
+    // unable to find credential with given ID
+    if (!logEntry) {
+      throw new Error(`Unable to find credential with given ID "${credentialId}"`);
+    }
+
+    return logEntry;
   }
 
   // retrieves credential status URL
@@ -411,9 +435,12 @@ export async function composeStatusCredential({
   statusList,
   statusPurpose = 'revocation'
 }: ComposeStatusCredentialOptions): Promise<any> {
+  // determine whether or not to create a new status list
   if (!statusList) {
     statusList = await createList({ length: CREDENTIAL_STATUS_LIST_SIZE });
   }
+
+  // create status credential
   const issuanceDate = (new Date()).toISOString();
   let credential = await createCredential({
     id: credentialId,
@@ -425,5 +452,6 @@ export async function composeStatusCredential({
     issuer: issuerDid,
     issuanceDate
   };
+
   return credential;
 }

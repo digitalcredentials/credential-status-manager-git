@@ -109,15 +109,15 @@ export async function createStatusListManager(options: StatusListManagerOptions)
 
     // create status credential
     const statusCredentialId = `${credentialStatusUrl}/${listId}`;
-    let statusCredentialData = await composeStatusCredential({
+    let statusCredential = await composeStatusCredential({
       issuerDid,
       credentialId: statusCredentialId
     });
 
     // sign status credential if necessary
     if (signStatusCredential) {
-      statusCredentialData = await signCredential({
-        credential: statusCredentialData,
+      statusCredential = await signCredential({
+        credential: statusCredential,
         didMethod,
         didSeed,
         didWebUrl
@@ -125,7 +125,7 @@ export async function createStatusListManager(options: StatusListManagerOptions)
     }
 
     // create and persist status data
-    await credStatusClient.createStatusData(statusCredentialData);
+    await credStatusClient.createStatusData(statusCredential);
 
     // setup credential status website
     await credStatusClient.deployCredentialStatusWebsite();
