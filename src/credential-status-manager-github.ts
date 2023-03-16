@@ -63,16 +63,23 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
 
   // ensures proper configuration of GitHub status manager
   ensureProperConfiguration(options: GithubCredentialStatusManagerOptions): void {
+    const missingOptions = [] as
+      Array<keyof GithubCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
+
     const isProperlyConfigured = GITHUB_MANAGER_REQUIRED_OPTIONS.every(
       (option: keyof GithubCredentialStatusManagerOptions) => {
+        if (!options[option]) {
+          missingOptions.push();
+        }
         return !!options[option];
       }
     );
+
     if (!isProperlyConfigured) {
       throw new Error(
-        'The following options must be set for the ' +
+        'You have neglected to set the following required options for the ' +
         'GitHub credential status manager: ' +
-        `${GITHUB_MANAGER_REQUIRED_OPTIONS.map(o => `'${o}'`).join(', ')}.`
+        `${missingOptions.map(o => `'${o}'`).join(', ')}.`
       );
     }
     if (this.didMethod === DidMethod.Web && !this.didWebUrl) {

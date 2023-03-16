@@ -114,16 +114,23 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
 
   // ensures proper configuration of GitLab status manager
   ensureProperConfiguration(options: GitlabCredentialStatusManagerOptions): void {
+    const missingOptions = [] as
+      Array<keyof GitlabCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
+
     const isProperlyConfigured = GITLAB_MANAGER_REQUIRED_OPTIONS.every(
       (option: keyof GitlabCredentialStatusManagerOptions) => {
+        if (!options[option]) {
+          missingOptions.push();
+        }
         return !!options[option];
       }
     );
+
     if (!isProperlyConfigured) {
       throw new Error(
-        'The following options must be set for the ' +
+        'You have neglected to set the following required options for the ' +
         'GitLab credential status manager: ' +
-        `${GITLAB_MANAGER_REQUIRED_OPTIONS.map(o => `'${o}'`).join(', ')}.`
+        `${missingOptions.map(o => `'${o}'`).join(', ')}.`
       );
     }
     if (this.didMethod === DidMethod.Web && !this.didWebUrl) {
