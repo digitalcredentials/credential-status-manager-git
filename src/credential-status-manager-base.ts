@@ -281,8 +281,9 @@ export abstract class BaseCredentialStatusManager {
     credentialId,
     credentialStatus
   }: UpdateStatusOptions): Promise<VerifiableCredential> {
-    // find relevant log entry for credential with given ID
+    // find latest relevant log entry for credential with given ID
     const logData: CredentialStatusLogData = await this.readLogData();
+    logData.reverse();
     const logEntry = logData.find((entry) => {
       return entry.credentialId === credentialId;
     });
