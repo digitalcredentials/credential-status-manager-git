@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { CredentialStatusManagerService, VisibilityLevel } from '../src/credential-status-manager-base';
 import { DidMethod } from '../src/helpers';
 
-const credentialId = 'http://university-xyz.edu/credentials/3732';
+const credentialId = 'https://university-xyz.edu/credentials/3732';
 const credentialSubject = 'did:example:abcdef';
 const issuerKey = 'z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC';
 const issuerDid = `did:key:${issuerKey}`;
