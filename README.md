@@ -17,6 +17,9 @@ A Typescript library for managing the status of [Verifiable Credentials](https:/
   - [Update status of credential](#update-status-of-credential)
   - [Check status of credential](#check-status-of-credential)
   - [Check if caller has authority to update status of credentials](#check-if-caller-has-authority-to-update-status-of-credentials)
+- [Dependencies](#Dependencies)
+  - [Generating access tokens](#generating-access-tokens)
+  - [Generating DID seeds](#generating-did-seeds)
 - [Contribute](#contribute)
 - [License](#license)
 
@@ -74,10 +77,10 @@ import { createStatusManager } from '@digitalcredentials/status-list-manager-git
 
 const statusManager = await createStatusManager({
   service: 'github',
-  repoOrgName: 'university-xyz', // Please create your own organization on your source control service of choice
-  accessToken: '@cc3$$t0k3n123',
+  repoOrgName: 'university-xyz', // Please create your own organization in your source control service of choice
+  accessToken: '@cc3ssT0k3n123', // Please create your own access token in your source control service of choice (see Dependencies section for detailed instructions)
   didMethod: 'key',
-  didSeed: 'DsnrHBHFQP0ab59dQELh3uEwy7i5ArcOTwxkwRO2hM87CBRGWBEChPO7AjmwkAZ2', // Please create your own DID seed
+  didSeed: 'DsnrHBHFQP0ab59dQELh3uEwy7i5ArcOTwxkwRO2hM87CBRGWBEChPO7AjmwkAZ2', // Please create your own DID seed (see Dependencies section for detailed instructions)
   signStatusCredential: true
 });
 ```
@@ -96,7 +99,7 @@ const credential = {
     'https://www.w3.org/2018/credentials/v1',
     'https://w3id.org/security/suites/ed25519-2020/v1'
   ],
-  id: 'http://university-xyz.edu/credentials/3732',
+  id: 'https://university-xyz.edu/credentials/3732',
   type: [
     'VerifiableCredential'
   ],
@@ -115,7 +118,7 @@ console.log(credentialWithStatus);
     'https://w3id.org/security/suites/ed25519-2020/v1',
     'https://w3id.org/vc/status-list/2021/v1'
   ],
-  id: 'http://university-xyz.edu/credentials/3732',
+  id: 'https://university-xyz.edu/credentials/3732',
   type: [ 'VerifiableCredential' ],
   issuer: 'did:key:z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC',
   issuanceDate: '2020-03-10T04:24:12.164Z',
@@ -175,7 +178,7 @@ console.log(credentialStatus);
 /*
 {
   timestamp: '2023-03-15T19:39:06.023Z',
-  credentialId: 'http://university-xyz.edu/credentials/3732',
+  credentialId: 'https://university-xyz.edu/credentials/3732',
   credentialIssuer: 'did:key:z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC',
   credentialSubject: 'did:example:abcdef',
   credentialState: 'revoked',
@@ -232,6 +235,69 @@ async function verifyStatusRepoAccess(req, res, next) {
 ```
 
 **Note:** This code assumes that `getStatusListManager` either calls `createStatusManager` or retrieves an existing status manager instance created at an earlier point in time.
+
+## Dependencies
+
+### Generating access tokens
+
+**GitHub**
+1. Login to GitHub as an authorized member of the organization
+2. Click on your profile dropdown icon in the top-right corner of the screen
+3. Select the *Settings* tab
+4. Select the *Developer settings* tab toward the bottom of the left navigation bar
+5. Select the *Personal access tokens* tab
+6. Click the *Generate a new token* button
+7. Enter the name for access token
+8. Select the expiration date for access token
+9. Select the full *repo* scope
+10. Click the *Generate token* button
+11. Copy the generated token
+12. Use the token as the value for the `accessToken` key in invocations of `createStatusManager` and `hasStatusAuthority`
+
+**GitLab**
+1. Login to GitLab as an authorized member of the group
+2. Click on your profile dropdown icon in the top-right corner of the screen
+3. Select the *Preferences* tab
+4. Select the *Access Tokens* tab in the left navigation bar
+5. Enter the name for access token
+6. Select the expiration date for access token
+7. Select the *api* scope
+8. Click the *Create personal access token* button
+9. Copy the generated token
+10. Use the token as the value for the `accessToken` key in invocations of `createStatusManager` and `hasStatusAuthority`
+
+### Generating DID seeds
+
+In order to generate a DID seed, you will need to use software that is capable of creating it in a format that corresponds to a valid DID document. Here is sample code that does this:
+
+```ts
+import { generateSecretKeySeed } from '@digitalcredentials/bnid';
+
+// Set `didSeed` key to this value
+const secretKeySeed = await generateSecretKeySeed();
+```
+
+If `didMethod` = `web`, you must also generate a DID document and host it at `didWebUrl`/.well-known/did.json. Here is sample code that does this:
+
+```ts
+import { decodeSecretKeySeed } from '@digitalcredentials/bnid';
+import { Ed25519VerificationKey2020 } from '@digitalcredentials/ed25519-verification-key-2020';
+import { X25519KeyAgreementKey2020 } from '@digitalcredentials/x25519-key-agreement-key-2020';
+import * as DidWeb from '@interop/did-web-resolver';
+import { CryptoLD } from '@digitalcredentials/crypto-ld';
+
+const cryptoLd = new CryptoLD();
+cryptoLd.use(Ed25519VerificationKey2020);
+cryptoLd.use(X25519KeyAgreementKey2020);
+const didWebDriver = DidWeb.driver({ cryptoLd });
+
+const decodedSeed = decodeSecretKeySeed({secretKeySeed});
+
+// Host this document at `didWebUrl`/.well-known/did.json
+const didWebUrl = 'https://university-xyz.edu';
+const didDocument = didWebDriver.generate({ url: didWebUrl, seed: decodedSeed });
+```
+
 
 ## Contribute
 
