@@ -379,9 +379,10 @@ export abstract class BaseCredentialStatusManager {
 
   // checks status of credential
   async checkStatus(credentialId: string): Promise<CredentialStatusLogEntry> {
-    // find relevant log entry for credential with given ID
+    // find latest relevant log entry for credential with given ID
     const logData: CredentialStatusLogData = await this.readLogData();
-    const logEntry = logData.findLast((entry) => {
+    logData.reverse();
+    const logEntry = logData.find((entry) => {
       return entry.credentialId === credentialId;
     }) as CredentialStatusLogEntry;
 
