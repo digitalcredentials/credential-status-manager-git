@@ -1,3 +1,6 @@
+/*!
+ * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
+ */
 module.exports = function (config) {
   config.set({
     // base path that will be used to resolve all patterns (eg. files, exclude)

@@ -1,3 +1,6 @@
+/*!
+ * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
+ */
 import { CONTEXT_URL_V1 } from '@digitalbazaar/vc-status-list-context';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import { createCredential, createList, decodeList } from '@digitalcredentials/vc-status-list';
