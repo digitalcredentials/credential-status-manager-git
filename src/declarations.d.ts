@@ -1,3 +1,6 @@
+/*!
+ * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
+ */
 declare module '@digitalcredentials/vc-status-list';
 declare module '@digitalbazaar/vc-status-list-context';
 declare module '@digitalcredentials/bnid';

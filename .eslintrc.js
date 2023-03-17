@@ -1,3 +1,6 @@
+/*!
+ * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
+ */
 module.exports = {
   root: true,
   extends: ['standard-with-typescript', 'prettier', 'eslint-config-prettier'],

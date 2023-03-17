@@ -298,7 +298,6 @@ const didWebUrl = 'https://university-xyz.edu';
 const didDocument = didWebDriver.generate({ url: didWebUrl, seed: decodedSeed });
 ```
 
-
 ## Contribute
 
 PRs accepted.
@@ -308,4 +307,4 @@ If editing the Readme, please conform to the
 
 ## License
 
-[MIT License](LICENSE.md) © 2022 Digital Credentials Consortium.
+[MIT License](LICENSE.md) © 2023 Digital Credentials Consortium.

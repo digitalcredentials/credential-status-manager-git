@@ -1,3 +1,6 @@
+/*!
+ * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
+ */
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import { Octokit } from '@octokit/rest';
 import {

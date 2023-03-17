@@ -1,3 +1,6 @@
+/*!
+ * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
+ */
 import 'mocha';
 import { expect } from 'chai';
 import { createSandbox } from 'sinon';
