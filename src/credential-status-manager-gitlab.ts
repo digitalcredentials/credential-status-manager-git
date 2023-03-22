@@ -13,8 +13,8 @@ import {
   CredentialStatusConfigData,
   CredentialStatusLogData,
   VisibilityLevel
-} from './credential-status-manager-base';
-import { DidMethod, decodeSystemData } from './helpers';
+} from './credential-status-manager-base.js';
+import { DidMethod, decodeSystemData } from './helpers.js';
 
 const CREDENTIAL_STATUS_CONFIG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_CONFIG_FILE);
 const CREDENTIAL_STATUS_LOG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_LOG_FILE);

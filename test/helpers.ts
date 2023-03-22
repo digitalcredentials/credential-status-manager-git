@@ -2,8 +2,8 @@
  * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
  */
 import { expect } from 'chai';
-import { CredentialStatusManagerService, VisibilityLevel } from '../src/credential-status-manager-base';
-import { DidMethod } from '../src/helpers';
+import { CredentialStatusManagerService, VisibilityLevel } from '../src/credential-status-manager-base.js';
+import { DidMethod } from '../src/helpers.js';
 
 const credentialId = 'https://university-xyz.edu/credentials/3732';
 const credentialSubject = 'did:example:abcdef';
