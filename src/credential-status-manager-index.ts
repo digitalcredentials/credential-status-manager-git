@@ -8,16 +8,16 @@ import {
   CredentialStatusManagerService,
   VisibilityLevel,
   composeStatusCredential
-} from './credential-status-manager-base';
+} from './credential-status-manager-base.js';
 import {
   GithubCredentialStatusManager,
   GithubCredentialStatusManagerOptions
-} from './credential-status-manager-github';
+} from './credential-status-manager-github.js';
 import {
   GitlabCredentialStatusManager,
   GitlabCredentialStatusManagerOptions
-} from './credential-status-manager-gitlab';
-import { signCredential, getSigningMaterial } from './helpers';
+} from './credential-status-manager-gitlab.js';
+import { signCredential, getSigningMaterial } from './helpers.js';
 
 // Type definition for base options of createStatusManager function input
 interface StatusListManagerBaseOptions {

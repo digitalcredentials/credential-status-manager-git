@@ -13,8 +13,8 @@ import {
   CredentialStatusConfigData,
   CredentialStatusLogData,
   VisibilityLevel
-} from './credential-status-manager-base';
-import { DidMethod, decodeSystemData, encodeAsciiAsBase64 } from './helpers';
+} from './credential-status-manager-base.js';
+import { DidMethod, decodeSystemData, encodeAsciiAsBase64 } from './helpers.js';
 
 // Type definition for GithubCredentialStatusManager constructor method input
 export type GithubCredentialStatusManagerOptions = {

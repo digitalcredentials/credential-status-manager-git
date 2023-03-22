@@ -14,8 +14,8 @@ import {
   CredentialStatusLogData,
   CredentialStatusLogEntry,
   CredentialStatusManagerService
-} from '../src/credential-status-manager-base';
-import * as GitlabStatus from '../src/credential-status-manager-gitlab';
+} from '../src/credential-status-manager-base.js';
+import * as GitlabStatus from '../src/credential-status-manager-gitlab.js';
 import {
   accessToken,
   checkLocalCredentialStatus,
@@ -30,7 +30,7 @@ import {
   repoVisibility,
   statusListId,
   unsignedCredential
-} from './helpers';
+} from './helpers.js';
 
 const sandbox = createSandbox();
 

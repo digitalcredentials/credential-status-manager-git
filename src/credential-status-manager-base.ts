@@ -4,7 +4,7 @@
 import { CONTEXT_URL_V1 } from '@digitalbazaar/vc-status-list-context';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import { createCredential, createList, decodeList } from '@digitalcredentials/vc-status-list';
-import { DidMethod, getSigningMaterial, signCredential } from './helpers';
+import { DidMethod, getSigningMaterial, signCredential } from './helpers.js';
 
 // Number of credentials tracked in a list
 const CREDENTIAL_STATUS_LIST_SIZE = 100000;

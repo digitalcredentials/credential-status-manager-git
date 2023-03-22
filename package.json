@@ -30,7 +30,7 @@
   "homepage": "https://github.com/digitalcredentials/status-list-manager-git",
   "bugs": "https://github.com/digitalcredentials/status-list-manager-git/issues",
   "scripts": {
-    "build": "npm run clear && tsc -d && tsc -p tsconfig.json",
+    "build": "npm run clear && tsc -d && tsc -p tsconfig.esm.json",
     "clear": "rimraf dist/*",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
@@ -47,7 +47,14 @@
     "LICENSE.md"
   ],
   "main": "dist/index.js",
+  "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/index.js"
+    }
+  },
   "dependencies": {
     "@digitalbazaar/vc-status-list-context": "^3.0.1",
     "@digitalcredentials/bnid": "^2.1.2",
