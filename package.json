@@ -8,9 +8,9 @@
   "mocha": {
     "require": "ts-node/register",
     "extension": [
-      "ts"
+      "js"
     ],
-    "spec": "test/**/*.ts"
+    "spec": "dist/test/**/*.js"
   },
   "keywords": [
     "dcc"
@@ -31,6 +31,7 @@
   "bugs": "https://github.com/digitalcredentials/status-list-manager-git/issues",
   "scripts": {
     "build": "npm run clear && tsc -d && tsc -p tsconfig.esm.json",
+    "build-test": "npm run clear && tsc -d && tsc -p tsconfig.spec.json",
     "clear": "rimraf dist/*",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
@@ -39,7 +40,7 @@
     "rebuild": "npm run clear && npm run build",
     "test": "npm run lint && npm run test-node",
     "test-karma": "karma start karma.conf.js",
-    "test-node": "cross-env NODE_ENV=test TS_NODE_PROJECT=tsconfig.spec.json TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register --project tsconfig.spec.json 'test/*.ts'"
+    "test-node": "yarn build-test && mocha dist/test/*.spec.js && rm -rf dist/test"
   },
   "files": [
     "dist",

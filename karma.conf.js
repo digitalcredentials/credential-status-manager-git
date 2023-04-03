@@ -10,7 +10,7 @@ module.exports = function (config) {
 
     files: [
       'src/**/*.ts',
-      'test/**/*.ts' // *.tsx for React Jsx
+      'test/**/*.ts'
     ],
 
     karmaTypescriptConfig: {
