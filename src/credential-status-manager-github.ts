@@ -115,7 +115,9 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   // checks if caller has authority to update status
   async hasStatusAuthority(accessToken: string): Promise<boolean> {
     this.resetClientAuthorization(accessToken);
-    const repos = (await this.client.repos.listForOrg({ org: this.repoOrgName })).data;
+    const repos = (await this.client.paginate(this.client.repos.listForOrg, {
+      org: this.repoOrgName
+    }));
     return repos.some((repo) => {
       const hasAccess = repo.full_name === `${this.repoOrgName}/${this.repoName}`;
       const hasScope = repo.permissions?.admin &&
@@ -127,7 +129,9 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
 
   // checks if status repo exists
   async statusRepoExists(): Promise<boolean> {
-    const repos = (await this.client.repos.listForOrg({ org: this.repoOrgName })).data;
+    const repos = (await this.client.paginate(this.client.repos.listForOrg, {
+      org: this.repoOrgName
+    }));
     return repos.some((repo) => {
       return repo.name === this.repoName;
     });
