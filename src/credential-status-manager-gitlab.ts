@@ -3,6 +3,7 @@
  */
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import axios, { AxiosInstance } from 'axios';
+import parseLinkHeader from 'parse-link-header';
 import {
   BASE_MANAGER_REQUIRED_OPTIONS,
   CREDENTIAL_STATUS_CONFIG_FILE,
@@ -51,6 +52,8 @@ const CREDENTIAL_STATUS_WEBSITE_GEMFILE =
 `source "https://rubygems.org"
 
 gem "jekyll"`;
+
+const REPOS_PER_PAGE = 100;
 
 // Type definition for GitlabCredentialStatusManager constructor method input
 export type GitlabCredentialStatusManagerOptions = {
@@ -217,7 +220,24 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
         simple: true
       }
     };
-    const repos = (await this.client.get(`/projects`, repoRequestOptions)).data;
+    let repos: any[] = [];
+    let isFirstPage = true;
+    let isLastPage = false;
+    let repoEndpoint = `/projects?pagination=keyset&per_page=${REPOS_PER_PAGE}&order_by=id&sort=asc`;
+    do {
+      let repoResponse;
+      if (isFirstPage) {
+        repoResponse = await this.client.get(repoEndpoint, repoRequestOptions);
+        isFirstPage = false;
+      } else {
+        repoResponse = await this.client.get(repoEndpoint, repoRequestOptions);
+      }
+      const repoSubset = repoResponse.data;
+      repos = repos.concat(repoSubset);
+      const parsedLinkHeader = parseLinkHeader(repoResponse.headers.link);
+      repoEndpoint = parsedLinkHeader.next?.url;
+      isLastPage = !parsedLinkHeader.next;
+    } while (!isLastPage);
     return repos.some((repo: any) => {
       return repo.path_with_namespace === `${this.repoOrgName}/${this.repoName}`;
     });
@@ -231,8 +251,15 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
         simple: true
       }
     };
-    const repoResponse = await this.client.get(this.reposInOrgEndpoint(), repoRequestOptions);
-    return repoResponse.data as any[];
+    let repos: any[] = [];
+    let currentPage = 1;
+    do {
+      const repoEndpoint = `${this.reposInOrgEndpoint()}?per_page=${REPOS_PER_PAGE}&page=${currentPage}`;
+      const repoSubset = (await this.client.get(repoEndpoint, repoRequestOptions)).data;
+      repos = repos.concat(repoSubset);
+      currentPage++;
+    } while (repos.length === REPOS_PER_PAGE);
+    return repos;
   }
 
   // checks if status repo exists
