@@ -407,8 +407,8 @@ export abstract class BaseCredentialStatusManager {
   // checks if caller has authority to update status
   abstract hasStatusAuthority(accessToken: string): Promise<boolean>;
 
-  // checks if status repo exists
-  abstract statusRepoExists(): Promise<boolean>;
+  // checks if status repos exist
+  abstract statusReposExist(): Promise<boolean>;
 
   // creates status repo
   abstract createStatusRepo(): Promise<void>;

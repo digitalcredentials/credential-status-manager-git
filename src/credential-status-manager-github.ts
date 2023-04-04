@@ -134,12 +134,16 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     return hasAccess && hasScope;
   }
 
-  // checks if status repo exists
-  async statusRepoExists(): Promise<boolean> {
+  // checks if status repos exist
+  async statusReposExist(): Promise<boolean> {
     try {
       await this.client.repos.get({
         owner: this.repoOrgName,
         repo: this.repoName
+      });
+      await this.client.repos.get({
+        owner: this.repoOrgName,
+        repo: this.metaRepoName
       });
     } catch (error) {
       return false;
