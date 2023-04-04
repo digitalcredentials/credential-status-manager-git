@@ -151,8 +151,8 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     return true;
   }
 
-  // creates status repo
-  async createStatusRepo(): Promise<void> {
+  // creates status repos
+  async createStatusRepos(): Promise<void> {
     // create status repo
     await this.client.repos.createInOrg({
       org: this.repoOrgName,
