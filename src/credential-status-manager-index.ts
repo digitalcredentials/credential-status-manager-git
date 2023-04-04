@@ -96,7 +96,7 @@ export async function createStatusManager(options: StatusListManagerOptions)
   const reposExist = await statusManager.statusReposExist();
   if (!reposExist) {
     // create status repo
-    await statusManager.createStatusRepo();
+    await statusManager.createStatusRepos();
 
     // create and persist status config
     const listId = statusManager.generateStatusListId();

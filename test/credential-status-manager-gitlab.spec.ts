@@ -81,8 +81,8 @@ class MockGitlabCredentialStatusManager extends GitlabStatus.GitlabCredentialSta
     return false;
   }
 
-  // creates status repo
-  async createStatusRepo(): Promise<void> {}
+  // creates status repos
+  async createStatusRepos(): Promise<void> {}
 
   // creates data in config file
   async createConfigData(data: CredentialStatusConfigData): Promise<void> {

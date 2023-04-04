@@ -410,8 +410,8 @@ export abstract class BaseCredentialStatusManager {
   // checks if status repos exist
   abstract statusReposExist(): Promise<boolean>;
 
-  // creates status repo
-  abstract createStatusRepo(): Promise<void>;
+  // creates status repos
+  abstract createStatusRepos(): Promise<void>;
 
   // syncs status repo state
   async syncStatusRepoState(): Promise<void> {};

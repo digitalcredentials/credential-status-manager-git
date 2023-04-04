@@ -104,8 +104,8 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
       signStatusCredential
     });
     this.ensureProperConfiguration(options);
-    this.repoId = ''; // This value is set in createStatusRepo
-    this.metaRepoId = ''; // This value is set in createStatusRepo
+    this.repoId = ''; // This value is set in createStatusRepos
+    this.metaRepoId = ''; // This value is set in createStatusRepos
     this.repoOrgName = repoOrgName;
     this.repoOrgId = repoOrgId;
     this.repoVisibility = repoVisibility;
@@ -274,8 +274,8 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
     return statusRepoExists && metaStatusRepoExists;
   }
 
-  // creates status repo
-  async createStatusRepo(): Promise<void> {
+  // creates status repos
+  async createStatusRepos(): Promise<void> {
     // create status repo
     const repoRequestOptions = {
       name: this.repoName,
