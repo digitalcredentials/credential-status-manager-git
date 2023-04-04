@@ -115,26 +115,36 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   // checks if caller has authority to update status
   async hasStatusAuthority(accessToken: string): Promise<boolean> {
     this.resetClientAuthorization(accessToken);
-    const repos = (await this.client.paginate(this.client.repos.listForOrg, {
-      org: this.repoOrgName
-    }));
-    return repos.some((repo) => {
-      const hasAccess = repo.full_name === `${this.repoOrgName}/${this.repoName}`;
-      const hasScope = repo.permissions?.admin &&
+    let hasAccess: boolean;
+    let hasScope: boolean;
+    try {
+      const repoResponse = await this.client.repos.get({
+        owner: this.repoOrgName,
+        repo: this.repoName
+      });
+      const repo = repoResponse.data;
+      hasAccess = repo.full_name === `${this.repoOrgName}/${this.repoName}`;
+      hasScope = (repo.permissions?.admin &&
         repo.permissions?.push &&
-        repo.permissions?.pull;
-      return hasAccess && hasScope;
-    });
+        repo.permissions?.pull) as boolean;
+    } catch (error) {
+      hasAccess = false;
+      hasScope = false;
+    }
+    return hasAccess && hasScope;
   }
 
   // checks if status repo exists
   async statusRepoExists(): Promise<boolean> {
-    const repos = (await this.client.paginate(this.client.repos.listForOrg, {
-      org: this.repoOrgName
-    }));
-    return repos.some((repo) => {
-      return repo.name === this.repoName;
-    });
+    try {
+      await this.client.repos.get({
+        owner: this.repoOrgName,
+        repo: this.repoName
+      });
+    } catch (error) {
+      return false;
+    }
+    return true;
   }
 
   // creates status repo
