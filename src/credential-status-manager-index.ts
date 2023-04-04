@@ -93,8 +93,8 @@ export async function createStatusManager(options: StatusListManagerOptions)
 
   // setup status credential
   const credentialStatusUrl = statusManager.getCredentialStatusUrl();
-  const repoExists = await statusManager.statusRepoExists();
-  if (!repoExists) {
+  const reposExist = await statusManager.statusReposExist();
+  if (!reposExist) {
     // create status repo
     await statusManager.createStatusRepo();
 

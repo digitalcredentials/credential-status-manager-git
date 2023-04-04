@@ -262,12 +262,16 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
     return repos;
   }
 
-  // checks if status repo exists
-  async statusRepoExists(): Promise<boolean> {
+  // checks if status repos exist
+  async statusReposExist(): Promise<boolean> {
     const repos = await this.getReposInOrg();
-    return repos.some((repo) => {
+    const statusRepoExists = repos.some((repo) => {
       return repo.name === this.repoName;
     });
+    const metaStatusRepoExists = repos.some((repo) => {
+      return repo.name === this.metaRepoName;
+    });
+    return statusRepoExists && metaStatusRepoExists;
   }
 
   // creates status repo
