@@ -297,6 +297,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
   // syncs status repo state
   async syncStatusRepoState(): Promise<void> {
     const repos = await this.getReposInOrg();
+
     const repo = repos.find((r) => {
       return r.name === this.repoName;
     });
