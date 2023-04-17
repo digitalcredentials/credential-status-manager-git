@@ -20,8 +20,7 @@
   "include": [
     "src/**/*",
     ".eslintrc.js",
-    "karma.conf.js",
-    "post-install.js"
+    "karma.conf.js"
   ],
   "exclude": ["node_modules", "dist", "test"]
 }

@@ -35,7 +35,6 @@
     "clear": "rimraf dist/*",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
-    "postinstall": "node post-install.js",
     "prepare": "npm run build",
     "prettier": "prettier src --write",
     "rebuild": "npm run clear && npm run build",
@@ -45,10 +44,10 @@
   },
   "files": [
     "dist",
-    "post-install.js",
     "README.md",
     "LICENSE.md"
   ],
+  "type": "module",
   "main": "dist/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",
