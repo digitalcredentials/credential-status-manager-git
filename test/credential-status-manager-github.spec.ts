@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { createSandbox } from 'sinon';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import * as OctokitClient from '@octokit/rest';
-import { createStatusManager } from '../src';
+import { createStatusManager } from '../src/index.js';
 import {
   BaseCredentialStatusManager,
   CredentialState,
