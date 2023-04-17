@@ -45,6 +45,7 @@
   },
   "files": [
     "dist",
+    "post-install.js",
     "README.md",
     "LICENSE.md"
   ],
