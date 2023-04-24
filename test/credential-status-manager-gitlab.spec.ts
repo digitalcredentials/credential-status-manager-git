@@ -23,7 +23,9 @@ import {
   checkStatusCredential,
   didMethod,
   didSeed,
+  metaRepoId,
   metaRepoName,
+  repoId,
   repoName,
   repoOrgId,
   repoOrgName,
@@ -38,11 +40,15 @@ class MockGitlabCredentialStatusManager extends GitlabStatus.GitlabCredentialSta
   private statusList: any;
   private statusConfig: CredentialStatusConfigData;
   private statusLog: CredentialStatusLogEntry[];
+  private repoData: any;
+  private metaRepoData: any;
 
   constructor(options: GitlabStatus.GitlabCredentialStatusManagerOptions) {
     const {
       repoName,
+      repoId,
       metaRepoName,
+      metaRepoId,
       repoOrgName,
       repoOrgId,
       repoVisibility,
@@ -52,7 +58,9 @@ class MockGitlabCredentialStatusManager extends GitlabStatus.GitlabCredentialSta
     } = options;
     super({
       repoName,
+      repoId,
       metaRepoName,
+      metaRepoId,
       repoOrgName,
       repoOrgId,
       repoVisibility,
@@ -63,6 +71,8 @@ class MockGitlabCredentialStatusManager extends GitlabStatus.GitlabCredentialSta
     this.statusList = {};
     this.statusConfig = {} as CredentialStatusConfigData;
     this.statusLog = [];
+    this.repoData = {};
+    this.metaRepoData = {};
   }
 
   // generates new status list ID
@@ -77,12 +87,17 @@ class MockGitlabCredentialStatusManager extends GitlabStatus.GitlabCredentialSta
   async hasStatusAuthority(accessToken: string): Promise<boolean> { return true; }
 
   // checks if status repos exist
-  async statusReposExist(): Promise<boolean> {
-    return false;
+  async statusReposExist(): Promise<boolean> { return true; }
+
+  // retrieves data from status repo
+  async readRepoData(): Promise<any> {
+    throw new Error();
   }
 
-  // creates status repos
-  async createStatusRepos(): Promise<void> {}
+  // retrieves data from status metadata repo
+  async readMetaRepoData(): Promise<any> {
+    throw new Error();
+  }
 
   // creates data in config file
   async createConfigData(data: CredentialStatusConfigData): Promise<void> {
@@ -140,7 +155,9 @@ describe('GitLab Credential Status Manager', () => {
     statusManager = await createStatusManager({
       service,
       repoName,
+      repoId,
       metaRepoName,
+      metaRepoId,
       repoOrgName,
       repoOrgId,
       repoVisibility,

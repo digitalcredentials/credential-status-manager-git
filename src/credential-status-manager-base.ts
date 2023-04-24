@@ -410,11 +410,82 @@ export abstract class BaseCredentialStatusManager {
   // checks if status repos exist
   abstract statusReposExist(): Promise<boolean>;
 
-  // creates status repos
-  abstract createStatusRepos(): Promise<void>;
+  // checks if status repos are empty
+  async statusReposEmpty(): Promise<boolean> {
+    let repoEmpty = false;
+    try {
+      // retrieve status repo content
+      await this.readRepoData();
+    } catch (error: any) {
+      // track that status repo is empty
+      repoEmpty = true;
+    }
 
-  // syncs status repo state
-  async syncStatusRepoState(): Promise<void> {};
+    let metaRepoEmpty = false;
+    try {
+      // retrieve status metadata repo content
+      await this.readMetaRepoData();
+    } catch (error: any) {
+      // track that status metadata repo is empty
+      metaRepoEmpty = true;
+    }
+
+    // check if both status repos are empty
+    return repoEmpty && metaRepoEmpty;
+  }
+
+  // checks if status repos are properly configured
+  async statusReposProperlyConfigured(): Promise<boolean> {
+    try {
+      // retrieve config data
+      const configData = await this.readConfigData();
+      const { credentialsIssued, latestList: statusListId } = configData;
+      const credentialStatusUrl = this.getCredentialStatusUrl();
+      const statusCredentialId = `${credentialStatusUrl}/${statusListId}`;
+
+      // retrieve log data
+      const logData = await this.readLogData();
+
+      // retrieve status credential
+      const statusListData = await this.readStatusData();
+
+      // ensure status data has proper type
+      if (typeof statusListData === 'string') {
+        return false;
+      }
+
+      // ensure status credential is well formed
+      const hasProperStatusListId = statusListData.id === statusListId;
+      const hasProperStatusListType = statusListData.type.includes('StatusList2021Credential');
+      const hasProperStatusListSubId = statusListData.credentialSubject.id?.startsWith(statusCredentialId) ?? false;
+      const hasProperStatusListSubType = statusListData.credentialSubject.type === 'StatusList2021';
+      const hasProperStatusListSubStatusPurpose = statusListData.credentialSubject.statusPurpose === 'revocation';
+
+      // ensure log data is well formed
+      const hasProperLogDataType = Array.isArray(logData);
+      const statusListLogEntries = logData.filter((entry) => {
+        return entry.statusListId === statusListId;
+      });
+      const hasProperLogEntries = statusListLogEntries.length === credentialsIssued;
+
+      // ensure that all checks pass
+      return hasProperStatusListId &&
+             hasProperStatusListType &&
+             hasProperStatusListSubId &&
+             hasProperStatusListSubType &&
+             hasProperStatusListSubStatusPurpose &&
+             hasProperLogDataType &&
+             hasProperLogEntries;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // retrieves data from status repo
+  abstract readRepoData(): Promise<any>;
+
+  // retrieves data from status metadata repo
+  abstract readMetaRepoData(): Promise<any>;
 
   // creates data in config file
   abstract createConfigData(data: CredentialStatusConfigData): Promise<void>;
