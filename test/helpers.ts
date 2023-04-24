@@ -28,7 +28,9 @@ export const unsignedCredential = {
 };
 
 export const repoName = 'credential-status';
+export const repoId = '12345678';
 export const metaRepoName = 'credential-status-metadata';
+export const metaRepoId = '43215678';
 export const repoOrgName = 'university-xyz';
 export const repoOrgId = '87654321';
 export const repoVisibility = 'public' as VisibilityLevel;
@@ -89,13 +91,13 @@ export function checkStatusCredential(
   statusCredential: any,
   service: CredentialStatusManagerService
 ) {
-  let statusListCredentialId;
+  let statusCredentialId;
   switch (service) {
     case CredentialStatusManagerService.Github:
-      statusListCredentialId = `https://${repoOrgName}.github.io/${repoName}/${statusListId}`;
+      statusCredentialId = `https://${repoOrgName}.github.io/${repoName}/${statusListId}`;
       break;
     case CredentialStatusManagerService.Gitlab:
-      statusListCredentialId = `https://${repoOrgName}.gitlab.io/${repoName}/${statusListId}`;
+      statusCredentialId = `https://${repoOrgName}.gitlab.io/${repoName}/${statusListId}`;
       break;
   }
   expect(statusCredential).to.have.property('id');
@@ -105,9 +107,9 @@ export function checkStatusCredential(
   expect(statusCredential.credentialSubject).to.have.property('type');
   expect(statusCredential.credentialSubject).to.have.property('encodedList');
   expect(statusCredential.credentialSubject).to.have.property('statusPurpose');
-  expect(statusCredential.id).to.equal(statusListCredentialId);
+  expect(statusCredential.id).to.equal(statusCredentialId);
   expect(statusCredential.type).to.include('StatusList2021Credential');
-  expect(statusCredential.credentialSubject.id.startsWith(statusListCredentialId)).to.be.true;
+  expect(statusCredential.credentialSubject.id.startsWith(statusCredentialId)).to.be.true;
   expect(statusCredential.credentialSubject.type).to.equal('StatusList2021');
   expect(statusCredential.credentialSubject.statusPurpose).to.equal('revocation');
 }

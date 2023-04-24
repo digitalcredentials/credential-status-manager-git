@@ -33,8 +33,8 @@ export async function createStatusManager(options: StatusListManagerOptions)
 : Promise<BaseCredentialStatusManager> {
   const {
     service,
-    repoName='credential-status',
-    metaRepoName='credential-status-metadata',
+    repoName,
+    metaRepoName,
     repoOrgName,
     repoVisibility=VisibilityLevel.Public,
     accessToken,
@@ -61,10 +61,16 @@ export async function createStatusManager(options: StatusListManagerOptions)
       });
       break;
     case CredentialStatusManagerService.Gitlab: {
-      const { repoOrgId } = options as GitlabCredentialStatusManagerOptions;
+      const {
+        repoId,
+        metaRepoId,
+        repoOrgId
+      } = options as GitlabCredentialStatusManagerOptions;
       statusManager = new GitlabCredentialStatusManager({
         repoName,
+        repoId,
         metaRepoName,
+        metaRepoId,
         repoOrgName,
         repoOrgId,
         repoVisibility,
@@ -94,10 +100,17 @@ export async function createStatusManager(options: StatusListManagerOptions)
   // setup status credential
   const credentialStatusUrl = statusManager.getCredentialStatusUrl();
   const reposExist = await statusManager.statusReposExist();
-  if (!reposExist) {
-    // create status repo
-    await statusManager.createStatusRepos();
+  const reposEmpty = await statusManager.statusReposEmpty();
+  const statusReposProperlyConfigured = await statusManager.statusReposProperlyConfigured();
 
+  if (!reposExist) {
+    throw new Error(`The credential status repo ("${repoName}") and the credential status metadata repo ("${metaRepoName}") must be manually created in advance with a fine-grained token.`);
+  }
+  if (!reposEmpty) {
+    if (!statusReposProperlyConfigured) {
+      throw new Error(`The credential status repo ("${repoName}") and the credential status metadata repo ("${metaRepoName}") must be empty.`);
+    }
+  } else {
     // create and persist status config
     const listId = statusManager.generateStatusListId();
     const configData: CredentialStatusConfigData = {
@@ -132,9 +145,6 @@ export async function createStatusManager(options: StatusListManagerOptions)
 
     // setup credential status website
     await statusManager.deployCredentialStatusWebsite();
-  } else {
-    // sync status repo state
-    await statusManager.syncStatusRepoState();
   }
 
   return statusManager;

@@ -57,6 +57,8 @@ const REPOS_PER_PAGE = 100;
 
 // Type definition for GitlabCredentialStatusManager constructor method input
 export type GitlabCredentialStatusManagerOptions = {
+  repoId: string;
+  metaRepoId: string;
   repoOrgName: string;
   repoOrgId: string;
   repoVisibility: VisibilityLevel;
@@ -64,6 +66,8 @@ export type GitlabCredentialStatusManagerOptions = {
 
 // Minimal set of options required for configuring GitlabCredentialStatusManager
 const GITLAB_MANAGER_REQUIRED_OPTIONS = [
+  'repoId',
+  'metaRepoId',
   'repoOrgName',
   'repoOrgId',
   'repoVisibility'
@@ -72,8 +76,8 @@ const GITLAB_MANAGER_REQUIRED_OPTIONS = [
 
 // Implementation of BaseCredentialStatusManager for GitLab
 export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
-  private repoId: string;
-  private metaRepoId: string;
+  private readonly repoId: string;
+  private readonly metaRepoId: string;
   private readonly repoOrgName: string;
   private readonly repoOrgId: string;
   private readonly repoVisibility: VisibilityLevel;
@@ -82,7 +86,9 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
   constructor(options: GitlabCredentialStatusManagerOptions) {
     const {
       repoName,
+      repoId,
       metaRepoName,
+      metaRepoId,
       repoOrgName,
       repoOrgId,
       repoVisibility,
@@ -104,8 +110,8 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
       signStatusCredential
     });
     this.ensureProperConfiguration(options);
-    this.repoId = ''; // This value is set in createStatusRepos
-    this.metaRepoId = ''; // This value is set in createStatusRepos
+    this.repoId = repoId;
+    this.metaRepoId = metaRepoId;
     this.repoOrgName = repoOrgName;
     this.repoOrgId = repoOrgId;
     this.repoVisibility = repoVisibility;
@@ -165,6 +171,11 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
   // retrieves endpoint for commits
   commitsEndpoint(repoId: string): string {
     return `/projects/${repoId}/repository/commits`;
+  }
+
+  // retrieves endpoint for tree
+  treeEndpoint(repoId: string): string {
+    return `/projects/${repoId}/repository/tree`;
   }
 
   // retrieves credential status URL
@@ -274,43 +285,40 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
     return statusRepoExists && metaStatusRepoExists;
   }
 
-  // creates status repos
-  async createStatusRepos(): Promise<void> {
-    // create status repo
+  // retrieves response from fetching status repo
+  async readRepoResponse(): Promise<any> {
     const repoRequestOptions = {
-      name: this.repoName,
-      namespace_id: this.repoOrgId,
-      visibility: this.repoVisibility,
-      pages_access_level: 'public',
-      description: 'Manages credential status for instance of VC-API'
+      params: {
+        ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
+      }
     };
-    const statusRepo = (await this.client.post(this.reposEndpoint(), repoRequestOptions)).data;
-    this.repoId = statusRepo.id;
-
-    // create status metadata repo
-    const metaRepoRequestOptions = {
-      name: this.metaRepoName,
-      namespace_id: this.repoOrgId,
-      visibility: VisibilityLevel.Private,
-      description: 'Manages credential status metadata for instance of VC-API'
-    };
-    const metaRepo = (await this.client.post(this.reposEndpoint(), metaRepoRequestOptions)).data;
-    this.metaRepoId = metaRepo.id;
+    const repoRequestEndpoint = this.treeEndpoint(this.repoId);
+    const repoResponse = await this.client.get(repoRequestEndpoint, repoRequestOptions);
+    return repoResponse.data;
   }
 
-  // syncs status repo state
-  async syncStatusRepoState(): Promise<void> {
-    const repos = await this.getReposInOrg();
+  // retrieves data from status repo
+  async readRepoData(): Promise<any> {
+    const repoResponse = await this.readRepoResponse();
+    return decodeSystemData(repoResponse.content);
+  }
 
-    const repo = repos.find((r) => {
-      return r.name === this.repoName;
-    });
-    this.repoId = repo.id;
+  // retrieves response from fetching status metadata repo
+  async readMetaRepoResponse(): Promise<any> {
+    const metaRepoRequestOptions = {
+      params: {
+        ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
+      }
+    };
+    const metaRepoRequestEndpoint = this.treeEndpoint(this.repoId);
+    const metaRepoResponse = await this.client.get(metaRepoRequestEndpoint, metaRepoRequestOptions);
+    return metaRepoResponse.data;
+  }
 
-    const metaRepo = repos.find((r) => {
-      return r.name === this.metaRepoName;
-    });
-    this.metaRepoId = metaRepo.id;
+  // retrieves data from status metadata repo
+  async readMetaRepoData(): Promise<any> {
+    const metaRepoResponse = await this.readMetaRepoResponse();
+    return decodeSystemData(metaRepoResponse.content);
   }
 
   // creates data in config file

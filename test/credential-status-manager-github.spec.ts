@@ -74,12 +74,17 @@ class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialSta
   async hasStatusAuthority(accessToken: string): Promise<boolean> { return true; }
 
   // checks if status repos exist
-  async statusReposExist(): Promise<boolean> {
-    return false;
+  async statusReposExist(): Promise<boolean> { return true; }
+
+  // retrieves data from status repo
+  async readRepoData(): Promise<any> {
+    throw new Error();
   }
 
-  // creates status repos
-  async createStatusRepos(): Promise<void> {}
+  // retrieves data from status metadata repo
+  async readMetaRepoData(): Promise<any> {
+    throw new Error();
+  }
 
   // creates data in config file
   async createConfigData(data: CredentialStatusConfigData): Promise<void> {

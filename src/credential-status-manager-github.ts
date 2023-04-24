@@ -151,23 +151,36 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     return true;
   }
 
-  // creates status repos
-  async createStatusRepos(): Promise<void> {
-    // create status repo
-    await this.client.repos.createInOrg({
-      org: this.repoOrgName,
-      name: this.repoName,
-      visibility: this.repoVisibility,
-      description: 'Manages credential status for instance of VC-API'
+  // retrieves response from fetching status repo
+  async readRepoResponse(): Promise<any> {
+    const repoResponse = await this.client.repos.getContent({
+      owner: this.repoOrgName,
+      repo: this.repoName,
+      path: ''
     });
+    return repoResponse.data as any;
+  }
 
-    // create status metadata repo
-    await this.client.repos.createInOrg({
-      org: this.repoOrgName,
-      name: this.metaRepoName,
-      visibility: VisibilityLevel.Private,
-      description: 'Manages credential status metadata for instance of VC-API'
+  // retrieves data from status repo
+  async readRepoData(): Promise<any> {
+    const repoResponse = await this.readRepoResponse();
+    return decodeSystemData(repoResponse.content);
+  }
+
+  // retrieves response from fetching status metadata repo
+  async readMetaRepoResponse(): Promise<any> {
+    const metaRepoResponse = await this.client.repos.getContent({
+      owner: this.repoOrgName,
+      repo: this.metaRepoName,
+      path: ''
     });
+    return metaRepoResponse.data as any;
+  }
+
+  // retrieves data from status metadata repo
+  async readMetaRepoData(): Promise<any> {
+    const metaRepoResponse = await this.readMetaRepoResponse();
+    return decodeSystemData(metaRepoResponse.content);
   }
 
   // create data in config file

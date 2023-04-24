@@ -53,13 +53,15 @@ npm install
 
 ### Create credential status manager
 
-The `createStatusManager` function is the only exported pure function of this library. It is an asynchronous function accepts configuration options and returns a credential status manager that aligns with these options. Here are all the possible configuration options:
+The `createStatusManager` function is the only exported pure function of this library. It is an asynchronous function that accepts configuration options and returns a credential status manager that aligns with these options. Here are all the possible configuration options:
 
 | Key | Description | Type | Required |
 | --- | --- | --- | --- |
 | `service` | name of the source control service that will host the credential status resources | `github` \| `gitlab` | yes |
-| `repoName` | name of the credential status repository | string | no (default: `credential-status`) |
-| `metaRepoName` | name of the credential status metadata repository | string | no (default: `credential-status-metadata`) |
+| `repoName` | name of the credential status repository | string | yes |
+| `repoId` | ID of the credential status repository | string | yes (if `service` = `gitlab`) |
+| `metaRepoName` | name of the credential status metadata repository | string | yes |
+| `metaRepoId` | ID of the credential status metadata repository | string | yes (if `service` = `gitlab`) |
 | `repoOrgName` | name of the organization in the source control service that will host the credential status resources | string | yes |
 | `repoOrgId` | ID of the organization in the source control service that will host the credential status resources | string | yes (if `service` = `gitlab`) |
 | `repoVisibility` | level of visibility of the credential status repository | `public` \| `private` | no (default: `public`) |
@@ -85,7 +87,7 @@ const statusManager = await createStatusManager({
 });
 ```
 
-**Note:** A Status List 2021 credential can be found in the automatically generated repository, `repoName` in the organization, `repoOrgName` that was configured with `createStatusManager`. Additionally, relevant historical data can be found in the automatically generated metadata repository (`metaRepoName`) in the same organization. Finally, you can find a publicly visible version of the aforementioned Status List 2021 credential at the relevant URL for hosted sites in the source control service of choice (e.g., https://`repoOrgName`.github.io/`repoName`/`statusListId` for GitHub, where `statusListId` is the name of a file that was automatically generated in `repoName`).
+**Note:** A Status List 2021 credential can be found in the designated status repository (`repoName`) of the designated organization (`repoOrgName`) which is populated by `createStatusManager`. Additionally, relevant historical data can be found in the designated status metadata repository (`metaRepoName`) in the same organization. Note that these repositories need to be manually created prior to calling `createStatusManager`. Finally, you can find a publicly visible version of the aforementioned Status List 2021 credential at the relevant URL for hosted sites in the source control service of choice (e.g., https://`repoOrgName`.github.io/`repoName`/`statusListId` for GitHub, where `statusListId` is the name of a file that is automatically generated in `repoName`).
 
 ### Allocate status for credential
 
