@@ -25,12 +25,6 @@ export enum CredentialStatusManagerService {
   Gitlab = 'gitlab'
 }
 
-// Level of visibility of credential status management repo
-export enum VisibilityLevel {
-  Public = 'public',
-  Private = 'private'
-}
-
 // Actions applied to credentials and tracked in status log
 export enum SystemFile {
   Config = 'config',
@@ -95,7 +89,8 @@ interface UpdateStatusOptions {
 export interface BaseCredentialStatusManagerOptions {
   repoName: string;
   metaRepoName: string;
-  accessToken: string;
+  repoAccessToken: string;
+  metaRepoAccessToken: string;
   didMethod: DidMethod;
   didSeed: string;
   didWebUrl?: string;
@@ -107,7 +102,8 @@ export interface BaseCredentialStatusManagerOptions {
 export const BASE_MANAGER_REQUIRED_OPTIONS: Array<keyof BaseCredentialStatusManagerOptions> = [
   'repoName',
   'metaRepoName',
-  'accessToken',
+  'repoAccessToken',
+  'metaRepoAccessToken',
   'didMethod',
   'didSeed'
 ];
@@ -116,7 +112,8 @@ export const BASE_MANAGER_REQUIRED_OPTIONS: Array<keyof BaseCredentialStatusMana
 export abstract class BaseCredentialStatusManager {
   protected readonly repoName: string;
   protected readonly metaRepoName: string;
-  protected readonly accessToken: string;
+  protected readonly repoAccessToken: string;
+  protected readonly metaRepoAccessToken: string;
   protected readonly didMethod: DidMethod;
   protected readonly didSeed: string;
   protected readonly didWebUrl: string;
@@ -127,7 +124,8 @@ export abstract class BaseCredentialStatusManager {
     const {
       repoName,
       metaRepoName,
-      accessToken,
+      repoAccessToken,
+      metaRepoAccessToken,
       didMethod,
       didSeed,
       didWebUrl,
@@ -136,7 +134,8 @@ export abstract class BaseCredentialStatusManager {
     } = options;
     this.repoName = repoName;
     this.metaRepoName = metaRepoName;
-    this.accessToken = accessToken;
+    this.repoAccessToken = repoAccessToken;
+    this.metaRepoAccessToken = metaRepoAccessToken;
     this.didMethod = didMethod;
     this.didSeed = didSeed;
     this.didWebUrl = didWebUrl ?? '';
@@ -404,8 +403,8 @@ export abstract class BaseCredentialStatusManager {
   // deploys website to host credential status management resources
   async deployCredentialStatusWebsite(): Promise<void> {};
 
-  // checks if caller has authority to update status
-  abstract hasStatusAuthority(accessToken: string): Promise<boolean>;
+  // checks if caller has authority to update status based on status repo access token
+  abstract hasStatusAuthority(repoAccessToken: string): Promise<boolean>;
 
   // checks if status repos exist
   abstract statusReposExist(): Promise<boolean>;

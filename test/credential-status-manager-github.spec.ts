@@ -17,16 +17,16 @@ import {
 } from '../src/credential-status-manager-base.js';
 import * as GithubStatus from '../src/credential-status-manager-github.js';
 import {
-  accessToken,
   checkLocalCredentialStatus,
   checkRemoteCredentialStatus,
   checkStatusCredential,
   didMethod,
   didSeed,
+  metaRepoAccessToken,
   metaRepoName,
+  repoAccessToken,
   repoName,
   repoOrgName,
-  repoVisibility,
   statusListId,
   unsignedCredential
 } from './helpers.js';
@@ -34,7 +34,7 @@ import {
 const sandbox = createSandbox();
 
 class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialStatusManager {
-  private statusList: any;
+  private statusCredential: VerifiableCredential;
   private statusConfig: CredentialStatusConfigData;
   private statusLog: CredentialStatusLogEntry[];
 
@@ -43,8 +43,8 @@ class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialSta
       repoName,
       metaRepoName,
       repoOrgName,
-      repoVisibility,
-      accessToken,
+      repoAccessToken,
+      metaRepoAccessToken,
       didMethod,
       didSeed
     } = options;
@@ -52,12 +52,12 @@ class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialSta
       repoName,
       metaRepoName,
       repoOrgName,
-      repoVisibility,
-      accessToken,
+      repoAccessToken,
+      metaRepoAccessToken,
       didMethod,
       didSeed
     });
-    this.statusList = {};
+    this.statusCredential = {} as VerifiableCredential;
     this.statusConfig = {} as CredentialStatusConfigData;
     this.statusLog = [];
   }
@@ -70,8 +70,8 @@ class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialSta
   // deploys website to host credential status management resources
   async deployCredentialStatusWebsite(): Promise<void> {}
 
-  // checks if caller has authority to update status
-  async hasStatusAuthority(accessToken: string): Promise<boolean> { return true; }
+  // checks if caller has authority to update status based on status repo access token
+  async hasStatusAuthority(repoAccessToken: string): Promise<boolean> { return true; }
 
   // checks if status repos exist
   async statusReposExist(): Promise<boolean> { return true; }
@@ -118,17 +118,17 @@ class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialSta
 
   // creates data in status file
   async createStatusData(data: VerifiableCredential): Promise<void> {
-    this.statusList = data;
+    this.statusCredential = data;
   }
 
   // retrieves data from status file
   async readStatusData(): Promise<VerifiableCredential> {
-    return this.statusList;
+    return this.statusCredential;
   }
 
   // updates data in status file
   async updateStatusData(data: VerifiableCredential): Promise<void> {
-    this.statusList = data;
+    this.statusCredential = data;
   }
 }
 
@@ -144,8 +144,8 @@ describe('GitHub Credential Status Manager', () => {
       repoName,
       metaRepoName,
       repoOrgName,
-      repoVisibility,
-      accessToken,
+      repoAccessToken,
+      metaRepoAccessToken,
       didMethod,
       didSeed
     }) as GithubStatus.GithubCredentialStatusManager;

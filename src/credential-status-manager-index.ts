@@ -6,7 +6,6 @@ import {
   CredentialStatusConfigData,
   CredentialStatusLogData,
   CredentialStatusManagerService,
-  VisibilityLevel,
   composeStatusCredential
 } from './credential-status-manager-base.js';
 import {
@@ -20,24 +19,24 @@ import {
 import { signCredential, getSigningMaterial } from './helpers.js';
 
 // Type definition for base options of createStatusManager function input
-interface StatusListManagerBaseOptions {
+interface CredentialStatusManagerBaseOptions {
   service: CredentialStatusManagerService;
 }
 
 // Type definition for createStatusManager function input
-type StatusListManagerOptions = StatusListManagerBaseOptions &
+type CredentialStatusManagerOptions = CredentialStatusManagerBaseOptions &
   (GithubCredentialStatusManagerOptions | GitlabCredentialStatusManagerOptions);
 
 // creates credential status list manager
-export async function createStatusManager(options: StatusListManagerOptions)
+export async function createStatusManager(options: CredentialStatusManagerOptions)
 : Promise<BaseCredentialStatusManager> {
   const {
     service,
     repoName,
     metaRepoName,
     repoOrgName,
-    repoVisibility=VisibilityLevel.Public,
-    accessToken,
+    repoAccessToken,
+    metaRepoAccessToken,
     didMethod,
     didSeed,
     didWebUrl,
@@ -51,8 +50,8 @@ export async function createStatusManager(options: StatusListManagerOptions)
         repoName,
         metaRepoName,
         repoOrgName,
-        repoVisibility,
-        accessToken,
+        repoAccessToken,
+        metaRepoAccessToken,
         didMethod,
         didSeed,
         didWebUrl,
@@ -73,8 +72,8 @@ export async function createStatusManager(options: StatusListManagerOptions)
         metaRepoId,
         repoOrgName,
         repoOrgId,
-        repoVisibility,
-        accessToken,
+        repoAccessToken,
+        metaRepoAccessToken,
         didMethod,
         didSeed,
         didWebUrl,
