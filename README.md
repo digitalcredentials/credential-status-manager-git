@@ -18,8 +18,9 @@ A Typescript library for managing the status of [Verifiable Credentials](https:/
   - [Check status of credential](#check-status-of-credential)
   - [Check if caller has authority to update status of credentials](#check-if-caller-has-authority-to-update-status-of-credentials)
 - [Dependencies](#Dependencies)
-  - [Generating access tokens](#generating-access-tokens)
-  - [Generating DID seeds](#generating-did-seeds)
+  - [Create credential status repositories](#create-credential-status-repositories)
+  - [Generate access tokens](#generate-access-tokens)
+  - [Generate DID seeds](#generate-did-seeds)
 - [Contribute](#contribute)
 - [License](#license)
 
@@ -64,8 +65,8 @@ The `createStatusManager` function is the only exported pure function of this li
 | `metaRepoId` | ID of the credential status metadata repository | string | yes (if `service` = `gitlab`) |
 | `repoOrgName` | name of the organization in the source control service that will host the credential status resources | string | yes |
 | `repoOrgId` | ID of the organization in the source control service that will host the credential status resources | string | yes (if `service` = `gitlab`) |
-| `repoVisibility` | level of visibility of the credential status repository | `public` \| `private` | no (default: `public`) |
-| `accessToken` | access token for the source control service API | string | yes |
+| `repoAccessToken` | access token for the credential status repository in the source control service API | string | yes |
+| `metaRepoAccessToken` | access token for the credential status metadata repository in the source control service API | string | yes |
 | `didMethod` | name of the DID method used for signing | `key` \| `web` | yes |
 | `didSeed` | seed used to deterministically generate DID | string | yes |
 | `didWebUrl` | URL for `did:web` | string | yes (if `didMethod` = `web`) |
@@ -79,8 +80,11 @@ import { createStatusManager } from '@digitalcredentials/status-list-manager-git
 
 const statusManager = await createStatusManager({
   service: 'github',
+  repoName: 'credential-status',
+  metaRepoName: 'credential-status-metadata',
   repoOrgName: 'university-xyz', // Please create your own organization in your source control service of choice
-  accessToken: '@cc3ssT0k3n123', // Please create your own access token in your source control service of choice (see Dependencies section for detailed instructions)
+  repoAccessToken: 'abc123', // Please create your own access token in your source control service of choice (see Dependencies section for detailed instructions)
+  metaRepoAccessToken: 'def456', // Please create your own access token in your source control service of choice (see Dependencies section for detailed instructions)
   didMethod: 'key',
   didSeed: 'DsnrHBHFQP0ab59dQELh3uEwy7i5ArcOTwxkwRO2hM87CBRGWBEChPO7AjmwkAZ2', // Please create your own DID seed (see Dependencies section for detailed instructions)
   signStatusCredential: true
@@ -199,9 +203,9 @@ Here is a sample call to `hasStatusAuthority` in the context of Express.js middl
 
 ```ts
 // retrieves status list manager
-export async function getCredentialStatusListManager(req, res, next) {
+export async function getCredentialStatusManager(req, res, next) {
   try {
-    req.statusManager = await getStatusListManager();
+    req.statusManager = await getStatusManager();
     next();
   } catch (error) {
     return res.send('Failed to retrieve credential status list manager');
@@ -223,12 +227,12 @@ function extractAccessToken(headers) {
 async function verifyStatusRepoAccess(req, res, next) {
   const { headers } = req;
   // verify that access token was included in request
-  const accessToken = extractAccessToken(headers);
-  if (!accessToken) {
+  const repoAccessToken = extractAccessToken(headers);
+  if (!repoAccessToken) {
     return res.send('Failed to provide access token in request');
   }
   // check if caller has access to status repo
-  const hasAccess = await req.statusManager.hasStatusAuthority(accessToken);
+  const hasAccess = await req.statusManager.hasStatusAuthority(repoAccessToken);
   if (!hasAccess) {
     return res.send('Caller is unauthorized to access status repo');
   }
@@ -236,39 +240,68 @@ async function verifyStatusRepoAccess(req, res, next) {
 }
 ```
 
-**Note:** This code assumes that `getStatusListManager` either calls `createStatusManager` or retrieves an existing status manager instance created at an earlier point in time.
+**Note:** This code assumes that `getStatusManager` either calls `createStatusManager` or retrieves an existing status manager instance created at an earlier point in time.
 
 ## Dependencies
 
-### Generating access tokens
+### Create credential status repositories
 
 **GitHub**
-1. Login to GitHub as an authorized member of the organization
-2. Click on your profile dropdown icon in the top-right corner of the screen
-3. Select the *Settings* tab
-4. Select the *Developer settings* tab toward the bottom of the left navigation bar
-5. Select the *Personal access tokens* tab
-6. Click the *Generate a new token* button
-7. Enter the name for access token
-8. Select the expiration date for access token
-9. Select the full *repo* scope
-10. Click the *Generate token* button
-11. Copy the generated token
-12. Use the token as the value for the `accessToken` key in invocations of `createStatusManager` and `hasStatusAuthority`
+1. Login to GitHub
+2. If you don't already have an organization, click the plus icon in the top-right corner of the screen, click *New organization* and follow the instructions for creating a new organization \*
+3. Click the plus icon in the top-right corner of the screen and click *New repository*
+4. Configure an **empty public** repository for the credential status repository \*, with an optional description, that is owned by your organization \*
+5. Click the plus icon in the top-right corner of the screen and click *New repository*
+6. Configure an **empty private** repository for the credential status metadata repository \*, with an optional description, that is owned by your organization \*
+
+**\*Note:** The names you choose for credential status repository, credential status metadata repository, and your organization should be respectively passed as `repoName`, `metaRepoName`, and `repoOrgName` in invocations of `createStatusManager`. When you create these repositories, be sure not to add any files (including common default files like `.gitignore`, `README.md`, or `LICENSE`).
 
 **GitLab**
-1. Login to GitLab as an authorized member of the group
+1. Login to GitLab
+2. If you don't already have a group, click the plus icon in the top-right corner of the screen, click *New group* and follow the instructions for creating a new group \*
+3. Click the plus icon in the top-right corner of the screen and click *New project/repository*
+4. Configure a **blank public** repository for the credential status repository \* that is owned by your group \*
+5. Click the plus icon in the top-right corner of the screen and click *New project/repository*
+6. Configure a **blank private** repository for the credential status metadata repository \* that is owned by your group \*
+
+**\*Note:** The names you choose for credential status repository, credential status metadata repository, and your group, along with their IDs (which can be found at the main view for the repository/group), should be respectively passed as `repoName` (ID: `repoId`), `metaRepoName` (ID: `metaRepoId`), and `repoOrgName` (ID: `repoOrgId`) in invocations of `createStatusManager`. When you create these repositories, be sure not to add any files (including common default files like `.gitignore`, `README.md`, or `LICENSE`).
+
+### Generate access tokens
+
+**GitHub**
+1. Login to GitHub as an authorized member of the organization (`repoOrgName`)
 2. Click on your profile dropdown icon in the top-right corner of the screen
-3. Select the *Preferences* tab
-4. Select the *Access Tokens* tab in the left navigation bar
-5. Enter the name for access token
-6. Select the expiration date for access token
+3. Select the *Settings* tab
+4. Select the *Developer settings* tab toward the bottom of the left navigation panel
+5. Select the *Personal access tokens* tab
+6. Select the *Fine-grained tokens* tab
+7. Click the *Generate new token* button
+8. Enter a name, expiration date, and optional description for the access token
+9. Select the appropriate resource owner for the credential status repositories \*
+10. Select *Only select repositories* and select the credential status repositories that you created earlier (`repoName` and/or `metaRepoName`) \*
+11. Select the *Read and write* access level for the *Contents* and *Pages* permissions
+12. Click the *Generate token* button
+13. Copy the generated token
+14. Use the token as the value for `repoAccessToken` and/or `metaRepoAccessToken` in invocations of `createStatusManager` and `hasStatusAuthority` \*
+
+**\*Note:** For the credential status metadata repository, you can either generate a separate access token and use that as the value for `metaRepoAccessToken` or include it along with `repoAccessToken` when selecting repositories. Whatever you decide, make sure to pass values for both of these values in invocations of `createStatusManager` (even though the latter option will result in the same value for these properties). If the appropriate resource owner of the credential status repositories is not listed, follow [these instructions](https://docs.github.com/en/organizations/managing-programmatic-access-to-your-organization/setting-a-personal-access-token-policy-for-your-organization) to set a personal access token policy for it.
+
+**GitLab\***
+1. Login to GitLab as an authorized member of the group (`repoOrgName`)
+2. Select the credential status repository (`repoName`)
+3. Select the *Settings* tab in the left navigation panel
+4. Select the *Access Tokens* tab within the *Settings* dropdown
+5. Enter a name and expiration date for the access token
+6. Select the *Developer* role
 7. Select the *api* scope
 8. Click the *Create personal access token* button
 9. Copy the generated token
-10. Use the token as the value for the `accessToken` key in invocations of `createStatusManager` and `hasStatusAuthority`
+10. Use the token as the value for `repoAccessToken` in invocations of `createStatusManager` and `hasStatusAuthority`
+11. Repeat these steps for `repoName` and `metaRepoAccessToken`
 
-### Generating DID seeds
+**\*Note:** At the time of this writing, group access tokens are only available in paid GitLab plans (i.e., Premium SaaS and Ultimate SaaS). Additionally, unlike other services, you cannot use the same access token for multiple repositories at this time (hence the need for `repoAccessToken` *and* `metaRepoAccessToken`). Finally, if you are unable to create access tokens, you are either on e free plan or you need to [enable project access token creation](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html#enable-or-disable-project-access-token-creation).
+
+### Generate DID seeds
 
 In order to generate a DID seed, you will need to use software that is capable of creating it in a format that corresponds to a valid DID document. Here is sample code that does this:
 

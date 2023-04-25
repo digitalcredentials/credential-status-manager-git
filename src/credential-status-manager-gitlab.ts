@@ -3,7 +3,6 @@
  */
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import axios, { AxiosInstance } from 'axios';
-import parseLinkHeader from 'parse-link-header';
 import {
   BASE_MANAGER_REQUIRED_OPTIONS,
   CREDENTIAL_STATUS_CONFIG_FILE,
@@ -12,8 +11,7 @@ import {
   BaseCredentialStatusManager,
   BaseCredentialStatusManagerOptions,
   CredentialStatusConfigData,
-  CredentialStatusLogData,
-  VisibilityLevel
+  CredentialStatusLogData
 } from './credential-status-manager-base.js';
 import { DidMethod, decodeSystemData } from './helpers.js';
 
@@ -53,15 +51,12 @@ const CREDENTIAL_STATUS_WEBSITE_GEMFILE =
 
 gem "jekyll"`;
 
-const REPOS_PER_PAGE = 100;
-
 // Type definition for GitlabCredentialStatusManager constructor method input
 export type GitlabCredentialStatusManagerOptions = {
   repoId: string;
   metaRepoId: string;
   repoOrgName: string;
   repoOrgId: string;
-  repoVisibility: VisibilityLevel;
 } & BaseCredentialStatusManagerOptions;
 
 // Minimal set of options required for configuring GitlabCredentialStatusManager
@@ -69,8 +64,7 @@ const GITLAB_MANAGER_REQUIRED_OPTIONS = [
   'repoId',
   'metaRepoId',
   'repoOrgName',
-  'repoOrgId',
-  'repoVisibility'
+  'repoOrgId'
 ].concat(BASE_MANAGER_REQUIRED_OPTIONS) as
   Array<keyof GitlabCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 
@@ -80,8 +74,8 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
   private readonly metaRepoId: string;
   private readonly repoOrgName: string;
   private readonly repoOrgId: string;
-  private readonly repoVisibility: VisibilityLevel;
-  private client: AxiosInstance;
+  private repoClient: AxiosInstance;
+  private readonly metaRepoClient: AxiosInstance;
 
   constructor(options: GitlabCredentialStatusManagerOptions) {
     const {
@@ -91,8 +85,8 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
       metaRepoId,
       repoOrgName,
       repoOrgId,
-      repoVisibility,
-      accessToken,
+      repoAccessToken,
+      metaRepoAccessToken,
       didMethod,
       didSeed,
       didWebUrl,
@@ -102,7 +96,8 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
     super({
       repoName,
       metaRepoName,
-      accessToken,
+      repoAccessToken,
+      metaRepoAccessToken,
       didMethod,
       didSeed,
       didWebUrl,
@@ -114,12 +109,18 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
     this.metaRepoId = metaRepoId;
     this.repoOrgName = repoOrgName;
     this.repoOrgId = repoOrgId;
-    this.repoVisibility = repoVisibility;
-    this.client = axios.create({
+    this.repoClient = axios.create({
       baseURL: 'https://gitlab.com/api/v4',
       timeout: 6000,
       headers: {
-        'Authorization': `Bearer ${accessToken}`
+        'Authorization': `Bearer ${repoAccessToken}`
+      }
+    });
+    this.metaRepoClient = axios.create({
+      baseURL: 'https://gitlab.com/api/v4',
+      timeout: 6000,
+      headers: {
+        'Authorization': `Bearer ${metaRepoAccessToken}`
       }
     });
   }
@@ -151,16 +152,6 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
         'when using "didMethod" of type "web".'
       );
     }
-  }
-
-  // retrieves endpoint for repos in org
-  reposInOrgEndpoint(): string {
-    return `/groups/${this.repoOrgId}/projects`;
-  }
-
-  // retrieves endpoint for repos
-  reposEndpoint(): string {
-    return '/projects';
   }
 
   // retrieves endpoint for files
@@ -208,81 +199,37 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
         }
       ]
     };
-    await this.client.post(this.commitsEndpoint(this.repoId), websiteRequestOptions);
+    await this.repoClient.post(this.commitsEndpoint(this.repoId), websiteRequestOptions);
   }
 
   // resets client authorization
-  resetClientAuthorization(accessToken: string): void {
-    this.client = axios.create({
+  resetClientAuthorization(repoAccessToken: string): void {
+    this.repoClient = axios.create({
       baseURL: 'https://gitlab.com/api/v4',
       timeout: 6000,
       headers: {
-        'Authorization': `Bearer ${accessToken}`
+        'Authorization': `Bearer ${repoAccessToken}`
       }
     });
   }
 
-  // checks if caller has authority to update status
-  async hasStatusAuthority(accessToken: string): Promise<boolean> {
-    this.resetClientAuthorization(accessToken);
-    const repoRequestOptions = {
-      params: {
-        owned: true,
-        simple: true
-      }
-    };
-    let repos: any[] = [];
-    let isFirstPage = true;
-    let isLastPage = false;
-    let repoEndpoint = `/projects?pagination=keyset&per_page=${REPOS_PER_PAGE}&order_by=id&sort=asc`;
-    do {
-      let repoResponse;
-      if (isFirstPage) {
-        repoResponse = await this.client.get(repoEndpoint, repoRequestOptions);
-        isFirstPage = false;
-      } else {
-        repoResponse = await this.client.get(repoEndpoint, repoRequestOptions);
-      }
-      const repoSubset = repoResponse.data;
-      repos = repos.concat(repoSubset);
-      const parsedLinkHeader = parseLinkHeader(repoResponse.headers.link);
-      repoEndpoint = parsedLinkHeader.next?.url;
-      isLastPage = !parsedLinkHeader.next;
-    } while (!isLastPage);
-    return repos.some((repo: any) => {
-      return repo.path_with_namespace === `${this.repoOrgName}/${this.repoName}`;
-    });
-  }
-
-  // retrieves list of repos in org
-  async getReposInOrg(): Promise<any[]> {
-    const repoRequestOptions = {
-      params: {
-        owned: true,
-        simple: true
-      }
-    };
-    let repos: any[] = [];
-    let currentPage = 1;
-    do {
-      const repoEndpoint = `${this.reposInOrgEndpoint()}?per_page=${REPOS_PER_PAGE}&page=${currentPage}`;
-      const repoSubset = (await this.client.get(repoEndpoint, repoRequestOptions)).data;
-      repos = repos.concat(repoSubset);
-      currentPage++;
-    } while (repos.length === REPOS_PER_PAGE);
-    return repos;
+  // checks if caller has authority to update status based on status repo access token
+  async hasStatusAuthority(repoAccessToken: string): Promise<boolean> {
+    this.resetClientAuthorization(repoAccessToken);
+    try {
+      await this.readRepoData();
+    } catch (error: any) {
+      return true;
+    }
+    return false;
   }
 
   // checks if status repos exist
   async statusReposExist(): Promise<boolean> {
-    const repos = await this.getReposInOrg();
-    const statusRepoExists = repos.some((repo) => {
-      return repo.name === this.repoName;
-    });
-    const metaStatusRepoExists = repos.some((repo) => {
-      return repo.name === this.metaRepoName;
-    });
-    return statusRepoExists && metaStatusRepoExists;
+    // in the GitLab API, repo is practically
+    // considered nonexistent when it is empty
+    const reposExist = await this.statusReposExist();
+    return !reposExist;
   }
 
   // retrieves response from fetching status repo
@@ -293,7 +240,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
       }
     };
     const repoRequestEndpoint = this.treeEndpoint(this.repoId);
-    const repoResponse = await this.client.get(repoRequestEndpoint, repoRequestOptions);
+    const repoResponse = await this.repoClient.get(repoRequestEndpoint, repoRequestOptions);
     return repoResponse.data;
   }
 
@@ -310,8 +257,8 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
       }
     };
-    const metaRepoRequestEndpoint = this.treeEndpoint(this.repoId);
-    const metaRepoResponse = await this.client.get(metaRepoRequestEndpoint, metaRepoRequestOptions);
+    const metaRepoRequestEndpoint = this.treeEndpoint(this.metaRepoId);
+    const metaRepoResponse = await this.metaRepoClient.get(metaRepoRequestEndpoint, metaRepoRequestOptions);
     return metaRepoResponse.data;
   }
 
@@ -335,7 +282,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
       this.metaRepoId,
       CREDENTIAL_STATUS_CONFIG_PATH_ENCODED
     );
-    await this.client.post(configRequestEndpoint, configRequestOptions);
+    await this.metaRepoClient.post(configRequestEndpoint, configRequestOptions);
   }
 
   // retrieves response from fetching config file
@@ -349,7 +296,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
       this.metaRepoId,
       CREDENTIAL_STATUS_CONFIG_PATH_ENCODED
     );
-    const configResponse = await this.client.get(configRequestEndpoint, configRequestOptions);
+    const configResponse = await this.metaRepoClient.get(configRequestEndpoint, configRequestOptions);
     return configResponse.data;
   }
 
@@ -373,7 +320,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
       this.metaRepoId,
       CREDENTIAL_STATUS_CONFIG_PATH_ENCODED
     );
-    await this.client.put(configRequestEndpoint, configRequestOptions);
+    await this.metaRepoClient.put(configRequestEndpoint, configRequestOptions);
   }
 
   // creates data in log file
@@ -390,7 +337,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
       this.metaRepoId,
       CREDENTIAL_STATUS_LOG_PATH_ENCODED
     );
-    await this.client.post(logRequestEndpoint, logRequestOptions);
+    await this.metaRepoClient.post(logRequestEndpoint, logRequestOptions);
   }
 
   // retrieves response from fetching log file
@@ -404,7 +351,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
       this.metaRepoId,
       CREDENTIAL_STATUS_LOG_PATH_ENCODED
     );
-    const logResponse = await this.client.get(logRequestEndpoint, logRequestOptions);
+    const logResponse = await this.metaRepoClient.get(logRequestEndpoint, logRequestOptions);
     return logResponse.data;
   }
 
@@ -428,7 +375,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
       this.metaRepoId,
       CREDENTIAL_STATUS_LOG_PATH_ENCODED
     );
-    await this.client.put(logRequestEndpoint, logRequestOptions);
+    await this.metaRepoClient.put(logRequestEndpoint, logRequestOptions);
   }
 
   // creates data in status file
@@ -445,7 +392,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
     };
     const statusPath = encodeURIComponent(latestList);
     const statusRequestEndpoint = this.filesEndpoint(this.repoId, statusPath);
-    await this.client.post(statusRequestEndpoint, statusRequestOptions);
+    await this.repoClient.post(statusRequestEndpoint, statusRequestOptions);
   }
 
   // retrieves response from fetching status file
@@ -459,7 +406,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
     };
     const statusPath = encodeURIComponent(latestList);
     const statusRequestEndpoint = this.filesEndpoint(this.repoId, statusPath);
-    const statusResponse = await this.client.get(statusRequestEndpoint, statusRequestOptions);
+    const statusResponse = await this.repoClient.get(statusRequestEndpoint, statusRequestOptions);
     return statusResponse.data;
   }
 
@@ -483,6 +430,6 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
     };
     const statusPath = encodeURIComponent(latestList);
     const statusRequestEndpoint = this.filesEndpoint(this.repoId, statusPath);
-    await this.client.put(statusRequestEndpoint, statusRequestOptions);
+    await this.repoClient.put(statusRequestEndpoint, statusRequestOptions);
   }
 }

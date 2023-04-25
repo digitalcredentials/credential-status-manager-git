@@ -2,7 +2,7 @@
  * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
  */
 import { expect } from 'chai';
-import { CredentialStatusManagerService, VisibilityLevel } from '../src/credential-status-manager-base.js';
+import { CredentialStatusManagerService } from '../src/credential-status-manager-base.js';
 import { DidMethod } from '../src/helpers.js';
 
 const credentialId = 'https://university-xyz.edu/credentials/3732';
@@ -33,8 +33,8 @@ export const metaRepoName = 'credential-status-metadata';
 export const metaRepoId = '43215678';
 export const repoOrgName = 'university-xyz';
 export const repoOrgId = '87654321';
-export const repoVisibility = 'public' as VisibilityLevel;
-export const accessToken = 'abc';
+export const repoAccessToken = 'abc123';
+export const metaRepoAccessToken = 'def456';
 export const didMethod = 'key' as DidMethod;
 export const didSeed = 'DsnrHBHFQP0ab59dQELh3uEwy7i5ArcOTwxkwRO2hM87CBRGWBEChPO7AjmwkAZ2';
 export const statusListId = 'V27UAUYPNR';
