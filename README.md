@@ -140,6 +140,8 @@ console.log(credentialWithStatus);
 */
 ```
 
+**Note:** If the caller invokes `allocateStatus` multiple times with the same credential ID against the same instance of a credential status manager, the library will not allocate a new status list entry. It will just return a credential with the same status info as it did in the previous invocation.
+
 ### Update status of credential
 
 The `updateStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts a credential ID and desired credential status as input (options: `active` | `revoked`), records its new status in the caller's source control service of choice, and returns the status credential.

@@ -4,6 +4,7 @@
 import { CONTEXT_URL_V1 } from '@digitalbazaar/vc-status-list-context';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import { createCredential, createList, decodeList } from '@digitalcredentials/vc-status-list';
+import { v4 as uuid } from 'uuid';
 import { DidMethod, getSigningMaterial, signCredential } from './helpers.js';
 
 // Number of credentials tracked in a list
@@ -76,7 +77,7 @@ interface EmbedCredentialStatusOptions {
 // Type definition for embedCredentialStatus method output
 interface EmbedCredentialStatusResult {
   credential: any;
-  newList: string | undefined;
+  newList?: string;
 }
 
 // Type definition for updateStatus method input
@@ -150,20 +151,60 @@ export abstract class BaseCredentialStatusManager {
 
   // embeds status into credential
   async embedCredentialStatus({ credential, statusPurpose = 'revocation' }: EmbedCredentialStatusOptions): Promise<EmbedCredentialStatusResult> {
-    // retrieve status config
-    const configData = await this.readConfigData();
+    // ensure that credential has ID
+    if (!credential.id) {
+      // Note: This assumes that uuid will never generate an ID that
+      // conflicts with an ID that has already been tracked in the log
+      credential.id = uuid();
+    }
 
+    // find latest relevant log entry for credential with given ID
+    const logData: CredentialStatusLogData = await this.readLogData();
+    logData.reverse();
+    const logEntry = logData.find((entry) => {
+      return entry.credentialId === credential.id;
+    });
+
+    // do not allocate new status list entry if ID is already being tracked
+    if (logEntry) {
+      // retrieve relevant log data
+      const { statusListId: logStatusListId, statusListIndex } = logEntry;
+
+      // attach credential status
+      const statusUrl = this.getCredentialStatusUrl();
+      const statusListCredential = `${statusUrl}/${logStatusListId}`;
+      const statusListId = `${statusListCredential}#${statusListIndex}`;
+      const credentialStatus = {
+        id: statusListId,
+        type: CREDENTIAL_STATUS_TYPE,
+        statusPurpose,
+        statusListIndex,
+        statusListCredential
+      };
+
+      return {
+        credential: {
+          ...credential,
+          credentialStatus,
+          '@context': [...credential['@context'], CONTEXT_URL_V1]
+        }
+      };
+    }
+
+    // retrieve status config data
+    const configData = await this.readConfigData();
     let { credentialsIssued, latestList } = configData;
+
+    // allocate new status list entry if ID is not yet being tracked
     let newList;
     if (credentialsIssued >= CREDENTIAL_STATUS_LIST_SIZE) {
-      // update status config data
       latestList = this.generateStatusListId();
       newList = latestList;
       credentialsIssued = 0;
     }
     credentialsIssued++;
 
-    // update status config
+    // update status config data
     configData.credentialsIssued = credentialsIssued;
     configData.latestList = latestList;
     await this.updateConfigData(configData);
@@ -212,7 +253,10 @@ export abstract class BaseCredentialStatusManager {
       signUserCredential,
       signStatusCredential
     } = this;
-    const { issuerDid, verificationMethod } = await getSigningMaterial({
+    const {
+      issuerDid,
+      verificationMethod
+    } = await getSigningMaterial({
       didMethod,
       didSeed,
       didWebUrl
@@ -309,7 +353,10 @@ export abstract class BaseCredentialStatusManager {
       didWebUrl,
       signStatusCredential
     } = this;
-    const { issuerDid, verificationMethod } = await getSigningMaterial({
+    const {
+      issuerDid,
+      verificationMethod
+    } = await getSigningMaterial({
       didMethod,
       didSeed,
       didWebUrl
