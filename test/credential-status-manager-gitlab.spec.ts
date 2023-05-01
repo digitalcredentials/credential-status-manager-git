@@ -31,7 +31,9 @@ import {
   repoOrgId,
   repoOrgName,
   statusListId,
-  unsignedCredential
+  unsignedCredential1,
+  unsignedCredential2,
+  unsignedCredential3
 } from './helpers.js';
 
 const sandbox = createSandbox();
@@ -170,21 +172,25 @@ describe('GitLab Credential Status Manager', () => {
 
   it('tests allocateStatus', async () => {
     // allocate and check status for first credential
-    const credentialWithStatus1 = await statusManager.allocateStatus(unsignedCredential) as any;
+    const credentialWithStatus1 = await statusManager.allocateStatus(unsignedCredential1) as any;
     checkLocalCredentialStatus(credentialWithStatus1, 1, service);
 
     // allocate and check status for second credential
-    const credentialWithStatus2 = await statusManager.allocateStatus(unsignedCredential) as any;
+    const credentialWithStatus2 = await statusManager.allocateStatus(unsignedCredential2) as any;
     checkLocalCredentialStatus(credentialWithStatus2, 2, service);
 
     // allocate and check status for third credential
-    const credentialWithStatus3 = await statusManager.allocateStatus(unsignedCredential) as any;
+    const credentialWithStatus3 = await statusManager.allocateStatus(unsignedCredential3) as any;
     checkLocalCredentialStatus(credentialWithStatus3, 3, service);
+
+    // attempt to allocate and check status for existing credential
+    const credentialWithStatus2Copy = await statusManager.allocateStatus(unsignedCredential2) as any;
+    checkLocalCredentialStatus(credentialWithStatus2Copy, 2, service);
   });
 
   it('tests updateStatus and checkStatus', async () => {
     // allocate status for credential
-    const credentialWithStatus = await statusManager.allocateStatus(unsignedCredential) as any;
+    const credentialWithStatus = await statusManager.allocateStatus(unsignedCredential1) as any;
 
     // update status of credential
     const statusCredential = await statusManager.updateStatus({
@@ -197,6 +203,6 @@ describe('GitLab Credential Status Manager', () => {
 
     // check status of credential
     const credentialStatus = await statusManager.checkStatus(credentialWithStatus.id);
-    checkRemoteCredentialStatus(credentialStatus, 1);
+    checkRemoteCredentialStatus(credentialStatus, credentialWithStatus.id, 1);
   });
 });

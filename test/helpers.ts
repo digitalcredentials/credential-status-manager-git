@@ -5,18 +5,19 @@ import { expect } from 'chai';
 import { CredentialStatusManagerService } from '../src/credential-status-manager-base.js';
 import { DidMethod } from '../src/helpers.js';
 
-const credentialId = 'https://university-xyz.edu/credentials/3732';
+const credentialId1 = 'https://university-xyz.edu/credentials/3732';
+const credentialId2 = 'https://university-xyz.edu/credentials/6274';
+const credentialId3 = 'https://university-xyz.edu/credentials/0285';
 const credentialSubject = 'did:example:abcdef';
 const issuerKey = 'z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC';
 const issuerDid = `did:key:${issuerKey}`;
 const verificationMethod = `${issuerDid}#${issuerKey}`;
 
-export const unsignedCredential = {
+const unsignedCredential = {
   '@context': [
     'https://www.w3.org/2018/credentials/v1',
     'https://w3id.org/security/suites/ed25519-2020/v1'
   ],
-  id: credentialId,
   type: [
     'VerifiableCredential'
   ],
@@ -25,6 +26,21 @@ export const unsignedCredential = {
   credentialSubject: {
     id: credentialSubject
   }
+};
+
+export const unsignedCredential1 = {
+  ...unsignedCredential,
+  id: credentialId1
+};
+
+export const unsignedCredential2 = {
+  ...unsignedCredential,
+  id: credentialId2
+};
+
+export const unsignedCredential3 = {
+  ...unsignedCredential,
+  id: credentialId3
 };
 
 export const repoName = 'credential-status';
@@ -68,6 +84,7 @@ export function checkLocalCredentialStatus(
 
 export function checkRemoteCredentialStatus(
   credentialStatus: any,
+  credentialId: string,
   statusListIndex: number
 ) {
   expect(credentialStatus).to.have.property('timestamp');
