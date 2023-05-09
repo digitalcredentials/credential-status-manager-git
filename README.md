@@ -281,7 +281,7 @@ async function verifyStatusRepoAccess(req, res, next) {
 8. Enter a name, expiration date, and optional description for the access token
 9. Select the appropriate resource owner for the credential status repositories \*
 10. Select *Only select repositories* and select the credential status repositories that you created earlier (`repoName` and/or `metaRepoName`) \*
-11. Select the *Read and write* access level for the *Contents* and *Pages* permissions
+11. Select the *Read and write* access level for the *Administration*, *Contents*, and *Pages* permissions and keep the default *Read-only* access level for the *Metadata* permission
 12. Click the *Generate token* button
 13. Copy the generated token
 14. Use the token as the value for `repoAccessToken` and/or `metaRepoAccessToken` in invocations of `createStatusManager` and `hasStatusAuthority` \*
@@ -299,7 +299,7 @@ async function verifyStatusRepoAccess(req, res, next) {
 8. Click the *Create personal access token* button
 9. Copy the generated token
 10. Use the token as the value for `repoAccessToken` in invocations of `createStatusManager` and `hasStatusAuthority`
-11. Repeat these steps for `repoName` and `metaRepoAccessToken`
+11. Repeat these steps for `metaRepoName` and `metaRepoAccessToken`
 
 **\*Note:** At the time of this writing, group access tokens are only available in paid GitLab plans (i.e., Premium SaaS and Ultimate SaaS). Additionally, unlike other services, you cannot use the same access token for multiple repositories at this time (hence the need for `repoAccessToken` *and* `metaRepoAccessToken`). Finally, if you are unable to create access tokens, you are either on e free plan or you need to [enable project access token creation](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html#enable-or-disable-project-access-token-creation).
 

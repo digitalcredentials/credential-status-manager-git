@@ -228,12 +228,12 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
   async statusReposExist(): Promise<boolean> {
     // in the GitLab API, repo is practically
     // considered nonexistent when it is empty
-    const reposExist = await this.statusReposExist();
-    return !reposExist;
+    const reposEmpty = await this.statusReposEmpty();
+    return !reposEmpty;
   }
 
-  // retrieves response from fetching status repo
-  async readRepoResponse(): Promise<any> {
+  // retrieves data from status repo
+  async readRepoData(): Promise<any> {
     const repoRequestOptions = {
       params: {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
@@ -244,14 +244,8 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
     return repoResponse.data;
   }
 
-  // retrieves data from status repo
-  async readRepoData(): Promise<any> {
-    const repoResponse = await this.readRepoResponse();
-    return decodeSystemData(repoResponse.content);
-  }
-
-  // retrieves response from fetching status metadata repo
-  async readMetaRepoResponse(): Promise<any> {
+  // retrieves data from status metadata repo
+  async readMetaRepoData(): Promise<any> {
     const metaRepoRequestOptions = {
       params: {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
@@ -260,12 +254,6 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
     const metaRepoRequestEndpoint = this.treeEndpoint(this.metaRepoId);
     const metaRepoResponse = await this.metaRepoClient.get(metaRepoRequestEndpoint, metaRepoRequestOptions);
     return metaRepoResponse.data;
-  }
-
-  // retrieves data from status metadata repo
-  async readMetaRepoData(): Promise<any> {
-    const metaRepoResponse = await this.readMetaRepoResponse();
-    return decodeSystemData(metaRepoResponse.content);
   }
 
   // creates data in config file

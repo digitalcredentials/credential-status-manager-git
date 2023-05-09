@@ -501,7 +501,7 @@ export abstract class BaseCredentialStatusManager {
       }
 
       // ensure status credential is well formed
-      const hasProperStatusListId = statusListData.id === statusListId;
+      const hasProperStatusListId = statusListData.id?.endsWith(statusListId) ?? false;
       const hasProperStatusListType = statusListData.type.includes('StatusList2021Credential');
       const hasProperStatusListSubId = statusListData.credentialSubject.id?.startsWith(statusCredentialId) ?? false;
       const hasProperStatusListSubType = statusListData.credentialSubject.type === 'StatusList2021';
