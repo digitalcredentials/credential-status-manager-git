@@ -149,36 +149,24 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     return true;
   }
 
-  // retrieves response from fetching status repo
-  async readRepoResponse(): Promise<any> {
+  // retrieves data from status repo
+  async readRepoData(): Promise<any> {
     const repoResponse = await this.repoClient.repos.getContent({
       owner: this.repoOrgName,
       repo: this.repoName,
       path: ''
     });
-    return repoResponse.data as any;
+    return repoResponse.data;
   }
 
-  // retrieves data from status repo
-  async readRepoData(): Promise<any> {
-    const repoResponse = await this.readRepoResponse();
-    return decodeSystemData(repoResponse.content);
-  }
-
-  // retrieves response from fetching status metadata repo
-  async readMetaRepoResponse(): Promise<any> {
+  // retrieves data from status metadata repo
+  async readMetaRepoData(): Promise<any> {
     const metaRepoResponse = await this.metaRepoClient.repos.getContent({
       owner: this.repoOrgName,
       repo: this.metaRepoName,
       path: ''
     });
-    return metaRepoResponse.data as any;
-  }
-
-  // retrieves data from status metadata repo
-  async readMetaRepoData(): Promise<any> {
-    const metaRepoResponse = await this.readMetaRepoResponse();
-    return decodeSystemData(metaRepoResponse.content);
+    return metaRepoResponse.data;
   }
 
   // create data in config file
@@ -203,7 +191,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
       repo: this.metaRepoName,
       path: CREDENTIAL_STATUS_CONFIG_FILE
     });
-    return configResponse.data as any;
+    return configResponse.data;
   }
 
   // retrieves data from config file
@@ -251,7 +239,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
       repo: this.metaRepoName,
       path: CREDENTIAL_STATUS_LOG_FILE
     });
-    return logResponse.data as any;
+    return logResponse.data;
   }
 
   // retrieves data from log file
@@ -303,7 +291,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
       repo: this.repoName,
       path: latestList
     });
-    return statusResponse.data as any;
+    return statusResponse.data;
   }
 
   // retrieves data from status file
