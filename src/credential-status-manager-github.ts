@@ -149,6 +149,30 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     return true;
   }
 
+  // checks if status repos are empty
+  async statusReposEmpty(): Promise<boolean> {
+    let repoEmpty = false;
+    try {
+      // retrieve status repo content
+      await this.readRepoData();
+    } catch (error: any) {
+      // track that status repo is empty
+      repoEmpty = true;
+    }
+
+    let metaRepoEmpty = false;
+    try {
+      // retrieve status metadata repo content
+      await this.readMetaRepoData();
+    } catch (error: any) {
+      // track that status metadata repo is empty
+      metaRepoEmpty = true;
+    }
+
+    // check if both status repos are empty
+    return repoEmpty && metaRepoEmpty;
+  }
+
   // retrieves data from status repo
   async readRepoData(): Promise<any> {
     const repoResponse = await this.repoClient.repos.getContent({

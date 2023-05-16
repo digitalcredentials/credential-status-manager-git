@@ -164,9 +164,9 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
     return `/projects/${repoId}/repository/commits`;
   }
 
-  // retrieves endpoint for tree
-  treeEndpoint(repoId: string): string {
-    return `/projects/${repoId}/repository/tree`;
+  // retrieves endpoint for repo
+  repoEndpoint(repoId: string): string {
+    return `/projects/${repoId}`;
   }
 
   // retrieves credential status URL
@@ -226,10 +226,39 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
 
   // checks if status repos exist
   async statusReposExist(): Promise<boolean> {
-    // in the GitLab API, repo is practically
-    // considered nonexistent when it is empty
-    const reposEmpty = await this.statusReposEmpty();
-    return !reposEmpty;
+    try {
+      await this.readRepoData();
+      await this.readMetaRepoData();
+    } catch (error) {
+      return false;
+    }
+    return true;
+  }
+
+  // checks if status repos are empty
+  async statusReposEmpty(): Promise<boolean> {
+    let repoEmpty = false;
+    try {
+      // retrieve status repo emptiness state
+      const repoData = await this.readRepoData();
+      repoEmpty = repoData.empty_repo;
+    } catch (error: any) {
+      // track that status repo is empty
+      repoEmpty = true;
+    }
+
+    let metaRepoEmpty = false;
+    try {
+      // retrieve status metadata repo emptiness state
+      const metaRepoData = await this.readMetaRepoData();
+      metaRepoEmpty = metaRepoData.empty_repo;
+    } catch (error: any) {
+      // track that status metadata repo is empty
+      metaRepoEmpty = true;
+    }
+
+    // check if both status repos are empty
+    return repoEmpty && metaRepoEmpty;
   }
 
   // retrieves data from status repo
@@ -239,7 +268,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
       }
     };
-    const repoRequestEndpoint = this.treeEndpoint(this.repoId);
+    const repoRequestEndpoint = this.repoEndpoint(this.repoId);
     const repoResponse = await this.repoClient.get(repoRequestEndpoint, repoRequestOptions);
     return repoResponse.data;
   }
@@ -251,7 +280,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
       }
     };
-    const metaRepoRequestEndpoint = this.treeEndpoint(this.metaRepoId);
+    const metaRepoRequestEndpoint = this.repoEndpoint(this.metaRepoId);
     const metaRepoResponse = await this.metaRepoClient.get(metaRepoRequestEndpoint, metaRepoRequestOptions);
     return metaRepoResponse.data;
   }

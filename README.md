@@ -294,7 +294,7 @@ async function verifyStatusRepoAccess(req, res, next) {
 3. Select the *Settings* tab in the left navigation panel
 4. Select the *Access Tokens* tab within the *Settings* dropdown
 5. Enter a name and expiration date for the access token
-6. Select the *Developer* role
+6. Select the *Maintainer* role
 7. Select the *api* scope
 8. Click the *Create personal access token* button
 9. Copy the generated token
