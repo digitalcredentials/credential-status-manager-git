@@ -24,9 +24,9 @@ import {
   didSeed,
   metaRepoAccessToken,
   metaRepoName,
+  ownerAccountName,
   repoAccessToken,
   repoName,
-  repoOwnerName,
   statusListId,
   unsignedCredential1,
   unsignedCredential2,
@@ -42,18 +42,18 @@ class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialSta
 
   constructor(options: GithubStatus.GithubCredentialStatusManagerOptions) {
     const {
+      ownerAccountName,
       repoName,
       metaRepoName,
-      repoOwnerName,
       repoAccessToken,
       metaRepoAccessToken,
       didMethod,
       didSeed
     } = options;
     super({
+      ownerAccountName,
       repoName,
       metaRepoName,
-      repoOwnerName,
       repoAccessToken,
       metaRepoAccessToken,
       didMethod,
@@ -143,9 +143,9 @@ describe('GitHub Credential Status Manager', () => {
   beforeEach(async () => {
     statusManager = await createStatusManager({
       service,
+      ownerAccountName,
       repoName,
       metaRepoName,
-      repoOwnerName,
       repoAccessToken,
       metaRepoAccessToken,
       didMethod,

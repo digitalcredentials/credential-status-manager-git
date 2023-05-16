@@ -59,11 +59,11 @@ The `createStatusManager` function is the only exported pure function of this li
 | Key | Description | Type | Required |
 | --- | --- | --- | --- |
 | `service` | name of the source control service that will host the credential status resources | `github` \| `gitlab` | yes |
+| `ownerAccountName` | name of the owner account (personal or organization) in the source control service that will host the credential status resources | string | yes |
 | `repoName` | name of the credential status repository | string | yes |
 | `repoId` | ID of the credential status repository | string | yes (if `service` = `gitlab`) |
 | `metaRepoName` | name of the credential status metadata repository | string | yes |
 | `metaRepoId` | ID of the credential status metadata repository | string | yes (if `service` = `gitlab`) |
-| `repoOwnerName` | name of the owner account (personal or organization) in the source control service that will host the credential status resources | string | yes |
 | `repoAccessToken` | access token for the credential status repository in the source control service API | string | yes |
 | `metaRepoAccessToken` | access token for the credential status metadata repository in the source control service API | string | yes |
 | `didMethod` | name of the DID method used for signing | `key` \| `web` | yes |
@@ -79,9 +79,9 @@ import { createStatusManager } from '@digitalcredentials/status-list-manager-git
 
 const statusManager = await createStatusManager({
   service: 'github',
+  ownerAccountName: 'university-xyz', // Please create an owner account (personal or organization) in your source control service of choice
   repoName: 'credential-status', // Please create a unique credential status repository in the owner account
   metaRepoName: 'credential-status-metadata', // Please create a unique credential status metadata repository in the owner account
-  repoOwnerName: 'university-xyz', // Please create an owner account (personal or organization) in your source control service of choice
   repoAccessToken: 'abc123', // Please create your own access token in your source control service of choice (see Dependencies section for detailed instructions)
   metaRepoAccessToken: 'def456', // Please create your own access token in your source control service of choice (see Dependencies section for detailed instructions)
   didMethod: 'key',
@@ -90,7 +90,7 @@ const statusManager = await createStatusManager({
 });
 ```
 
-**Note:** A Status List 2021 credential can be found in the designated status repository (`repoName`) of the designated owner account (`repoOwnerName`) which is populated by `createStatusManager`. Additionally, relevant historical data can be found in the designated status metadata repository (`metaRepoName`) in the same owner account. Note that these repositories need to be manually created prior to calling `createStatusManager`. Finally, you can find a publicly visible version of the aforementioned Status List 2021 credential at the relevant URL for hosted sites in the source control service of choice (e.g., https://`repoOwnerName`.github.io/`repoName`/`statusListId` for GitHub, where `statusListId` is the name of a file that is automatically generated in `repoName`).
+**Note:** A Status List 2021 credential can be found in the designated status repository (`repoName`) of the designated owner account (`ownerAccountName`) which is populated by `createStatusManager`. Additionally, relevant historical data can be found in the designated status metadata repository (`metaRepoName`) in the same owner account. Note that these repositories need to be manually created prior to calling `createStatusManager`. Finally, you can find a publicly visible version of the aforementioned Status List 2021 credential at the relevant URL for hosted sites in the source control service of choice (e.g., https://`ownerAccountName`.github.io/`repoName`/`statusListId` for GitHub, where `statusListId` is the name of a file that is automatically generated in `repoName`).
 
 ### Allocate status for credential
 
@@ -255,7 +255,7 @@ async function verifyStatusRepoAccess(req, res, next) {
 5. Click the plus icon in the top-right corner of the screen and click *New repository*
 6. Configure a **blank private** repository for the credential status metadata repository \*, with an optional description, that is owned by your account \*
 
-**\*Note:** The names you choose for the credential status repository, credential status metadata repository, and owner account should be passed in respectively as `repoName`, `metaRepoName`, and `repoOwnerName` in invocations of `createStatusManager`. When you create these repositories, be sure not to add any files (including common default files like `.gitignore`, `README.md`, or `LICENSE`).
+**\*Note:** The names you choose for the owner account, credential status repository, and credential status metadata repository should be passed in respectively as `ownerAccountName`, `repoName`, and `metaRepoName` in invocations of `createStatusManager`. When you create these repositories, be sure not to add any files (including common default files like `.gitignore`, `README.md`, or `LICENSE`).
 
 **GitLab**
 1. Login to GitLab
@@ -265,12 +265,12 @@ async function verifyStatusRepoAccess(req, res, next) {
 5. Click the plus icon in the top-right corner of the screen and click *New project/repository*
 6. Configure a **blank private** repository for the credential status metadata repository \* that is owned by your account \*
 
-**\*Note:** The names you choose for the credential status repository, credential status metadata repository, and owner account, along with their IDs (which can be found at the main view for the repository/group), should be passed in respectively as `repoName` (ID: `repoId`), `metaRepoName` (ID: `metaRepoId`), and `repoOwnerName` in invocations of `createStatusManager`. When you create these repositories, be sure not to add any files (including common default files like `.gitignore`, `README.md`, or `LICENSE`).
+**\*Note:** The names you choose for the owner account, credential status repository, and credential status metadata repository, along with their IDs (which can be found at the main view for the repository/group), should be passed in respectively as `ownerAccountName`, `repoName` (ID: `repoId`), and `metaRepoName` (ID: `metaRepoId`) in invocations of `createStatusManager`. When you create these repositories, be sure not to add any files (including common default files like `.gitignore`, `README.md`, or `LICENSE`).
 
 ### Generate access tokens
 
 **GitHub**
-1. Login to GitHub as an authorized member/representative of the owner account (`repoOwnerName`)
+1. Login to GitHub as an authorized member/representative of the owner account (`ownerAccountName`)
 2. Click on your profile dropdown icon in the top-right corner of the screen
 3. Select the *Settings* tab
 4. Select the *Developer settings* tab toward the bottom of the left navigation panel
@@ -285,10 +285,10 @@ async function verifyStatusRepoAccess(req, res, next) {
 13. Copy the generated token
 14. Use the token as the value for `repoAccessToken` and/or `metaRepoAccessToken` in invocations of `createStatusManager` and `hasStatusAuthority` \*
 
-**\*Note:** For the credential status metadata repository, you can either generate a separate access token and use that as the value for `metaRepoAccessToken` or include it along with `repoAccessToken` when selecting repositories. Whatever you decide, make sure to pass values for both of these values in invocations of `createStatusManager` (even though the latter option will result in the same value for these properties). If you are using an organization as the owner account for the credential status manager and `repoOwnerName` is not listed, follow [these instructions](https://docs.github.com/en/organizations/managing-programmatic-access-to-your-organization/setting-a-personal-access-token-policy-for-your-organization) to set a personal access token policy for it.
+**\*Note:** For the credential status metadata repository, you can either generate a separate access token and use that as the value for `metaRepoAccessToken` or include it along with `repoAccessToken` when selecting repositories. Whatever you decide, make sure to pass values for both of these values in invocations of `createStatusManager` (even though the latter option will result in the same value for these properties). If you are using an organization as the owner account for the credential status manager and `ownerAccountName` is not listed, follow [these instructions](https://docs.github.com/en/organizations/managing-programmatic-access-to-your-organization/setting-a-personal-access-token-policy-for-your-organization) to set a personal access token policy for it.
 
 **GitLab\***
-1. Login to GitLab as an authorized member/representative of the owner account (`repoOwnerName`)
+1. Login to GitLab as an authorized member/representative of the owner account (`ownerAccountName`)
 2. Select the credential status repository (`repoName`)
 3. Select the *Settings* tab in the left navigation panel
 4. Select the *Access Tokens* tab within the *Settings* dropdown

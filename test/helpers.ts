@@ -43,11 +43,11 @@ export const unsignedCredential3 = {
   id: credentialId3
 };
 
+export const ownerAccountName = 'university-xyz';
 export const repoName = 'credential-status';
 export const repoId = '12345678';
 export const metaRepoName = 'credential-status-metadata';
 export const metaRepoId = '43215678';
-export const repoOwnerName = 'university-xyz';
 export const repoAccessToken = 'abc123';
 export const metaRepoAccessToken = 'def456';
 export const didMethod = 'key' as DidMethod;
@@ -62,10 +62,10 @@ export function checkLocalCredentialStatus(
   let statusCredentialId;
   switch (service) {
     case CredentialStatusManagerService.Github:
-      statusCredentialId = `https://${repoOwnerName}.github.io/${repoName}/${statusListId}`;
+      statusCredentialId = `https://${ownerAccountName}.github.io/${repoName}/${statusListId}`;
       break;
     case CredentialStatusManagerService.Gitlab:
-      statusCredentialId = `https://${repoOwnerName}.gitlab.io/${repoName}/${statusListId}`;
+      statusCredentialId = `https://${ownerAccountName}.gitlab.io/${repoName}/${statusListId}`;
       break;
   }
   expect(credentialWithStatus).to.have.property('credentialStatus');
@@ -110,10 +110,10 @@ export function checkStatusCredential(
   let statusCredentialId;
   switch (service) {
     case CredentialStatusManagerService.Github:
-      statusCredentialId = `https://${repoOwnerName}.github.io/${repoName}/${statusListId}`;
+      statusCredentialId = `https://${ownerAccountName}.github.io/${repoName}/${statusListId}`;
       break;
     case CredentialStatusManagerService.Gitlab:
-      statusCredentialId = `https://${repoOwnerName}.gitlab.io/${repoName}/${statusListId}`;
+      statusCredentialId = `https://${ownerAccountName}.gitlab.io/${repoName}/${statusListId}`;
       break;
   }
   expect(statusCredential).to.have.property('id');
