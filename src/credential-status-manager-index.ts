@@ -34,7 +34,7 @@ export async function createStatusManager(options: CredentialStatusManagerOption
     service,
     repoName,
     metaRepoName,
-    repoOrgName,
+    repoOwnerName,
     repoAccessToken,
     metaRepoAccessToken,
     didMethod,
@@ -49,7 +49,7 @@ export async function createStatusManager(options: CredentialStatusManagerOption
       statusManager = new GithubCredentialStatusManager({
         repoName,
         metaRepoName,
-        repoOrgName,
+        repoOwnerName,
         repoAccessToken,
         metaRepoAccessToken,
         didMethod,
@@ -62,16 +62,14 @@ export async function createStatusManager(options: CredentialStatusManagerOption
     case CredentialStatusManagerService.Gitlab: {
       const {
         repoId,
-        metaRepoId,
-        repoOrgId
+        metaRepoId
       } = options as GitlabCredentialStatusManagerOptions;
       statusManager = new GitlabCredentialStatusManager({
         repoName,
         repoId,
         metaRepoName,
         metaRepoId,
-        repoOrgName,
-        repoOrgId,
+        repoOwnerName,
         repoAccessToken,
         metaRepoAccessToken,
         didMethod,

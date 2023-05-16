@@ -55,16 +55,14 @@ gem "jekyll"`;
 export type GitlabCredentialStatusManagerOptions = {
   repoId: string;
   metaRepoId: string;
-  repoOrgName: string;
-  repoOrgId: string;
+  repoOwnerName: string;
 } & BaseCredentialStatusManagerOptions;
 
 // Minimal set of options required for configuring GitlabCredentialStatusManager
 const GITLAB_MANAGER_REQUIRED_OPTIONS = [
   'repoId',
   'metaRepoId',
-  'repoOrgName',
-  'repoOrgId'
+  'repoOwnerName'
 ].concat(BASE_MANAGER_REQUIRED_OPTIONS) as
   Array<keyof GitlabCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 
@@ -72,8 +70,7 @@ const GITLAB_MANAGER_REQUIRED_OPTIONS = [
 export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
   private readonly repoId: string;
   private readonly metaRepoId: string;
-  private readonly repoOrgName: string;
-  private readonly repoOrgId: string;
+  private readonly repoOwnerName: string;
   private repoClient: AxiosInstance;
   private readonly metaRepoClient: AxiosInstance;
 
@@ -83,8 +80,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
       repoId,
       metaRepoName,
       metaRepoId,
-      repoOrgName,
-      repoOrgId,
+      repoOwnerName,
       repoAccessToken,
       metaRepoAccessToken,
       didMethod,
@@ -107,8 +103,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
     this.ensureProperConfiguration(options);
     this.repoId = repoId;
     this.metaRepoId = metaRepoId;
-    this.repoOrgName = repoOrgName;
-    this.repoOrgId = repoOrgId;
+    this.repoOwnerName = repoOwnerName;
     this.repoClient = axios.create({
       baseURL: 'https://gitlab.com/api/v4',
       timeout: 6000,
@@ -171,7 +166,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
 
   // retrieves credential status URL
   getCredentialStatusUrl(): string {
-    return `https://${this.repoOrgName}.gitlab.io/${this.repoName}`;
+    return `https://${this.repoOwnerName}.gitlab.io/${this.repoName}`;
   }
 
   // deploys website to host credential status management resources
