@@ -103,11 +103,11 @@ export async function createStatusManager(options: CredentialStatusManagerOption
   const statusReposProperlyConfigured = await statusManager.statusReposProperlyConfigured();
 
   if (!reposExist) {
-    throw new Error(`The credential status repo ("${repoName}") and the credential status metadata repo ("${metaRepoName}") must be manually created in advance with a fine-grained token.`);
+    throw new Error(`The credential status repo ("${repoName}") and the credential status metadata repo ("${metaRepoName}") must be manually created in advance.`);
   }
   if (!reposEmpty) {
     if (!statusReposProperlyConfigured) {
-      throw new Error(`The credential status repo ("${repoName}") and the credential status metadata repo ("${metaRepoName}") must be empty.`);
+      throw new Error(`The credential status repo ("${repoName}") and the credential status metadata repo ("${metaRepoName}") must be empty upon initialization.`);
     }
   } else {
     // create and persist status config
