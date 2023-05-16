@@ -17,26 +17,26 @@ import { DidMethod, decodeSystemData, encodeAsciiAsBase64 } from './helpers.js';
 
 // Type definition for GithubCredentialStatusManager constructor method input
 export type GithubCredentialStatusManagerOptions = {
-  repoOwnerName: string;
+  ownerAccountName: string;
 } & BaseCredentialStatusManagerOptions;
 
 // Minimal set of options required for configuring GithubCredentialStatusManager
 const GITHUB_MANAGER_REQUIRED_OPTIONS = [
-  'repoOwnerName'
+  'ownerAccountName'
 ].concat(BASE_MANAGER_REQUIRED_OPTIONS) as
   Array<keyof GithubCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 
 // Implementation of BaseCredentialStatusManager for GitHub
 export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
-  private readonly repoOwnerName: string;
+  private readonly ownerAccountName: string;
   private repoClient: Octokit;
   private readonly metaRepoClient: Octokit;
 
   constructor(options: GithubCredentialStatusManagerOptions) {
     const {
+      ownerAccountName,
       repoName,
       metaRepoName,
-      repoOwnerName,
       repoAccessToken,
       metaRepoAccessToken,
       didMethod,
@@ -57,7 +57,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
       signStatusCredential
     });
     this.ensureProperConfiguration(options);
-    this.repoOwnerName = repoOwnerName;
+    this.ownerAccountName = ownerAccountName;
     this.repoClient = new Octokit({ auth: repoAccessToken });
     this.metaRepoClient = new Octokit({ auth: metaRepoAccessToken });
   }
@@ -93,13 +93,13 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
 
   // retrieves credential status URL
   getCredentialStatusUrl(): string {
-    return `https://${this.repoOwnerName}.github.io/${this.repoName}`;
+    return `https://${this.ownerAccountName}.github.io/${this.repoName}`;
   }
 
   // deploys website to host credential status management resources
   async deployCredentialStatusWebsite(): Promise<void> {
     await this.repoClient.repos.createPagesSite({
-      owner: this.repoOwnerName,
+      owner: this.ownerAccountName,
       repo: this.repoName,
       source: { branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME }
     });
@@ -117,11 +117,11 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     let hasScope: boolean;
     try {
       const repoResponse = await this.repoClient.repos.get({
-        owner: this.repoOwnerName,
+        owner: this.ownerAccountName,
         repo: this.repoName
       });
       const repo = repoResponse.data;
-      hasAccess = repo.full_name === `${this.repoOwnerName}/${this.repoName}`;
+      hasAccess = repo.full_name === `${this.ownerAccountName}/${this.repoName}`;
       hasScope = (repo.permissions?.admin &&
         repo.permissions?.push &&
         repo.permissions?.pull) as boolean;
@@ -136,11 +136,11 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   async statusReposExist(): Promise<boolean> {
     try {
       await this.repoClient.repos.get({
-        owner: this.repoOwnerName,
+        owner: this.ownerAccountName,
         repo: this.repoName
       });
       await this.metaRepoClient.repos.get({
-        owner: this.repoOwnerName,
+        owner: this.ownerAccountName,
         repo: this.metaRepoName
       });
     } catch (error) {
@@ -176,7 +176,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   // retrieves data from status repo
   async readRepoData(): Promise<any> {
     const repoResponse = await this.repoClient.repos.getContent({
-      owner: this.repoOwnerName,
+      owner: this.ownerAccountName,
       repo: this.repoName,
       path: ''
     });
@@ -186,7 +186,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   // retrieves data from status metadata repo
   async readMetaRepoData(): Promise<any> {
     const metaRepoResponse = await this.metaRepoClient.repos.getContent({
-      owner: this.repoOwnerName,
+      owner: this.ownerAccountName,
       repo: this.metaRepoName,
       path: ''
     });
@@ -199,7 +199,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     const message = `[${timestamp}]: created status credential config`;
     const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
     await this.metaRepoClient.repos.createOrUpdateFileContents({
-      owner: this.repoOwnerName,
+      owner: this.ownerAccountName,
       repo: this.metaRepoName,
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       path: CREDENTIAL_STATUS_CONFIG_FILE,
@@ -211,7 +211,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   // retrieves response from fetching config file
   async readConfigResponse(): Promise<any> {
     const configResponse = await this.metaRepoClient.repos.getContent({
-      owner: this.repoOwnerName,
+      owner: this.ownerAccountName,
       repo: this.metaRepoName,
       path: CREDENTIAL_STATUS_CONFIG_FILE
     });
@@ -232,7 +232,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     const message = `[${timestamp}]: updated status credential config`;
     const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
     await this.metaRepoClient.repos.createOrUpdateFileContents({
-      owner: this.repoOwnerName,
+      owner: this.ownerAccountName,
       repo: this.metaRepoName,
       path: CREDENTIAL_STATUS_CONFIG_FILE,
       message,
@@ -247,7 +247,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     const message = `[${timestamp}]: created status log`;
     const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
     await this.metaRepoClient.repos.createOrUpdateFileContents({
-      owner: this.repoOwnerName,
+      owner: this.ownerAccountName,
       repo: this.metaRepoName,
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       path: CREDENTIAL_STATUS_LOG_FILE,
@@ -259,7 +259,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   // retrieves response from fetching log file
   async readLogResponse(): Promise<any> {
     const logResponse = await this.metaRepoClient.repos.getContent({
-      owner: this.repoOwnerName,
+      owner: this.ownerAccountName,
       repo: this.metaRepoName,
       path: CREDENTIAL_STATUS_LOG_FILE
     });
@@ -280,7 +280,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     const message = `[${timestamp}]: updated status log`;
     const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
     await this.metaRepoClient.repos.createOrUpdateFileContents({
-      owner: this.repoOwnerName,
+      owner: this.ownerAccountName,
       repo: this.metaRepoName,
       path: CREDENTIAL_STATUS_LOG_FILE,
       message,
@@ -297,7 +297,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     const message = `[${timestamp}]: created status credential`;
     const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
     await this.repoClient.repos.createOrUpdateFileContents({
-      owner: this.repoOwnerName,
+      owner: this.ownerAccountName,
       repo: this.repoName,
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       path: latestList,
@@ -311,7 +311,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     const configData = await this.readConfigData();
     const { latestList } = configData;
     const statusResponse = await this.repoClient.repos.getContent({
-      owner: this.repoOwnerName,
+      owner: this.ownerAccountName,
       repo: this.repoName,
       path: latestList
     });
@@ -334,7 +334,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     const message = `[${timestamp}]: updated status credential`;
     const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
     await this.repoClient.repos.createOrUpdateFileContents({
-      owner: this.repoOwnerName,
+      owner: this.ownerAccountName,
       repo: this.repoName,
       path: latestList,
       message,

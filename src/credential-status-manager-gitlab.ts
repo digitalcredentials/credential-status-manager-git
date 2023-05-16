@@ -53,34 +53,34 @@ gem "jekyll"`;
 
 // Type definition for GitlabCredentialStatusManager constructor method input
 export type GitlabCredentialStatusManagerOptions = {
+  ownerAccountName: string;
   repoId: string;
   metaRepoId: string;
-  repoOwnerName: string;
 } & BaseCredentialStatusManagerOptions;
 
 // Minimal set of options required for configuring GitlabCredentialStatusManager
 const GITLAB_MANAGER_REQUIRED_OPTIONS = [
+  'ownerAccountName',
   'repoId',
-  'metaRepoId',
-  'repoOwnerName'
+  'metaRepoId'
 ].concat(BASE_MANAGER_REQUIRED_OPTIONS) as
   Array<keyof GitlabCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 
 // Implementation of BaseCredentialStatusManager for GitLab
 export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
+  private readonly ownerAccountName: string;
   private readonly repoId: string;
   private readonly metaRepoId: string;
-  private readonly repoOwnerName: string;
   private repoClient: AxiosInstance;
   private readonly metaRepoClient: AxiosInstance;
 
   constructor(options: GitlabCredentialStatusManagerOptions) {
     const {
+      ownerAccountName,
       repoName,
       repoId,
       metaRepoName,
       metaRepoId,
-      repoOwnerName,
       repoAccessToken,
       metaRepoAccessToken,
       didMethod,
@@ -101,9 +101,9 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
       signStatusCredential
     });
     this.ensureProperConfiguration(options);
+    this.ownerAccountName = ownerAccountName;
     this.repoId = repoId;
     this.metaRepoId = metaRepoId;
-    this.repoOwnerName = repoOwnerName;
     this.repoClient = axios.create({
       baseURL: 'https://gitlab.com/api/v4',
       timeout: 6000,
@@ -166,7 +166,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
 
   // retrieves credential status URL
   getCredentialStatusUrl(): string {
-    return `https://${this.repoOwnerName}.gitlab.io/${this.repoName}`;
+    return `https://${this.ownerAccountName}.gitlab.io/${this.repoName}`;
   }
 
   // deploys website to host credential status management resources

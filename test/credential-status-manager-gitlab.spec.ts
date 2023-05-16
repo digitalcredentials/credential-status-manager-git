@@ -25,10 +25,10 @@ import {
   metaRepoAccessToken,
   metaRepoId,
   metaRepoName,
+  ownerAccountName,
   repoAccessToken,
   repoId,
   repoName,
-  repoOwnerName,
   statusListId,
   unsignedCredential1,
   unsignedCredential2,
@@ -44,22 +44,22 @@ class MockGitlabCredentialStatusManager extends GitlabStatus.GitlabCredentialSta
 
   constructor(options: GitlabStatus.GitlabCredentialStatusManagerOptions) {
     const {
+      ownerAccountName,
       repoName,
       repoId,
       metaRepoName,
       metaRepoId,
-      repoOwnerName,
       repoAccessToken,
       metaRepoAccessToken,
       didMethod,
       didSeed
     } = options;
     super({
+      ownerAccountName,
       repoName,
       repoId,
       metaRepoName,
       metaRepoId,
-      repoOwnerName,
       repoAccessToken,
       metaRepoAccessToken,
       didMethod,
@@ -149,11 +149,11 @@ describe('GitLab Credential Status Manager', () => {
   beforeEach(async () => {
     statusManager = await createStatusManager({
       service,
+      ownerAccountName,
       repoName,
       repoId,
       metaRepoName,
       metaRepoId,
-      repoOwnerName,
       repoAccessToken,
       metaRepoAccessToken,
       didMethod,
