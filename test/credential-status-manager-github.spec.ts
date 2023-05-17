@@ -174,6 +174,9 @@ describe('GitHub Credential Status Manager', () => {
     // attempt to allocate and check status for existing credential
     const credentialWithStatus2Copy = await statusManager.allocateStatus(unsignedCredential2) as any;
     checkLocalCredentialStatus(credentialWithStatus2Copy, 2, service);
+
+    // check if status repos are properly configured
+    expect(await statusManager.statusReposProperlyConfigured()).to.be.true;
   });
 
   it('tests updateStatus and checkStatus', async () => {
@@ -192,5 +195,8 @@ describe('GitHub Credential Status Manager', () => {
     // check status of credential
     const credentialStatus = await statusManager.checkStatus(credentialWithStatus.id);
     checkRemoteCredentialStatus(credentialStatus, credentialWithStatus.id, 1);
+
+    // check if status repos are properly configured
+    expect(await statusManager.statusReposProperlyConfigured()).to.be.true;
   });
 });

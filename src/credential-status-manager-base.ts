@@ -488,10 +488,13 @@ export abstract class BaseCredentialStatusManager {
 
       // ensure log data is well formed
       const hasProperLogDataType = Array.isArray(logData);
-      const statusListLogEntries = logData.filter((entry) => {
-        return entry.statusListId === statusListId;
+      const credentialIds = logData.map((value) => {
+        return value.credentialId;
       });
-      const hasProperLogEntries = statusListLogEntries.length === credentialsIssued;
+      const credentialIdsUnique = credentialIds.filter((value, index, array) => {
+        return array.indexOf(value) === index;
+      });
+      const hasProperLogEntries = credentialIdsUnique.length === credentialsIssued;
 
       // ensure that all checks pass
       return hasProperStatusListId &&
