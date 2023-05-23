@@ -1,9 +1,26 @@
 import PackageJson from '@npmcli/package-json';
+import fs from 'fs';
 
-const run = async () => {
+// update package.json
+const updatePackageJson = async () => {
   const pkgJson = await PackageJson.load('./');
   pkgJson.update({ type: undefined });
   await pkgJson.save();
 };
 
-run();
+// update tsconfig.spec.json
+const updateTsconfig = async () => {
+  const tsconfigFilePath = './tsconfig.spec.json';
+  const tsconfigJson = JSON.parse(fs.readFileSync(tsconfigFilePath));
+  tsconfigJson.compilerOptions.module = 'commonjs';
+  fs.writeFileSync(tsconfigFilePath, JSON.stringify(tsconfigJson, null, 2));
+};
+
+// combine pre-test subscripts
+const runPreTest = async () => {
+  await updatePackageJson();
+  updateTsconfig();
+};
+
+// run pre-test subscripts
+runPreTest();
