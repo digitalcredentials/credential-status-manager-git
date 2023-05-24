@@ -41,8 +41,8 @@
     "prettier": "prettier src --write",
     "rebuild": "npm run clear && npm run build",
     "test": "npm run lint && npm run test-node",
-    "test-karma": "karma start karma.conf.js",
-    "test-node": "yarn build-test && mocha dist/test/*.spec.js && rm -rf dist/test"
+    "test-karma": "node pre-test.js; npm run build-test && karma start karma.conf.js && rm -rf dist/test; node post-test.js",
+    "test-node": "node pre-test.js; npm run build-test && mocha dist/test/*.spec.js && rm -rf dist/test; node post-test.js"
   },
   "files": [
     "dist",
