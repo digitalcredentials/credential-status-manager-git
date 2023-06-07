@@ -69,7 +69,7 @@ export async function signCredential({
     didWebUrl
   });
   const key = keyPairs.get(verificationMethod);
-  const date = (new Date()).toISOString();
+  const date = getDateString();
   const suite = new Ed25519Signature2020({ key, date });
   return sign({
     credential,
@@ -152,3 +152,8 @@ function extractId(objectOrString: any): string {
   } 
   return objectOrString.id;
 }
+
+// retrieves current timestamp
+export function getDateString(): string {
+  return (new Date()).toISOString();
+};
