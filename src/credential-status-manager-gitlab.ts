@@ -13,7 +13,11 @@ import {
   CredentialStatusConfigData,
   CredentialStatusLogData
 } from './credential-status-manager-base.js';
-import { DidMethod, decodeSystemData } from './helpers.js';
+import {
+  DidMethod,
+  decodeSystemData,
+  getDateString
+} from './helpers.js';
 
 const CREDENTIAL_STATUS_CONFIG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_CONFIG_FILE);
 const CREDENTIAL_STATUS_LOG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_LOG_FILE);
@@ -141,6 +145,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
         `${missingOptions.map(o => `'${o}'`).join(', ')}.`
       );
     }
+
     if (this.didMethod === DidMethod.Web && !this.didWebUrl) {
       throw new Error(
         'The value of "didWebUrl" must be provided ' +
@@ -171,7 +176,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
 
   // deploys website to host credential status management resources
   async deployCredentialStatusWebsite(): Promise<void> {
-    const timestamp = (new Date()).toISOString();
+    const timestamp = getDateString();
     const message = `[${timestamp}]: deployed status website`;
     const websiteRequestOptions = {
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
@@ -282,7 +287,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
 
   // creates data in config file
   async createConfigData(data: CredentialStatusConfigData): Promise<void> {
-    const timestamp = (new Date()).toISOString();
+    const timestamp = getDateString();
     const message = `[${timestamp}]: created status credential config`;
     const content = JSON.stringify(data, null, 2);
     const configRequestOptions = {
@@ -320,7 +325,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
 
   // updates data in config file
   async updateConfigData(data: CredentialStatusConfigData): Promise<void> {
-    const timestamp = (new Date()).toISOString();
+    const timestamp = getDateString();
     const message = `[${timestamp}]: updated status credential config`;
     const content = JSON.stringify(data, null, 2);
     const configRequestOptions = {
@@ -337,7 +342,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
 
   // creates data in log file
   async createLogData(data: CredentialStatusLogData): Promise<void> {
-    const timestamp = (new Date()).toISOString();
+    const timestamp = getDateString();
     const message = `[${timestamp}]: created status log`;
     const content = JSON.stringify(data, null, 2);
     const logRequestOptions = {
@@ -375,7 +380,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
 
   // updates data in log file
   async updateLogData(data: CredentialStatusLogData): Promise<void> {
-    const timestamp = (new Date()).toISOString();
+    const timestamp = getDateString();
     const message = `[${timestamp}]: updated status log`;
     const content = JSON.stringify(data, null, 2);
     const logRequestOptions = {
@@ -394,7 +399,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
   async createStatusData(data: VerifiableCredential): Promise<void> {
     const configData = await this.readConfigData();
     const { latestList } = configData;
-    const timestamp = (new Date()).toISOString();
+    const timestamp = getDateString();
     const message = `[${timestamp}]: created status credential`;
     const content = JSON.stringify(data, null, 2);
     const statusRequestOptions = {
@@ -432,7 +437,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
   async updateStatusData(data: VerifiableCredential): Promise<void> {
     const configData = await this.readConfigData();
     const { latestList } = configData;
-    const timestamp = (new Date()).toISOString();
+    const timestamp = getDateString();
     const message = `[${timestamp}]: updated status credential`;
     const content = JSON.stringify(data, null, 2);
     const statusRequestOptions = {

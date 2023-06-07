@@ -4,8 +4,14 @@
 import { CONTEXT_URL_V1 } from '@digitalbazaar/vc-status-list-context';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import { createCredential, createList, decodeList } from '@digitalcredentials/vc-status-list';
+import { Mutex } from 'async-mutex';
 import { v4 as uuid } from 'uuid';
-import { DidMethod, getSigningMaterial, signCredential } from './helpers.js';
+import {
+  DidMethod,
+  getDateString,
+  getSigningMaterial,
+  signCredential
+} from './helpers.js';
 
 // Number of credentials tracked in a list
 const CREDENTIAL_STATUS_LIST_SIZE = 100000;
@@ -120,6 +126,7 @@ export abstract class BaseCredentialStatusManager {
   protected readonly didWebUrl: string;
   protected readonly signUserCredential: boolean;
   protected readonly signStatusCredential: boolean;
+  protected readonly lock: Mutex;
 
   constructor(options: BaseCredentialStatusManagerOptions) {
     const {
@@ -142,11 +149,12 @@ export abstract class BaseCredentialStatusManager {
     this.didWebUrl = didWebUrl ?? '';
     this.signUserCredential = signUserCredential ?? false;
     this.signStatusCredential = signStatusCredential ?? false;
+    this.lock = new Mutex();
   }
 
   // generates new status list ID
   generateStatusListId(): string {
-    return Math.random().toString(36).substring(2,12).toUpperCase();
+    return Math.random().toString(36).substring(2, 12).toUpperCase();
   }
 
   // embeds status into credential
@@ -232,8 +240,8 @@ export abstract class BaseCredentialStatusManager {
     };
   }
 
-  // allocates status for credential
-  async allocateStatus(credential: VerifiableCredential): Promise<VerifiableCredential> {
+  // allocates status for credential in race-prone manner
+  async allocateStatusUnsafe(credential: VerifiableCredential): Promise<VerifiableCredential> {
     // report error for compact JWT credentials
     if (typeof credential === 'string') {
       throw new Error('This library does not support compact JWT credentials.');
@@ -306,7 +314,7 @@ export abstract class BaseCredentialStatusManager {
     // retrieve status list ID from status credential URL
     const statusListId = statusListCredential.split('/').slice(-1).pop();
     const statusLogEntry: CredentialStatusLogEntry = {
-      timestamp: (new Date()).toISOString(),
+      timestamp: getDateString(),
       credentialId: credential.id ?? credentialStatusId,
       credentialIssuer: issuerDid,
       credentialSubject: credential.credentialSubject?.id,
@@ -322,8 +330,16 @@ export abstract class BaseCredentialStatusManager {
     return credentialWithStatus;
   }
 
-  // updates status of credential
-  async updateStatus({
+  // allocates status for credential in thread-safe manner
+  async allocateStatus(credential: VerifiableCredential): Promise<VerifiableCredential> {
+    const release = await this.lock.acquire();
+    const result = await this.allocateStatusUnsafe(credential);
+    release();
+    return result;
+  }
+
+  // updates status of credential in race-prone manner
+  async updateStatusUnsafe({
     credentialId,
     credentialStatus
   }: UpdateStatusOptions): Promise<VerifiableCredential> {
@@ -412,7 +428,7 @@ export abstract class BaseCredentialStatusManager {
     // add new entries to status log
     const statusLogData = await this.readLogData();
     const statusLogEntry: CredentialStatusLogEntry = {
-      timestamp: (new Date()).toISOString(),
+      timestamp: getDateString(),
       credentialId,
       credentialIssuer: issuerDid,
       credentialSubject,
@@ -425,6 +441,17 @@ export abstract class BaseCredentialStatusManager {
     await this.updateLogData(statusLogData);
 
     return statusCredential;
+  }
+
+  // updates status of credential in thread-safe manner
+  async updateStatus({
+    credentialId,
+    credentialStatus
+  }: UpdateStatusOptions): Promise<VerifiableCredential> {
+    const release = await this.lock.acquire();
+    const result = await this.updateStatusUnsafe({ credentialId, credentialStatus });
+    release();
+    return result;
   }
 
   // checks status of credential
@@ -556,7 +583,7 @@ export async function composeStatusCredential({
   }
 
   // create status credential
-  const issuanceDate = (new Date()).toISOString();
+  const issuanceDate = getDateString();
   let credential = await createCredential({
     id: credentialId,
     list: statusList,

@@ -13,7 +13,12 @@ import {
   CredentialStatusConfigData,
   CredentialStatusLogData
 } from './credential-status-manager-base.js';
-import { DidMethod, decodeSystemData, encodeAsciiAsBase64 } from './helpers.js';
+import {
+  DidMethod,
+  decodeSystemData,
+  encodeAsciiAsBase64,
+  getDateString
+} from './helpers.js';
 
 // Type definition for GithubCredentialStatusManager constructor method input
 export type GithubCredentialStatusManagerOptions = {
@@ -83,6 +88,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
         `${missingOptions.map(o => `'${o}'`).join(', ')}.`
       );
     }
+
     if (this.didMethod === DidMethod.Web && !this.didWebUrl) {
       throw new Error(
         'The value of "didWebUrl" must be provided ' +
@@ -195,7 +201,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
 
   // create data in config file
   async createConfigData(data: CredentialStatusConfigData): Promise<void> {
-    const timestamp = (new Date()).toISOString();
+    const timestamp = getDateString();
     const message = `[${timestamp}]: created status credential config`;
     const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
     await this.metaRepoClient.repos.createOrUpdateFileContents({
@@ -228,7 +234,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   async updateConfigData(data: CredentialStatusConfigData): Promise<void> {
     const configResponse = await this.readConfigResponse();
     const { sha } = configResponse;
-    const timestamp = (new Date()).toISOString();
+    const timestamp = getDateString();
     const message = `[${timestamp}]: updated status credential config`;
     const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
     await this.metaRepoClient.repos.createOrUpdateFileContents({
@@ -243,7 +249,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
 
   // creates data in log file
   async createLogData(data: CredentialStatusLogData): Promise<void> {
-    const timestamp = (new Date()).toISOString();
+    const timestamp = getDateString();
     const message = `[${timestamp}]: created status log`;
     const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
     await this.metaRepoClient.repos.createOrUpdateFileContents({
@@ -276,7 +282,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   async updateLogData(data: CredentialStatusLogData): Promise<void> {
     const logResponse = await this.readLogResponse();
     const { sha } = logResponse;
-    const timestamp = (new Date()).toISOString();
+    const timestamp = getDateString();
     const message = `[${timestamp}]: updated status log`;
     const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
     await this.metaRepoClient.repos.createOrUpdateFileContents({
@@ -293,7 +299,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   async createStatusData(data: VerifiableCredential): Promise<void> {
     const configData = await this.readConfigData();
     const { latestList } = configData;
-    const timestamp = (new Date()).toISOString();
+    const timestamp = getDateString();
     const message = `[${timestamp}]: created status credential`;
     const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
     await this.repoClient.repos.createOrUpdateFileContents({
@@ -330,7 +336,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     const { latestList } = configData;
     const statusResponse = await this.readStatusResponse();
     const { sha } = statusResponse;
-    const timestamp = (new Date()).toISOString();
+    const timestamp = getDateString();
     const message = `[${timestamp}]: updated status credential`;
     const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
     await this.repoClient.repos.createOrUpdateFileContents({
