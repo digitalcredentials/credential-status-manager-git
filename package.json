@@ -1,5 +1,5 @@
 {
-  "name": "@digitalcredentials/status-list-manager-git",
+  "name": "@digitalcredentials/credential-status-manager-git",
   "description": "A Typescript library for managing the status of Verifiable Credentials in Git using Status List 2021",
   "version": "0.0.1",
   "publishConfig": {
@@ -25,10 +25,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/digitalcredentials/status-list-manager-git"
+    "url": "https://github.com/digitalcredentials/credential-status-manager-git"
   },
-  "homepage": "https://github.com/digitalcredentials/status-list-manager-git",
-  "bugs": "https://github.com/digitalcredentials/status-list-manager-git/issues",
+  "homepage": "https://github.com/digitalcredentials/credential-status-manager-git",
+  "bugs": "https://github.com/digitalcredentials/credential-status-manager-git/issues",
   "scripts": {
     "build": "npm run clear && tsc -d && tsc -p tsconfig.esm.json",
     "build-test": "npm run clear && tsc -d && tsc -p tsconfig.spec.json",
