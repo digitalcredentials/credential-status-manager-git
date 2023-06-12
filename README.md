@@ -1,9 +1,9 @@
-# status-list-manager-git
+# credential-status-manager-git
 
 A Typescript library for managing the status of [Verifiable Credentials](https://www.w3.org/TR/vc-data-model) in Git using [Status List 2021](https://w3c-ccg.github.io/vc-status-list-2021)
 
-[![Build status](https://img.shields.io/github/actions/workflow/status/digitalcredentials/status-list-manager-git/main.yml?branch=main)](https://github.com/digitalcredentials/status-list-manager-git/actions?query=workflow%3A%22Node.js+CI%22)
-[![NPM Version](https://img.shields.io/npm/v/@digitalcredentials/status-list-manager-git.svg)](https://npm.im/@digitalcredentials/status-list-manager-git)
+[![Build status](https://img.shields.io/github/actions/workflow/status/digitalcredentials/credential-status-manager-git/main.yml?branch=main)](https://github.com/digitalcredentials/credential-status-manager-git/actions?query=workflow%3A%22Node.js+CI%22)
+[![NPM Version](https://img.shields.io/npm/v/@digitalcredentials/credential-status-manager-git.svg)](https://npm.im/@digitalcredentials/credential-status-manager-git)
 
 ## Table of Contents
 
@@ -37,7 +37,7 @@ Credentials are dynamic artifacts with a robust lifecycle that goes well beyond 
 To install via NPM:
 
 ```
-npm install @digitalcredentials/status-list-manager-git
+npm install @digitalcredentials/credential-status-manager-git
 ```
 
 ### Development
@@ -45,8 +45,8 @@ npm install @digitalcredentials/status-list-manager-git
 To install locally (for development):
 
 ```
-git clone https://github.com/digitalcredentials/status-list-manager-git.git
-cd status-list-manager-git
+git clone https://github.com/digitalcredentials/credential-status-manager-git.git
+cd credential-status-manager-git
 npm install
 ```
 
@@ -75,7 +75,7 @@ The `createStatusManager` function is the only exported pure function of this li
 Here is a sample call to `createStatusManager`:
 
 ```ts
-import { createStatusManager } from '@digitalcredentials/status-list-manager-git';
+import { createStatusManager } from '@digitalcredentials/credential-status-manager-git';
 
 const statusManager = await createStatusManager({
   service: 'github',
