@@ -333,9 +333,12 @@ export abstract class BaseCredentialStatusManager {
   // allocates status for credential in thread-safe manner
   async allocateStatus(credential: VerifiableCredential): Promise<VerifiableCredential> {
     const release = await this.lock.acquire();
-    const result = await this.allocateStatusUnsafe(credential);
-    release();
-    return result;
+    try {
+      const result = await this.allocateStatusUnsafe(credential);
+      return result;
+    } finally {
+      release();
+    }
   }
 
   // updates status of credential in race-prone manner
@@ -449,9 +452,12 @@ export abstract class BaseCredentialStatusManager {
     credentialStatus
   }: UpdateStatusOptions): Promise<VerifiableCredential> {
     const release = await this.lock.acquire();
-    const result = await this.updateStatusUnsafe({ credentialId, credentialStatus });
-    release();
-    return result;
+    try {
+      const result = await this.updateStatusUnsafe({ credentialId, credentialStatus });
+      return result;
+    } finally {
+      release();
+    }
   }
 
   // checks status of credential
