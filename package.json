@@ -1,7 +1,7 @@
 {
   "name": "@digitalcredentials/credential-status-manager-git",
   "description": "A Typescript library for managing the status of Verifiable Credentials in Git using Status List 2021",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "publishConfig": {
     "access": "public"
   },
