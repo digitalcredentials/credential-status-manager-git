@@ -153,6 +153,11 @@ function extractId(objectOrString: any): string {
   return objectOrString.id;
 }
 
+// extracts abbreviated ID from status list ID
+export const getAbbreviatedStatusListId = (statusListId: string): string => {
+  return statusListId.split('/').slice(-1).pop() as string;
+};
+
 // retrieves current timestamp
 export function getDateString(): string {
   return (new Date()).toISOString();

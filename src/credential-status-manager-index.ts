@@ -4,7 +4,6 @@
 import {
   BaseCredentialStatusManager,
   CredentialStatusConfigData,
-  CredentialStatusLogData,
   CredentialStatusManagerService,
   composeStatusCredential
 } from './credential-status-manager-base.js';
@@ -112,13 +111,10 @@ export async function createStatusManager(options: CredentialStatusManagerOption
     const listId = statusManager.generateStatusListId();
     const configData: CredentialStatusConfigData = {
       credentialsIssued: 0,
-      latestList: listId
+      latestList: listId,
+      log: []
     };
     await statusManager.createConfigData(configData);
-
-    // create and persist status log
-    const logData: CredentialStatusLogData = [];
-    await statusManager.createLogData(logData);
 
     // create status credential
     const statusCredentialId = `${credentialStatusUrl}/${listId}`;

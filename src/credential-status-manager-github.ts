@@ -6,17 +6,16 @@ import { Octokit } from '@octokit/rest';
 import {
   BASE_MANAGER_REQUIRED_OPTIONS,
   CREDENTIAL_STATUS_CONFIG_FILE,
-  CREDENTIAL_STATUS_LOG_FILE,
   CREDENTIAL_STATUS_REPO_BRANCH_NAME,
   BaseCredentialStatusManager,
   BaseCredentialStatusManagerOptions,
-  CredentialStatusConfigData,
-  CredentialStatusLogData
+  CredentialStatusConfigData
 } from './credential-status-manager-base.js';
 import {
   DidMethod,
   decodeSystemData,
   encodeAsciiAsBase64,
+  getAbbreviatedStatusListId,
   getDateString
 } from './helpers.js';
 
@@ -247,58 +246,12 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     });
   }
 
-  // creates data in log file
-  async createLogData(data: CredentialStatusLogData): Promise<void> {
-    const timestamp = getDateString();
-    const message = `[${timestamp}]: created status log`;
-    const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
-    await this.metaRepoClient.repos.createOrUpdateFileContents({
-      owner: this.ownerAccountName,
-      repo: this.metaRepoName,
-      branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
-      path: CREDENTIAL_STATUS_LOG_FILE,
-      message,
-      content
-    });
-  }
-
-  // retrieves response from fetching log file
-  async readLogResponse(): Promise<any> {
-    const logResponse = await this.metaRepoClient.repos.getContent({
-      owner: this.ownerAccountName,
-      repo: this.metaRepoName,
-      path: CREDENTIAL_STATUS_LOG_FILE
-    });
-    return logResponse.data;
-  }
-
-  // retrieves data from log file
-  async readLogData(): Promise<CredentialStatusLogData> {
-    const logResponse = await this.readLogResponse();
-    return decodeSystemData(logResponse.content);
-  }
-
-  // updates data in log file
-  async updateLogData(data: CredentialStatusLogData): Promise<void> {
-    const logResponse = await this.readLogResponse();
-    const { sha } = logResponse;
-    const timestamp = getDateString();
-    const message = `[${timestamp}]: updated status log`;
-    const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
-    await this.metaRepoClient.repos.createOrUpdateFileContents({
-      owner: this.ownerAccountName,
-      repo: this.metaRepoName,
-      path: CREDENTIAL_STATUS_LOG_FILE,
-      message,
-      content,
-      sha
-    });
-  }
-
   // creates data in status file
   async createStatusData(data: VerifiableCredential): Promise<void> {
-    const configData = await this.readConfigData();
-    const { latestList } = configData;
+    if (typeof data === 'string') {
+      throw new Error('This library does not support compact JWT credentials.');
+    }
+    const statusListId = getAbbreviatedStatusListId(data.id as string);
     const timestamp = getDateString();
     const message = `[${timestamp}]: created status credential`;
     const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
@@ -306,7 +259,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
       owner: this.ownerAccountName,
       repo: this.repoName,
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
-      path: latestList,
+      path: statusListId,
       message,
       content
     });
@@ -314,8 +267,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
 
   // retrieves response from fetching status file
   async readStatusResponse(): Promise<any> {
-    const configData = await this.readConfigData();
-    const { latestList } = configData;
+    const { latestList } = await this.readConfigData();
     const statusResponse = await this.repoClient.repos.getContent({
       owner: this.ownerAccountName,
       repo: this.repoName,
@@ -332,8 +284,10 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
 
   // updates data in status file
   async updateStatusData(data: VerifiableCredential): Promise<void> {
-    const configData = await this.readConfigData();
-    const { latestList } = configData;
+    if (typeof data === 'string') {
+      throw new Error('This library does not support compact JWT credentials.');
+    }
+    const statusListId = getAbbreviatedStatusListId(data.id as string);
     const statusResponse = await this.readStatusResponse();
     const { sha } = statusResponse;
     const timestamp = getDateString();
@@ -342,7 +296,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     await this.repoClient.repos.createOrUpdateFileContents({
       owner: this.ownerAccountName,
       repo: this.repoName,
-      path: latestList,
+      path: statusListId,
       message,
       content,
       sha
