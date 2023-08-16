@@ -8,6 +8,7 @@ import { Mutex } from 'async-mutex';
 import { v4 as uuid } from 'uuid';
 import {
   DidMethod,
+  getAbbreviatedStatusListId,
   getDateString,
   getSigningMaterial,
   signCredential
@@ -24,7 +25,6 @@ export const CREDENTIAL_STATUS_REPO_BRANCH_NAME = 'main';
 
 // Credential status resource names
 export const CREDENTIAL_STATUS_CONFIG_FILE = 'config.json';
-export const CREDENTIAL_STATUS_LOG_FILE = 'log.json';
 
 // Credential status manager source control service
 export enum CredentialStatusManagerService {
@@ -32,23 +32,10 @@ export enum CredentialStatusManagerService {
   Gitlab = 'gitlab'
 }
 
-// Actions applied to credentials and tracked in status log
-export enum SystemFile {
-  Config = 'config',
-  Log = 'log',
-  Status = 'status'
-}
-
 // States of credential resulting from caller actions and tracked in status log
 export enum CredentialState {
   Active = 'active',
   Revoked = 'revoked'
-}
-
-// Type definition for credential status config file
-export interface CredentialStatusConfigData {
-  credentialsIssued: number;
-  latestList: string;
 }
 
 // Type definition for credential status log entry
@@ -64,7 +51,14 @@ export interface CredentialStatusLogEntry {
 }
 
 // Type definition for credential status log
-export type CredentialStatusLogData = CredentialStatusLogEntry[];
+type CredentialStatusLogData = CredentialStatusLogEntry[];
+
+// Type definition for credential status config file
+export interface CredentialStatusConfigData {
+  credentialsIssued: number;
+  latestList: string;
+  log: CredentialStatusLogData;
+}
 
 // Type definition for composeStatusCredential function input
 interface ComposeStatusCredentialOptions {
@@ -83,7 +77,9 @@ interface EmbedCredentialStatusOptions {
 // Type definition for embedCredentialStatus method output
 interface EmbedCredentialStatusResult {
   credential: any;
-  newList?: string;
+  credentialsIssued: number;
+  latestList: string;
+  newList: boolean;
 }
 
 // Type definition for updateStatus method input
@@ -166,8 +162,14 @@ export abstract class BaseCredentialStatusManager {
       credential.id = uuid();
     }
 
+    // retrieve status config data
+    let {
+      credentialsIssued,
+      latestList,
+      log: logData
+    } = await this.readConfigData();
+
     // find latest relevant log entry for credential with given ID
-    const logData: CredentialStatusLogData = await this.readLogData();
     logData.reverse();
     const logEntry = logData.find((entry) => {
       return entry.credentialId === credential.id;
@@ -195,27 +197,21 @@ export abstract class BaseCredentialStatusManager {
           ...credential,
           credentialStatus,
           '@context': [...credential['@context'], CONTEXT_URL_V1]
-        }
+        },
+        credentialsIssued,
+        latestList,
+        newList: false
       };
     }
 
-    // retrieve status config data
-    const configData = await this.readConfigData();
-    let { credentialsIssued, latestList } = configData;
-
     // allocate new status list entry if ID is not yet being tracked
-    let newList;
+    let newList = false;
     if (credentialsIssued >= CREDENTIAL_STATUS_LIST_SIZE) {
       latestList = this.generateStatusListId();
-      newList = latestList;
+      newList = true;
       credentialsIssued = 0;
     }
     credentialsIssued++;
-
-    // update status config data
-    configData.credentialsIssued = credentialsIssued;
-    configData.latestList = latestList;
-    await this.updateConfigData(configData);
 
     // attach credential status
     const statusUrl = this.getCredentialStatusUrl();
@@ -236,6 +232,8 @@ export abstract class BaseCredentialStatusManager {
         credentialStatus,
         '@context': [...credential['@context'], CONTEXT_URL_V1]
       },
+      credentialsIssued,
+      latestList,
       newList
     };
   }
@@ -250,6 +248,8 @@ export abstract class BaseCredentialStatusManager {
     // attach status to credential
     let {
       credential: credentialWithStatus,
+      credentialsIssued,
+      latestList,
       newList
     } = await this.embedCredentialStatus({ credential });
 
@@ -274,7 +274,7 @@ export abstract class BaseCredentialStatusManager {
     if (newList) {
       // create status credential
       const credentialStatusUrl = this.getCredentialStatusUrl();
-      const statusCredentialId = `${credentialStatusUrl}/${newList}`;
+      const statusCredentialId = `${credentialStatusUrl}/${latestList}`;
       let statusCredential = await composeStatusCredential({
         issuerDid,
         credentialId: statusCredentialId
@@ -306,16 +306,15 @@ export abstract class BaseCredentialStatusManager {
 
     // add new entry to status log
     const {
-      id: credentialStatusId,
       statusListCredential,
       statusListIndex
     } = credentialWithStatus.credentialStatus;
 
     // retrieve status list ID from status credential URL
-    const statusListId = statusListCredential.split('/').slice(-1).pop();
+    const statusListId = getAbbreviatedStatusListId(statusListCredential);
     const statusLogEntry: CredentialStatusLogEntry = {
       timestamp: getDateString(),
-      credentialId: credential.id ?? credentialStatusId,
+      credentialId: credential.id as string,
       credentialIssuer: issuerDid,
       credentialSubject: credential.credentialSubject?.id,
       credentialState: CredentialState.Active,
@@ -323,9 +322,15 @@ export abstract class BaseCredentialStatusManager {
       statusListId,
       statusListIndex
     };
-    const statusLogData = await this.readLogData();
+    const {
+      log: statusLogData
+    } = await this.readConfigData();
     statusLogData.push(statusLogEntry);
-    await this.updateLogData(statusLogData);
+    await this.updateConfigData({
+      credentialsIssued,
+      latestList,
+      log: statusLogData
+    });
 
     return credentialWithStatus;
   }
@@ -347,7 +352,7 @@ export abstract class BaseCredentialStatusManager {
     credentialStatus
   }: UpdateStatusOptions): Promise<VerifiableCredential> {
     // find latest relevant log entry for credential with given ID
-    const logData: CredentialStatusLogData = await this.readLogData();
+    const { log: logData, ...configRest } = await this.readConfigData();
     logData.reverse();
     const logEntry = logData.find((entry) => {
       return entry.credentialId === credentialId;
@@ -429,7 +434,6 @@ export abstract class BaseCredentialStatusManager {
     await this.updateStatusData(statusCredential);
 
     // add new entries to status log
-    const statusLogData = await this.readLogData();
     const statusLogEntry: CredentialStatusLogEntry = {
       timestamp: getDateString(),
       credentialId,
@@ -440,8 +444,8 @@ export abstract class BaseCredentialStatusManager {
       statusListId,
       statusListIndex
     };
-    statusLogData.push(statusLogEntry);
-    await this.updateLogData(statusLogData);
+    logData.push(statusLogEntry);
+    await this.updateConfigData({ log: logData, ...configRest });
 
     return statusCredential;
   }
@@ -463,7 +467,7 @@ export abstract class BaseCredentialStatusManager {
   // checks status of credential
   async checkStatus(credentialId: string): Promise<CredentialStatusLogEntry> {
     // find latest relevant log entry for credential with given ID
-    const logData: CredentialStatusLogData = await this.readLogData();
+    const { log: logData } = await this.readConfigData();
     logData.reverse();
     const logEntry = logData.find((entry) => {
       return entry.credentialId === credentialId;
@@ -502,7 +506,7 @@ export abstract class BaseCredentialStatusManager {
       const statusCredentialId = `${credentialStatusUrl}/${statusListId}`;
 
       // retrieve log data
-      const logData = await this.readLogData();
+      const { log: logData } = await this.readConfigData();
 
       // retrieve status credential
       const statusListData = await this.readStatusData();
@@ -556,15 +560,6 @@ export abstract class BaseCredentialStatusManager {
 
   // updates data in config file
   abstract updateConfigData(data: CredentialStatusConfigData): Promise<void>;
-
-  // creates data in log file
-  abstract createLogData(data: CredentialStatusLogData): Promise<void>;
-
-  // retrieves data from log file
-  abstract readLogData(): Promise<CredentialStatusLogData>;
-
-  // updates data in log file
-  abstract updateLogData(data: CredentialStatusLogData): Promise<void>;
 
   // creates data in status file
   abstract createStatusData(data: VerifiableCredential): Promise<void>;

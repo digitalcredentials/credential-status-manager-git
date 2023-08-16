@@ -6,21 +6,19 @@ import axios, { AxiosInstance } from 'axios';
 import {
   BASE_MANAGER_REQUIRED_OPTIONS,
   CREDENTIAL_STATUS_CONFIG_FILE,
-  CREDENTIAL_STATUS_LOG_FILE,
   CREDENTIAL_STATUS_REPO_BRANCH_NAME,
   BaseCredentialStatusManager,
   BaseCredentialStatusManagerOptions,
-  CredentialStatusConfigData,
-  CredentialStatusLogData
+  CredentialStatusConfigData
 } from './credential-status-manager-base.js';
 import {
   DidMethod,
   decodeSystemData,
+  getAbbreviatedStatusListId,
   getDateString
 } from './helpers.js';
 
 const CREDENTIAL_STATUS_CONFIG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_CONFIG_FILE);
-const CREDENTIAL_STATUS_LOG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_LOG_FILE);
 
 const CREDENTIAL_STATUS_WEBSITE_HOME_PAGE_PATH = 'index.html';
 const CREDENTIAL_STATUS_WEBSITE_HOME_PAGE =
@@ -340,65 +338,12 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
     await this.metaRepoClient.put(configRequestEndpoint, configRequestOptions);
   }
 
-  // creates data in log file
-  async createLogData(data: CredentialStatusLogData): Promise<void> {
-    const timestamp = getDateString();
-    const message = `[${timestamp}]: created status log`;
-    const content = JSON.stringify(data, null, 2);
-    const logRequestOptions = {
-      branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
-      commit_message: message,
-      content
-    };
-    const logRequestEndpoint = this.filesEndpoint(
-      this.metaRepoId,
-      CREDENTIAL_STATUS_LOG_PATH_ENCODED
-    );
-    await this.metaRepoClient.post(logRequestEndpoint, logRequestOptions);
-  }
-
-  // retrieves response from fetching log file
-  async readLogResponse(): Promise<any> {
-    const logRequestOptions = {
-      params: {
-        ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
-      }
-    };
-    const logRequestEndpoint = this.filesEndpoint(
-      this.metaRepoId,
-      CREDENTIAL_STATUS_LOG_PATH_ENCODED
-    );
-    const logResponse = await this.metaRepoClient.get(logRequestEndpoint, logRequestOptions);
-    return logResponse.data;
-  }
-
-  // retrieves data from log file
-  async readLogData(): Promise<CredentialStatusLogData> {
-    const logResponse = await this.readLogResponse();
-    return decodeSystemData(logResponse.content);
-  }
-
-  // updates data in log file
-  async updateLogData(data: CredentialStatusLogData): Promise<void> {
-    const timestamp = getDateString();
-    const message = `[${timestamp}]: updated status log`;
-    const content = JSON.stringify(data, null, 2);
-    const logRequestOptions = {
-      branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
-      commit_message: message,
-      content
-    };
-    const logRequestEndpoint = this.filesEndpoint(
-      this.metaRepoId,
-      CREDENTIAL_STATUS_LOG_PATH_ENCODED
-    );
-    await this.metaRepoClient.put(logRequestEndpoint, logRequestOptions);
-  }
-
   // creates data in status file
   async createStatusData(data: VerifiableCredential): Promise<void> {
-    const configData = await this.readConfigData();
-    const { latestList } = configData;
+    if (typeof data === 'string') {
+      throw new Error('This library does not support compact JWT credentials.');
+    }
+    const statusListId = getAbbreviatedStatusListId(data.id as string);
     const timestamp = getDateString();
     const message = `[${timestamp}]: created status credential`;
     const content = JSON.stringify(data, null, 2);
@@ -407,15 +352,14 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
       commit_message: message,
       content
     };
-    const statusPath = encodeURIComponent(latestList);
+    const statusPath = encodeURIComponent(statusListId);
     const statusRequestEndpoint = this.filesEndpoint(this.repoId, statusPath);
     await this.repoClient.post(statusRequestEndpoint, statusRequestOptions);
   }
 
   // retrieves response from fetching status file
   async readStatusResponse(): Promise<any> {
-    const configData = await this.readConfigData();
-    const { latestList } = configData;
+    const { latestList } = await this.readConfigData();
     const statusRequestOptions = {
       params: {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
@@ -435,8 +379,10 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
 
   // updates data in status file
   async updateStatusData(data: VerifiableCredential): Promise<void> {
-    const configData = await this.readConfigData();
-    const { latestList } = configData;
+    if (typeof data === 'string') {
+      throw new Error('This library does not support compact JWT credentials.');
+    }
+    const statusListId = getAbbreviatedStatusListId(data.id as string);
     const timestamp = getDateString();
     const message = `[${timestamp}]: updated status credential`;
     const content = JSON.stringify(data, null, 2);
@@ -445,7 +391,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
       commit_message: message,
       content
     };
-    const statusPath = encodeURIComponent(latestList);
+    const statusPath = encodeURIComponent(statusListId);
     const statusRequestEndpoint = this.filesEndpoint(this.repoId, statusPath);
     await this.repoClient.put(statusRequestEndpoint, statusRequestOptions);
   }
