@@ -11,8 +11,6 @@ import {
   BaseCredentialStatusManager,
   CredentialState,
   CredentialStatusConfigData,
-  CredentialStatusLogData,
-  CredentialStatusLogEntry,
   CredentialStatusManagerService
 } from '../src/credential-status-manager-base.js';
 import * as GithubStatus from '../src/credential-status-manager-github.js';
@@ -38,7 +36,6 @@ const sandbox = createSandbox();
 class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialStatusManager {
   private statusCredential: VerifiableCredential;
   private statusConfig: CredentialStatusConfigData;
-  private statusLog: CredentialStatusLogEntry[];
 
   constructor(options: GithubStatus.GithubCredentialStatusManagerOptions) {
     const {
@@ -61,7 +58,6 @@ class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialSta
     });
     this.statusCredential = {} as VerifiableCredential;
     this.statusConfig = {} as CredentialStatusConfigData;
-    this.statusLog = [];
   }
 
   // generates new status list ID
@@ -101,21 +97,6 @@ class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialSta
   // updates data in config file
   async updateConfigData(data: CredentialStatusConfigData): Promise<void> {
     this.statusConfig = data;
-  }
-
-  // creates data in log file
-  async createLogData(data: CredentialStatusLogData): Promise<void> {
-    this.statusLog = data;
-  }
-
-  // retrieves data from log file
-  async readLogData(): Promise<CredentialStatusLogData> {
-    return this.statusLog;
-  }
-
-  // updates data in log file
-  async updateLogData(data: CredentialStatusLogData): Promise<void> {
-    this.statusLog = data;
   }
 
   // creates data in status file
