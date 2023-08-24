@@ -7,15 +7,17 @@ import {
   BASE_MANAGER_REQUIRED_OPTIONS,
   CREDENTIAL_STATUS_CONFIG_FILE,
   CREDENTIAL_STATUS_REPO_BRANCH_NAME,
+  CREDENTIAL_STATUS_SNAPSHOT_FILE,
   BaseCredentialStatusManager,
   BaseCredentialStatusManagerOptions,
-  CredentialStatusConfigData
+  CredentialStatusConfigData,
+  CredentialStatusSnapshotData
 } from './credential-status-manager-base.js';
 import {
   DidMethod,
   decodeSystemData,
+  deriveStatusCredentialId,
   encodeAsciiAsBase64,
-  getAbbreviatedStatusListId,
   getDateString
 } from './helpers.js';
 
@@ -74,7 +76,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     const isProperlyConfigured = GITHUB_MANAGER_REQUIRED_OPTIONS.every(
       (option: keyof GithubCredentialStatusManagerOptions) => {
         if (!options[option]) {
-          missingOptions.push();
+          missingOptions.push(option as any);
         }
         return !!options[option];
       }
@@ -97,7 +99,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // retrieves credential status URL
-  getCredentialStatusUrl(): string {
+  getStatusCredentialUrlBase(): string {
     return `https://${this.ownerAccountName}.github.io/${this.repoName}`;
   }
 
@@ -188,6 +190,12 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     return repoResponse.data;
   }
 
+  // retrieves file names from repo data
+  async readRepoFilenames(): Promise<string[]> {
+    const repoData = await this.readRepoData();
+    return repoData.map((file: any) => file.name);
+  }
+
   // retrieves data from status metadata repo
   async readMetaRepoData(): Promise<any> {
     const metaRepoResponse = await this.metaRepoClient.repos.getContent({
@@ -196,6 +204,85 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
       path: ''
     });
     return metaRepoResponse.data;
+  }
+
+  // creates data in status file
+  async createStatusData(data: VerifiableCredential): Promise<void> {
+    if (typeof data === 'string') {
+      throw new Error('This library does not support compact JWT credentials.');
+    }
+    const statusCredentialId = deriveStatusCredentialId(data.id as string);
+    const timestamp = getDateString();
+    const message = `[${timestamp}]: created status credential`;
+    const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
+    await this.repoClient.repos.createOrUpdateFileContents({
+      owner: this.ownerAccountName,
+      repo: this.repoName,
+      branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
+      path: statusCredentialId,
+      message,
+      content
+    });
+  }
+
+  // retrieves response from fetching status file
+  async readStatusResponse(statusCredentialId?: string): Promise<any> {
+    let statusCredentialPath;
+    if (statusCredentialId) {
+      statusCredentialPath = statusCredentialId;
+    } else {
+      ({ latestStatusCredentialId: statusCredentialPath } = await this.readConfigData());
+    }
+    const statusResponse = await this.repoClient.repos.getContent({
+      owner: this.ownerAccountName,
+      repo: this.repoName,
+      path: statusCredentialPath
+    });
+    return statusResponse.data;
+  }
+
+  // retrieves data from status file
+  async readStatusData(statusCredentialId?: string): Promise<VerifiableCredential> {
+    const statusResponse = await this.readStatusResponse(statusCredentialId);
+    return decodeSystemData(statusResponse.content);
+  }
+
+  // updates data in status file
+  async updateStatusData(data: VerifiableCredential): Promise<void> {
+    if (typeof data === 'string') {
+      throw new Error('This library does not support compact JWT credentials.');
+    }
+    const statusCredentialId = deriveStatusCredentialId(data.id as string);
+    const statusResponse = await this.readStatusResponse();
+    const { sha } = statusResponse;
+    const timestamp = getDateString();
+    const message = `[${timestamp}]: updated status credential`;
+    const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
+    await this.repoClient.repos.createOrUpdateFileContents({
+      owner: this.ownerAccountName,
+      repo: this.repoName,
+      path: statusCredentialId,
+      message,
+      content,
+      sha
+    });
+  }
+
+  // deletes data in status files
+  async deleteStatusData(): Promise<void> {
+    const repoFilenames = await this.readRepoFilenames();
+    for (const repoFilename of repoFilenames) {
+      const { sha } = await this.readStatusResponse(repoFilename);
+      const timestamp = getDateString();
+      const message = `[${timestamp}]: deleted status credential data: ${repoFilename}`;
+      await this.repoClient.repos.deleteFile({
+        owner: this.ownerAccountName,
+        repo: this.repoName,
+        path: repoFilename,
+        message,
+        sha
+      });
+    }
   }
 
   // create data in config file
@@ -246,60 +333,76 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     });
   }
 
-  // creates data in status file
-  async createStatusData(data: VerifiableCredential): Promise<void> {
-    if (typeof data === 'string') {
-      throw new Error('This library does not support compact JWT credentials.');
-    }
-    const statusListId = getAbbreviatedStatusListId(data.id as string);
+  // deletes data in config file
+  async deleteConfigData(): Promise<void> {
+    const { sha } = await this.readConfigResponse();
     const timestamp = getDateString();
-    const message = `[${timestamp}]: created status credential`;
-    const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
-    await this.repoClient.repos.createOrUpdateFileContents({
+    const message = `[${timestamp}]: deleted config data`;
+    await this.metaRepoClient.repos.deleteFile({
       owner: this.ownerAccountName,
-      repo: this.repoName,
+      repo: this.metaRepoName,
+      path: CREDENTIAL_STATUS_CONFIG_FILE,
+      message,
+      sha
+    });
+  }
+
+  // creates data in snapshot file
+  async createSnapshotData(data: CredentialStatusSnapshotData): Promise<void> {
+    const timestamp = getDateString();
+    const message = `[${timestamp}]: created status credential snapshot`;
+    const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
+    await this.metaRepoClient.repos.createOrUpdateFileContents({
+      owner: this.ownerAccountName,
+      repo: this.metaRepoName,
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
-      path: statusListId,
+      path: CREDENTIAL_STATUS_SNAPSHOT_FILE,
       message,
       content
     });
   }
 
-  // retrieves response from fetching status file
-  async readStatusResponse(): Promise<any> {
-    const { latestList } = await this.readConfigData();
-    const statusResponse = await this.repoClient.repos.getContent({
+  // retrieves response from fetching snapshot file
+  async readSnapshotResponse(): Promise<any> {
+    const snapshotResponse = await this.metaRepoClient.repos.getContent({
       owner: this.ownerAccountName,
-      repo: this.repoName,
-      path: latestList
+      repo: this.metaRepoName,
+      path: CREDENTIAL_STATUS_SNAPSHOT_FILE
     });
-    return statusResponse.data;
+    return snapshotResponse.data;
   }
 
-  // retrieves data from status file
-  async readStatusData(): Promise<VerifiableCredential> {
-    const statusResponse = await this.readStatusResponse();
-    return decodeSystemData(statusResponse.content);
+  // retrieves data from snapshot file
+  async readSnapshotData(): Promise<CredentialStatusSnapshotData> {
+    const snapshotResponse = await this.readSnapshotResponse();
+    return decodeSystemData(snapshotResponse.content);
   }
 
-  // updates data in status file
-  async updateStatusData(data: VerifiableCredential): Promise<void> {
-    if (typeof data === 'string') {
-      throw new Error('This library does not support compact JWT credentials.');
-    }
-    const statusListId = getAbbreviatedStatusListId(data.id as string);
-    const statusResponse = await this.readStatusResponse();
-    const { sha } = statusResponse;
+  // deletes data in snapshot file
+  async deleteSnapshotData(): Promise<void> {
+    const { sha } = await this.readSnapshotResponse();
     const timestamp = getDateString();
-    const message = `[${timestamp}]: updated status credential`;
-    const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
-    await this.repoClient.repos.createOrUpdateFileContents({
+    const message = `[${timestamp}]: deleted snapshot data`;
+    await this.metaRepoClient.repos.deleteFile({
       owner: this.ownerAccountName,
-      repo: this.repoName,
-      path: statusListId,
+      repo: this.metaRepoName,
+      path: CREDENTIAL_STATUS_SNAPSHOT_FILE,
       message,
-      content,
       sha
     });
+  }
+
+  // checks if snapshot data exists
+  async snapshotDataExists(): Promise<boolean> {
+    try {
+      await this.metaRepoClient.repos.getContent({
+        owner: this.ownerAccountName,
+        repo: this.metaRepoName,
+        path: CREDENTIAL_STATUS_SNAPSHOT_FILE
+      });
+    } catch (error) {
+      return false;
+    }
+    return true;
   }
 }

@@ -90,7 +90,7 @@ const statusManager = await createStatusManager({
 });
 ```
 
-**Note:** A Status List 2021 credential can be found in the designated status repository (`repoName`) of the designated owner account (`ownerAccountName`) which is populated by `createStatusManager`. Additionally, relevant historical data can be found in the designated status metadata repository (`metaRepoName`) in the same owner account. Note that these repositories need to be manually created prior to calling `createStatusManager`. Finally, you can find a publicly visible version of the aforementioned Status List 2021 credential at the relevant URL for hosted sites in the source control service of choice (e.g., https://`ownerAccountName`.github.io/`repoName`/`statusListId` for GitHub, where `statusListId` is the name of a file that is automatically generated in `repoName`).
+**Note:** A Status List 2021 credential can be found in the designated status repository (`repoName`) of the designated owner account (`ownerAccountName`) which is populated by `createStatusManager`. Additionally, relevant historical data can be found in the designated status metadata repository (`metaRepoName`) in the same owner account. Note that these repositories need to be manually created prior to calling `createStatusManager`. Finally, you can find a publicly visible version of the aforementioned Status List 2021 credential at the relevant URL for hosted sites in the source control service of choice (e.g., https://`ownerAccountName`.github.io/`repoName`/`statusCredentialId` for GitHub, where `statusCredentialId` is the name of a file that is automatically generated in `repoName`).
 
 ### Allocate status for credential
 
@@ -139,7 +139,7 @@ console.log(credentialWithStatus);
 */
 ```
 
-**Note:** If the caller invokes `allocateStatus` multiple times with the same credential ID against the same instance of a credential status manager, the library will not allocate a new status list entry. It will just return a credential with the same status info as it did in the previous invocation.
+**Note:** If the caller invokes `allocateStatus` multiple times with the same credential ID against the same instance of a credential status manager, the library will not allocate a new entry. It will just return a credential with the same status info as it did in the previous invocation.
 
 ### Update status of credential
 
@@ -190,8 +190,8 @@ console.log(credentialStatus);
   credentialSubject: 'did:example:abcdef',
   credentialState: 'revoked',
   verificationMethod: 'did:key:z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC#z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC',
-  statusListId: 'V27UAUYPNR',
-  statusListIndex: 1
+  statusCredentialId: 'V27UAUYPNR',
+  credentialStatusIndex: 1
 }
 */
 ```
@@ -203,13 +203,13 @@ The `hasStatusAuthority` is an instance method that is called on a credential st
 Here is a sample call to `hasStatusAuthority` in the context of Express.js middleware:
 
 ```ts
-// retrieves status list manager
+// retrieves status credential manager
 export async function getCredentialStatusManager(req, res, next) {
   try {
     req.statusManager = await getStatusManager();
     next();
   } catch (error) {
-    return res.send('Failed to retrieve credential status list manager');
+    return res.send('Failed to retrieve credential status manager');
   }
 }
 
@@ -295,7 +295,7 @@ async function verifyStatusRepoAccess(req, res, next) {
 5. Enter a name and expiration date for the access token
 6. Select the *Maintainer* role
 7. Select the *api* scope
-8. Click the *Create personal access token* button
+8. Click the *Create project access token* button
 9. Copy the generated token
 10. Use the token as the value for `repoAccessToken` in invocations of `createStatusManager` and `hasStatusAuthority`
 11. Repeat these steps for `metaRepoName` and `metaRepoAccessToken`

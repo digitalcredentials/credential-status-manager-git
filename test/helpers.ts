@@ -52,20 +52,20 @@ export const repoAccessToken = 'abc123';
 export const metaRepoAccessToken = 'def456';
 export const didMethod = 'key' as DidMethod;
 export const didSeed = 'DsnrHBHFQP0ab59dQELh3uEwy7i5ArcOTwxkwRO2hM87CBRGWBEChPO7AjmwkAZ2';
-export const statusListId = 'V27UAUYPNR';
+export const statusCredentialId = 'V27UAUYPNR';
 
 export function checkLocalCredentialStatus(
   credentialWithStatus: any,
-  statusListIndex: number,
+  credentialStatusIndex: number,
   service: CredentialStatusManagerService
 ) {
-  let statusCredentialId;
+  let statusCredentialUrl;
   switch (service) {
     case CredentialStatusManagerService.Github:
-      statusCredentialId = `https://${ownerAccountName}.github.io/${repoName}/${statusListId}`;
+      statusCredentialUrl = `https://${ownerAccountName}.github.io/${repoName}/${statusCredentialId}`;
       break;
     case CredentialStatusManagerService.Gitlab:
-      statusCredentialId = `https://${ownerAccountName}.gitlab.io/${repoName}/${statusListId}`;
+      statusCredentialUrl = `https://${ownerAccountName}.gitlab.io/${repoName}/${statusCredentialId}`;
       break;
   }
   expect(credentialWithStatus).to.have.property('credentialStatus');
@@ -76,15 +76,15 @@ export function checkLocalCredentialStatus(
   expect(credentialWithStatus.credentialStatus).to.have.property('statusListCredential');
   expect(credentialWithStatus.credentialStatus.type).to.equal('StatusList2021Entry');
   expect(credentialWithStatus.credentialStatus.statusPurpose).to.equal('revocation');
-  expect(credentialWithStatus.credentialStatus.statusListIndex).to.equal(statusListIndex);
-  expect(credentialWithStatus.credentialStatus.id.startsWith(statusCredentialId)).to.be.true;
-  expect(credentialWithStatus.credentialStatus.statusListCredential.startsWith(statusCredentialId)).to.be.true;
+  expect(credentialWithStatus.credentialStatus.statusListIndex).to.equal(credentialStatusIndex);
+  expect(credentialWithStatus.credentialStatus.id.startsWith(statusCredentialUrl)).to.be.true;
+  expect(credentialWithStatus.credentialStatus.statusListCredential.startsWith(statusCredentialUrl)).to.be.true;
 }
 
 export function checkRemoteCredentialStatus(
   credentialStatus: any,
   credentialId: string,
-  statusListIndex: number
+  credentialStatusIndex: number
 ) {
   expect(credentialStatus).to.have.property('timestamp');
   expect(credentialStatus).to.have.property('credentialId');
@@ -92,28 +92,28 @@ export function checkRemoteCredentialStatus(
   expect(credentialStatus).to.have.property('credentialSubject');
   expect(credentialStatus).to.have.property('credentialState');
   expect(credentialStatus).to.have.property('verificationMethod');
-  expect(credentialStatus).to.have.property('statusListId');
-  expect(credentialStatus).to.have.property('statusListIndex');
+  expect(credentialStatus).to.have.property('statusCredentialId');
+  expect(credentialStatus).to.have.property('credentialStatusIndex');
   expect(credentialStatus.credentialId).to.equal(credentialId);
   expect(credentialStatus.credentialIssuer).to.equal(issuerDid);
   expect(credentialStatus.credentialSubject).to.equal(credentialSubject);
   expect(credentialStatus.credentialState).to.equal('revoked');
   expect(credentialStatus.verificationMethod).to.equal(verificationMethod);
-  expect(credentialStatus.statusListId).to.equal(statusListId);
-  expect(credentialStatus.statusListIndex).to.equal(statusListIndex);
+  expect(credentialStatus.statusCredentialId).to.equal(statusCredentialId);
+  expect(credentialStatus.credentialStatusIndex).to.equal(credentialStatusIndex);
 }
 
 export function checkStatusCredential(
   statusCredential: any,
   service: CredentialStatusManagerService
 ) {
-  let statusCredentialId;
+  let statusCredentialUrl;
   switch (service) {
     case CredentialStatusManagerService.Github:
-      statusCredentialId = `https://${ownerAccountName}.github.io/${repoName}/${statusListId}`;
+      statusCredentialUrl = `https://${ownerAccountName}.github.io/${repoName}/${statusCredentialId}`;
       break;
     case CredentialStatusManagerService.Gitlab:
-      statusCredentialId = `https://${ownerAccountName}.gitlab.io/${repoName}/${statusListId}`;
+      statusCredentialUrl = `https://${ownerAccountName}.gitlab.io/${repoName}/${statusCredentialId}`;
       break;
   }
   expect(statusCredential).to.have.property('id');
@@ -123,9 +123,9 @@ export function checkStatusCredential(
   expect(statusCredential.credentialSubject).to.have.property('type');
   expect(statusCredential.credentialSubject).to.have.property('encodedList');
   expect(statusCredential.credentialSubject).to.have.property('statusPurpose');
-  expect(statusCredential.id).to.equal(statusCredentialId);
+  expect(statusCredential.id).to.equal(statusCredentialUrl);
   expect(statusCredential.type).to.include('StatusList2021Credential');
-  expect(statusCredential.credentialSubject.id.startsWith(statusCredentialId)).to.be.true;
+  expect(statusCredential.credentialSubject.id.startsWith(statusCredentialUrl)).to.be.true;
   expect(statusCredential.credentialSubject.type).to.equal('StatusList2021');
   expect(statusCredential.credentialSubject.statusPurpose).to.equal('revocation');
 }

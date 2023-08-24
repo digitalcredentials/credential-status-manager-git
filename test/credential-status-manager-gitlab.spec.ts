@@ -27,7 +27,7 @@ import {
   repoAccessToken,
   repoId,
   repoName,
-  statusListId,
+  statusCredentialId,
   unsignedCredential1,
   unsignedCredential2,
   unsignedCredential3
@@ -66,9 +66,9 @@ class MockGitlabCredentialStatusManager extends GitlabStatus.GitlabCredentialSta
     this.statusConfig = {} as CredentialStatusConfigData;
   }
 
-  // generates new status list ID
-  generateStatusListId(): string {
-    return statusListId;
+  // generates new status credential ID
+  generateStatusCredentialId(): string {
+    return statusCredentialId;
   }
 
   // deploys website to host credential status management resources
@@ -90,6 +90,21 @@ class MockGitlabCredentialStatusManager extends GitlabStatus.GitlabCredentialSta
     throw new Error();
   }
 
+  // creates data in status file
+  async createStatusData(data: VerifiableCredential): Promise<void> {
+    this.statusCredential = data;
+  }
+
+  // retrieves data from status file
+  async readStatusData(statusCredentialId?: string): Promise<VerifiableCredential> {
+    return this.statusCredential;
+  }
+
+  // updates data in status file
+  async updateStatusData(data: VerifiableCredential): Promise<void> {
+    this.statusCredential = data;
+  }
+
   // creates data in config file
   async createConfigData(data: CredentialStatusConfigData): Promise<void> {
     this.statusConfig = data;
@@ -103,21 +118,6 @@ class MockGitlabCredentialStatusManager extends GitlabStatus.GitlabCredentialSta
   // updates data in config file
   async updateConfigData(data: CredentialStatusConfigData): Promise<void> {
     this.statusConfig = data;
-  }
-
-  // creates data in status file
-  async createStatusData(data: VerifiableCredential): Promise<void> {
-    this.statusCredential = data;
-  }
-
-  // retrieves data from status file
-  async readStatusData(): Promise<VerifiableCredential> {
-    return this.statusCredential;
-  }
-
-  // updates data in status file
-  async updateStatusData(data: VerifiableCredential): Promise<void> {
-    this.statusCredential = data;
   }
 }
 

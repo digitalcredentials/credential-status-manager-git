@@ -153,9 +153,9 @@ function extractId(objectOrString: any): string {
   return objectOrString.id;
 }
 
-// extracts abbreviated ID from status list ID
-export const getAbbreviatedStatusListId = (statusListId: string): string => {
-  return statusListId.split('/').slice(-1).pop() as string;
+// derives abbreviated ID from status credential URL
+export const deriveStatusCredentialId = (statusCredentialUrl: string): string => {
+  return statusCredentialUrl.split('/').slice(-1).pop() as string;
 };
 
 // retrieves current timestamp
