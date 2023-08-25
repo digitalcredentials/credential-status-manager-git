@@ -11,7 +11,8 @@ import {
   BaseCredentialStatusManager,
   CredentialState,
   CredentialStatusConfigData,
-  CredentialStatusManagerService
+  CredentialStatusManagerService,
+  CredentialStatusSnapshotData
 } from '../src/credential-status-manager-base.js';
 import * as GithubStatus from '../src/credential-status-manager-github.js';
 import {
@@ -35,7 +36,8 @@ const sandbox = createSandbox();
 
 class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialStatusManager {
   private statusCredential: VerifiableCredential;
-  private statusConfig: CredentialStatusConfigData;
+  private config: CredentialStatusConfigData;
+  private snapshot: CredentialStatusSnapshotData;
 
   constructor(options: GithubStatus.GithubCredentialStatusManagerOptions) {
     const {
@@ -57,7 +59,8 @@ class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialSta
       didSeed
     });
     this.statusCredential = {} as VerifiableCredential;
-    this.statusConfig = {} as CredentialStatusConfigData;
+    this.config = {} as CredentialStatusConfigData;
+    this.snapshot = {} as CredentialStatusSnapshotData;
   }
 
   // generates new status credential ID
@@ -77,6 +80,11 @@ class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialSta
   // retrieves data from status repo
   async readRepoData(): Promise<any> {
     throw new Error();
+  }
+
+  // retrieves file names from repo data
+  async readRepoFilenames(): Promise<string[]> {
+    return [statusCredentialId];
   }
 
   // retrieves data from status metadata repo
@@ -99,19 +107,49 @@ class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialSta
     this.statusCredential = data;
   }
 
+  // deletes data in status files
+  async deleteStatusData(): Promise<void> {
+    this.statusCredential = {} as VerifiableCredential;
+  }
+
   // creates data in config file
   async createConfigData(data: CredentialStatusConfigData): Promise<void> {
-    this.statusConfig = data;
+    this.config = data;
   }
 
   // retrieves data from config file
   async readConfigData(): Promise<CredentialStatusConfigData> {
-    return this.statusConfig;
+    return this.config;
   }
 
   // updates data in config file
   async updateConfigData(data: CredentialStatusConfigData): Promise<void> {
-    this.statusConfig = data;
+    this.config = data;
+  }
+
+  // deletes data in config file
+  async deleteConfigData(): Promise<void> {
+    this.config = {} as CredentialStatusConfigData;
+  }
+
+  // creates data in snapshot file
+  async createSnapshotData(data: CredentialStatusSnapshotData): Promise<void> {
+    this.snapshot = data;
+  }
+
+  // retrieves data from snapshot file
+  async readSnapshotData(): Promise<CredentialStatusSnapshotData> {
+    return this.snapshot;
+  }
+
+  // deletes data in snapshot file
+  async deleteSnapshotData(): Promise<void> {
+    this.snapshot = {} as CredentialStatusSnapshotData;
+  }
+
+  // checks if snapshot data exists
+  async snapshotDataExists(): Promise<boolean> {
+    return Object.entries(this.snapshot).length !== 0;
   }
 }
 
