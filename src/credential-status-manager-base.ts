@@ -369,14 +369,13 @@ export abstract class BaseCredentialStatusManager {
       const result = await this.allocateStatusUnsafe(credential);
       return result;
     } catch(error) {
-      await this.cleanupSnapshotData();
-      release();
       if (!(error instanceof StatusRepoInconsistencyError)) {
         return this.allocateStatus(credential);
       } else {
         throw error;
       }
     } finally {
+      await this.cleanupSnapshotData();
       release();
     }
   }
@@ -498,8 +497,6 @@ export abstract class BaseCredentialStatusManager {
       const result = await this.updateStatusUnsafe({ credentialId, credentialStatus });
       return result;
     } catch(error) {
-      await this.cleanupSnapshotData();
-      release();
       if (!(error instanceof StatusRepoInconsistencyError)) {
         return this.updateStatus({
           credentialId,
@@ -509,6 +506,7 @@ export abstract class BaseCredentialStatusManager {
         throw error;
       }
     } finally {
+      await this.cleanupSnapshotData();
       release();
     }
   }
