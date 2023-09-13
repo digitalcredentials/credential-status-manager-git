@@ -75,7 +75,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     const isProperlyConfigured = GITHUB_MANAGER_REQUIRED_OPTIONS.every(
       (option: keyof GithubCredentialStatusManagerOptions) => {
         if (!options[option]) {
-          missingOptions.push();
+          missingOptions.push(option);
         }
         return !!options[option];
       }
