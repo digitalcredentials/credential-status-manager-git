@@ -5,24 +5,26 @@ A Typescript library for managing the status of [Verifiable Credentials](https:/
 [![Build status](https://img.shields.io/github/actions/workflow/status/digitalcredentials/credential-status-manager-git/main.yml?branch=main)](https://github.com/digitalcredentials/credential-status-manager-git/actions?query=workflow%3A%22Node.js+CI%22)
 [![NPM Version](https://img.shields.io/npm/v/@digitalcredentials/credential-status-manager-git.svg)](https://npm.im/@digitalcredentials/credential-status-manager-git)
 
-## Table of Contents
+# Table of Contents
 
-- [Background](#background)
-- [Install](#install)
-  - [NPM](#npm)
-  - [Development](#development)
-- [Usage](#usage)
-  - [Create credential status manager](#create-credential-status-manager)
-  - [Allocate status for credential](#allocate-status-for-credential)
-  - [Update status of credential](#update-status-of-credential)
-  - [Check status of credential](#check-status-of-credential)
-  - [Check if caller has authority to update status of credentials](#check-if-caller-has-authority-to-update-status-of-credentials)
-- [Dependencies](#Dependencies)
-  - [Create credential status repositories](#create-credential-status-repositories)
-  - [Generate access tokens](#generate-access-tokens)
-  - [Generate DID seeds](#generate-did-seeds)
-- [Contribute](#contribute)
-- [License](#license)
+- [credential-status-manager-git](#credential-status-manager-git)
+- [Table of Contents](#table-of-contents)
+    - [Background](#background)
+    - [Install](#install)
+        - [NPM](#npm)
+        - [Development](#development)
+    - [Usage](#usage)
+        - [Create credential status manager](#create-credential-status-manager)
+        - [Allocate status for credential](#allocate-status-for-credential)
+        - [Update status of credential](#update-status-of-credential)
+        - [Check status of credential](#check-status-of-credential)
+        - [Check if caller has authority to update status of credentials](#check-if-caller-has-authority-to-update-status-of-credentials)
+    - [Dependencies](#dependencies)
+        - [Create credential status repositories](#create-credential-status-repositories)
+        - [Generate access tokens](#generate-access-tokens)
+        - [Generate DID seeds](#generate-did-seeds)
+    - [Contribute](#contribute)
+    - [License](#license)
 
 ## Background
 
@@ -132,7 +134,7 @@ console.log(credentialWithStatus);
     id: 'https://university-xyz.github.io/credential-status/V27UAUYPNR#1',
     type: 'StatusList2021Entry',
     statusPurpose: 'revocation',
-    statusListIndex: 1,
+    statusListIndex: '1',
     statusListCredential: 'https://university-xyz.github.io/credential-status/V27UAUYPNR'
   }
 }
@@ -191,7 +193,7 @@ console.log(credentialStatus);
   credentialState: 'revoked',
   verificationMethod: 'did:key:z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC#z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC',
   statusListId: 'V27UAUYPNR',
-  statusListIndex: 1
+  statusListIndex: '1'
 }
 */
 ```
