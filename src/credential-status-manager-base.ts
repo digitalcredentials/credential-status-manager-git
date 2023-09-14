@@ -186,7 +186,7 @@ export abstract class BaseCredentialStatusManager {
         id: statusListId,
         type: CREDENTIAL_STATUS_TYPE,
         statusPurpose,
-        statusListIndex,
+        statusListIndex: statusListIndex.toString(),
         statusListCredential
       };
 
@@ -220,7 +220,7 @@ export abstract class BaseCredentialStatusManager {
     // attach credential status
     const statusUrl = this.getCredentialStatusUrl();
     const statusListCredential = `${statusUrl}/${latestList}`;
-    const statusListIndex = credentialsIssued;
+    const statusListIndex = credentialsIssued.toString(); 
     const statusListId = `${statusListCredential}#${statusListIndex}`;
     const credentialStatus = {
       id: statusListId,
