@@ -123,10 +123,9 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   // checks if caller has authority to update status based on status repo access token
   async hasStatusAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean> {
     this.resetClientAuthorization(repoAccessToken, metaRepoAccessToken);
+
     let hasRepoAccess: boolean;
     let hasRepoScope: boolean;
-    let hasMetaRepoAccess: boolean;
-    let hasMetaRepoScope: boolean;
     try {
       const repoResponse = await this.repoClient.repos.get({
         owner: this.ownerAccountName,
@@ -141,6 +140,9 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
       hasRepoAccess = false;
       hasRepoScope = false;
     }
+
+    let hasMetaRepoAccess: boolean;
+    let hasMetaRepoScope: boolean;
     try {
       const metaRepoResponse = await this.metaRepoClient.repos.get({
         owner: this.ownerAccountName,
@@ -155,6 +157,7 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
       hasMetaRepoAccess = false;
       hasMetaRepoScope = false;
     }
+
     return hasRepoAccess && hasRepoScope && hasMetaRepoAccess && hasMetaRepoScope;
   }
 
