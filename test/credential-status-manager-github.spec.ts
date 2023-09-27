@@ -72,7 +72,7 @@ class MockGithubCredentialStatusManager extends GithubStatus.GithubCredentialSta
   async deployCredentialStatusWebsite(): Promise<void> {}
 
   // checks if caller has authority to update status based on status repo access token
-  async hasStatusAuthority(repoAccessToken: string): Promise<boolean> { return true; }
+  async hasStatusAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean> { return true; }
 
   // checks if status repos exist
   async statusReposExist(): Promise<boolean> { return true; }

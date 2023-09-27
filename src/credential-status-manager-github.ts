@@ -36,7 +36,7 @@ const GITHUB_MANAGER_REQUIRED_OPTIONS = [
 export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   private readonly ownerAccountName: string;
   private repoClient: Octokit;
-  private readonly metaRepoClient: Octokit;
+  private metaRepoClient: Octokit;
 
   constructor(options: GithubCredentialStatusManagerOptions) {
     const {
@@ -113,30 +113,49 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // resets client authorization
-  resetClientAuthorization(repoAccessToken: string): void {
+  resetClientAuthorization(repoAccessToken: string, metaRepoAccessToken?: string): void {
     this.repoClient = new Octokit({ auth: repoAccessToken });
+    if (metaRepoAccessToken) {
+      this.metaRepoClient = new Octokit({ auth: metaRepoAccessToken });
+    }
   }
 
   // checks if caller has authority to update status based on status repo access token
-  async hasStatusAuthority(repoAccessToken: string): Promise<boolean> {
-    this.resetClientAuthorization(repoAccessToken);
-    let hasAccess: boolean;
-    let hasScope: boolean;
+  async hasStatusAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean> {
+    this.resetClientAuthorization(repoAccessToken, metaRepoAccessToken);
+    let hasRepoAccess: boolean;
+    let hasRepoScope: boolean;
+    let hasMetaRepoAccess: boolean;
+    let hasMetaRepoScope: boolean;
     try {
       const repoResponse = await this.repoClient.repos.get({
         owner: this.ownerAccountName,
         repo: this.repoName
       });
       const repo = repoResponse.data;
-      hasAccess = repo.full_name === `${this.ownerAccountName}/${this.repoName}`;
-      hasScope = (repo.permissions?.admin &&
+      hasRepoAccess = repo.full_name === `${this.ownerAccountName}/${this.repoName}`;
+      hasRepoScope = (repo.permissions?.admin &&
         repo.permissions?.push &&
         repo.permissions?.pull) as boolean;
     } catch (error) {
-      hasAccess = false;
-      hasScope = false;
+      hasRepoAccess = false;
+      hasRepoScope = false;
     }
-    return hasAccess && hasScope;
+    try {
+      const metaRepoResponse = await this.metaRepoClient.repos.get({
+        owner: this.ownerAccountName,
+        repo: this.repoName
+      });
+      const metaRepo = metaRepoResponse.data;
+      hasMetaRepoAccess = metaRepo.full_name === `${this.ownerAccountName}/${this.metaRepoName}`;
+      hasMetaRepoScope = (metaRepo.permissions?.admin &&
+        metaRepo.permissions?.push &&
+        metaRepo.permissions?.pull) as boolean;
+    } catch (error) {
+      hasMetaRepoAccess = false;
+      hasMetaRepoScope = false;
+    }
+    return hasRepoAccess && hasRepoScope && hasMetaRepoAccess && hasMetaRepoScope;
   }
 
   // checks if status repos exist
