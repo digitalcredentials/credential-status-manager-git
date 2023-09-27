@@ -95,15 +95,16 @@ export async function createStatusManager(options: CredentialStatusManagerOption
 
   // retrieve relevant data from status repo configuration
   const hasAccess = await statusManager.hasStatusAuthority(repoAccessToken, metaRepoAccessToken);
-  const reposExist = await statusManager.statusReposExist();
-  const reposEmpty = await statusManager.statusReposEmpty();
-
   if (!hasAccess) {
     throw new Error(`One or more of the access tokens you are using for the credential status repo ("${repoName}") and the credential status metadata repo ("${metaRepoName}") are incorrect or expired.`);
   }
+
+  const reposExist = await statusManager.statusReposExist();
   if (!reposExist) {
     throw new Error(`The credential status repo ("${repoName}") and the credential status metadata repo ("${metaRepoName}") must be manually created in advance.`);
   }
+
+  const reposEmpty = await statusManager.statusReposEmpty();
   if (!reposEmpty) {
     await statusManager.cleanupSnapshotData();
   } else {

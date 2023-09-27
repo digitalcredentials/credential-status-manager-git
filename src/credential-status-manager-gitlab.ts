@@ -240,18 +240,21 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
   // checks if caller has authority to update status based on status repo access token
   async hasStatusAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean> {
     this.resetClientAuthorization(repoAccessToken, metaRepoAccessToken);
+
     let hasRepoAccess = true;
-    let hasMetaRepoAccess = true;
     try {
       await this.readRepoData();
     } catch (error: any) {
       hasRepoAccess = false;
     }
+
+    let hasMetaRepoAccess = true;
     try {
       await this.readMetaRepoData();
     } catch (error: any) {
       hasMetaRepoAccess = false;
     }
+
     return hasRepoAccess && hasMetaRepoAccess;
   }
 
