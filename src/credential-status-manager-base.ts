@@ -535,7 +535,7 @@ export abstract class BaseCredentialStatusManager {
   async deployCredentialStatusWebsite(): Promise<void> {};
 
   // checks if caller has authority to update status based on status repo access token
-  abstract hasStatusAuthority(repoAccessToken: string): Promise<boolean>;
+  abstract hasStatusAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean>;
 
   // checks if status repos exist
   abstract statusReposExist(): Promise<boolean>;

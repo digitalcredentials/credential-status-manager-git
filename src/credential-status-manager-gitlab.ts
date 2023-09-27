@@ -85,7 +85,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
   private readonly repoId: string;
   private readonly metaRepoId: string;
   private repoClient: AxiosInstance;
-  private readonly metaRepoClient: AxiosInstance;
+  private metaRepoClient: AxiosInstance;
 
   constructor(options: GitlabCredentialStatusManagerOptions) {
     const {
@@ -218,7 +218,7 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // resets client authorization
-  resetClientAuthorization(repoAccessToken: string): void {
+  resetClientAuthorization(repoAccessToken: string, metaRepoAccessToken?: string): void {
     this.repoClient = axios.create({
       baseURL: 'https://gitlab.com/api/v4',
       timeout: 6000,
@@ -226,17 +226,33 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
         'Authorization': `Bearer ${repoAccessToken}`
       }
     });
+    if (metaRepoAccessToken) {
+      this.metaRepoClient = axios.create({
+        baseURL: 'https://gitlab.com/api/v4',
+        timeout: 6000,
+        headers: {
+          'Authorization': `Bearer ${metaRepoAccessToken}`
+        }
+      });
+    }
   }
 
   // checks if caller has authority to update status based on status repo access token
-  async hasStatusAuthority(repoAccessToken: string): Promise<boolean> {
-    this.resetClientAuthorization(repoAccessToken);
+  async hasStatusAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean> {
+    this.resetClientAuthorization(repoAccessToken, metaRepoAccessToken);
+    let hasRepoAccess = true;
+    let hasMetaRepoAccess = true;
     try {
       await this.readRepoData();
     } catch (error: any) {
-      return true;
+      hasRepoAccess = false;
     }
-    return false;
+    try {
+      await this.readMetaRepoData();
+    } catch (error: any) {
+      hasMetaRepoAccess = false;
+    }
+    return hasRepoAccess && hasMetaRepoAccess;
   }
 
   // checks if status repos exist
