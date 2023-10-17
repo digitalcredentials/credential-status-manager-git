@@ -18,6 +18,7 @@ import * as GithubStatus from '../src/credential-status-manager-github.js';
 import {
   checkLocalCredentialStatus,
   checkRemoteCredentialStatus,
+  checkSnapshotData,
   checkStatusCredential,
   didMethod,
   didSeed,
@@ -214,6 +215,30 @@ describe('GitHub Credential Status Manager', () => {
     // check status of credential
     const credentialStatus = await statusManager.checkStatus(credentialWithStatus.id);
     checkRemoteCredentialStatus(credentialStatus, credentialWithStatus.id, 1);
+
+    // check if status repos are properly configured
+    expect(await statusManager.statusReposProperlyConfigured()).to.be.true;
+  });
+
+  it('tests saveSnapshotData and restoreSnapshotData', async () => {
+    // allocate status for credentials
+    await statusManager.allocateStatus(unsignedCredential1) as any;
+    const credentialWithStatus2 = await statusManager.allocateStatus(unsignedCredential2) as any;
+    await statusManager.allocateStatus(unsignedCredential3) as any;
+    // update status of one credential
+    await statusManager.updateStatus({
+      credentialId: credentialWithStatus2.id,
+      credentialStatus: 'revoked' as CredentialState
+    }) as any;
+
+    // save snapshot of status repos
+    await statusManager.saveSnapshotData();
+
+    // check status credential
+    await checkSnapshotData(statusManager, 3, 1);
+
+    // save snapshot of status repos
+    await statusManager.restoreSnapshotData();
 
     // check if status repos are properly configured
     expect(await statusManager.statusReposProperlyConfigured()).to.be.true;
