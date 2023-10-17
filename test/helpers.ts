@@ -2,7 +2,10 @@
  * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
  */
 import { expect } from 'chai';
-import { CredentialStatusManagerService } from '../src/credential-status-manager-base.js';
+import {
+  BaseCredentialStatusManager,
+  CredentialStatusManagerService
+} from '../src/credential-status-manager-base.js';
 import { DidMethod } from '../src/helpers.js';
 
 const credentialId1 = 'https://university-xyz.edu/credentials/3732';
@@ -128,4 +131,28 @@ export function checkStatusCredential(
   expect(statusCredential.credentialSubject.id.startsWith(statusCredentialUrl)).to.be.true;
   expect(statusCredential.credentialSubject.type).to.equal('StatusList2021');
   expect(statusCredential.credentialSubject.statusPurpose).to.equal('revocation');
+}
+
+export async function checkSnapshotData(
+  statusManager: BaseCredentialStatusManager,
+  allocateCount: number,
+  updateCount: number
+) {
+  const snapshot = await statusManager.readSnapshotData();
+  const config = await statusManager.readConfigData();
+  const statusCredential = await statusManager.readStatusData();
+  expect(snapshot.eventLog.length).to.equal(allocateCount + updateCount);
+  expect(snapshot.latestCredentialsIssuedCounter).to.equal(allocateCount);
+  // report error for compact JWT credentials
+  if (typeof statusCredential === 'string') {
+    expect(true).to.equal(false);
+    return;
+  }
+  expect(statusCredential.id?.endsWith(snapshot.latestStatusCredentialId)).to.be.true;
+  expect(snapshot.statusCredentialIds.length).to.equal(Object.entries(snapshot.statusCredentials).length);
+  expect(snapshot.statusCredentialIds).to.contain(snapshot.latestStatusCredentialId);
+  expect(snapshot.eventLog.length).to.equal(config.eventLog.length);
+  expect(snapshot.latestCredentialsIssuedCounter).to.equal(config.latestCredentialsIssuedCounter);
+  expect(snapshot.latestStatusCredentialId).to.equal(config.latestStatusCredentialId);
+  expect(snapshot.statusCredentialIds.length).to.equal(config.statusCredentialIds.length);
 }
