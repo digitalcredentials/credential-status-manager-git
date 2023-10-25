@@ -206,7 +206,7 @@ export abstract class BaseCredentialStatusManager {
         id: credentialStatusId,
         type: CREDENTIAL_STATUS_TYPE,
         statusPurpose,
-        statusListIndex: credentialStatusIndex,
+        statusListIndex: credentialStatusIndex.toString(),
         statusListCredential: statusCredentialUrl
       };
 
@@ -243,7 +243,7 @@ export abstract class BaseCredentialStatusManager {
       id: credentialStatusId,
       type: CREDENTIAL_STATUS_TYPE,
       statusPurpose,
-      statusListIndex: credentialStatusIndex,
+      statusListIndex: credentialStatusIndex.toString(),
       statusListCredential: statusCredentialUrl
     };
 
@@ -331,7 +331,7 @@ export abstract class BaseCredentialStatusManager {
     // extract relevant data from credential status
     const {
       statusListCredential: statusCredentialUrl,
-      statusListIndex: credentialStatusIndex
+      statusListIndex
     } = credentialWithStatus.credentialStatus;
 
     // retrieve status credential ID from status credential URL
@@ -346,7 +346,7 @@ export abstract class BaseCredentialStatusManager {
       credentialState: CredentialState.Active,
       verificationMethod,
       statusCredentialId,
-      credentialStatusIndex
+      credentialStatusIndex: parseInt(statusListIndex)
     };
     eventLog.push(statusLogEntry);
 
