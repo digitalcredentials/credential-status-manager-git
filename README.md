@@ -132,7 +132,7 @@ console.log(credentialWithStatus);
     id: 'https://university-xyz.github.io/credential-status/V27UAUYPNR#1',
     type: 'StatusList2021Entry',
     statusPurpose: 'revocation',
-    statusListIndex: 1,
+    statusListIndex: '1',
     statusListCredential: 'https://university-xyz.github.io/credential-status/V27UAUYPNR'
   }
 }
