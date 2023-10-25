@@ -76,7 +76,7 @@ export function checkLocalCredentialStatus(
   expect(credentialWithStatus.credentialStatus).to.have.property('statusListCredential');
   expect(credentialWithStatus.credentialStatus.type).to.equal('StatusList2021Entry');
   expect(credentialWithStatus.credentialStatus.statusPurpose).to.equal('revocation');
-  expect(credentialWithStatus.credentialStatus.statusListIndex).to.equal(credentialStatusIndex);
+  expect(credentialWithStatus.credentialStatus.statusListIndex).to.equal(credentialStatusIndex.toString());
   expect(credentialWithStatus.credentialStatus.id.startsWith(statusCredentialUrl)).to.be.true;
   expect(credentialWithStatus.credentialStatus.statusListCredential.startsWith(statusCredentialUrl)).to.be.true;
 }
