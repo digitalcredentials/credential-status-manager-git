@@ -16,11 +16,11 @@ const updateTsconfig = async () => {
   fs.writeFileSync(tsconfigFilePath, JSON.stringify(tsconfigJson, null, 2));
 };
 
-// combine pre-test subscripts
+// combine post-test subscripts
 const runPostTest = async () => {
   await updatePackageJson();
   updateTsconfig();
 };
 
-// run pre-test subscripts
+// run post-test subscripts
 runPostTest();
