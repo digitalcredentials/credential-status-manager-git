@@ -13,6 +13,7 @@ import {
   CredentialStatusConfigData,
   CredentialStatusSnapshotData
 } from './credential-status-manager-base.js';
+import { BadRequestError } from './errors.js';
 import {
   DidMethod,
   decodeSystemData,
@@ -83,18 +84,20 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     );
 
     if (!isProperlyConfigured) {
-      throw new Error(
-        'You have neglected to set the following required options for the ' +
-        'GitHub credential status manager: ' +
-        `${missingOptions.map(o => `'${o}'`).join(', ')}.`
-      );
+      throw new BadRequestError({
+        message:
+          'You have neglected to set the following required options for the ' +
+          'GitHub credential status manager: ' +
+          `${missingOptions.map(o => `'${o}'`).join(', ')}.`
+      });
     }
 
     if (this.didMethod === DidMethod.Web && !this.didWebUrl) {
-      throw new Error(
-        'The value of "didWebUrl" must be provided ' +
-        'when using "didMethod" of type "web".'
-      );
+      throw new BadRequestError({
+        message:
+          'The value of "didWebUrl" must be provided ' +
+          'when using "didMethod" of type "web".'
+      });
     }
   }
 
@@ -231,7 +234,9 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   // creates data in status file
   async createStatusData(data: VerifiableCredential): Promise<void> {
     if (typeof data === 'string') {
-      throw new Error('This library does not support compact JWT credentials.');
+      throw new BadRequestError({
+        message: 'This library does not support compact JWT credentials.'
+      });
     }
     const statusCredentialId = deriveStatusCredentialId(data.id as string);
     const timestamp = getDateString();
@@ -272,7 +277,9 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   // updates data in status file
   async updateStatusData(data: VerifiableCredential): Promise<void> {
     if (typeof data === 'string') {
-      throw new Error('This library does not support compact JWT credentials.');
+      throw new BadRequestError({
+        message: 'This library does not support compact JWT credentials.'
+      });
     }
     const statusCredentialId = deriveStatusCredentialId(data.id as string);
     const statusResponse = await this.readStatusResponse();
