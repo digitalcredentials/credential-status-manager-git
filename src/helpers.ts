@@ -11,6 +11,7 @@ import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import * as DidKey from '@digitalcredentials/did-method-key';
 import * as DidWeb from '@interop/did-web-resolver';
 import { CryptoLD } from '@digitalcredentials/crypto-ld';
+import { BadRequestError, InvalidDidSeedError } from './errors.js';
 
 // Crypto library for linked data
 const cryptoLd = new CryptoLD();
@@ -101,10 +102,11 @@ export async function getSigningMaterial({
       }));
       break;
     default:
-      throw new Error(
-        '"didMethod" must be one of the following values: ' +
-        `${Object.values(DidMethod).map(v => `'${v}'`).join(', ')}.`
-      );
+      throw new BadRequestError({
+        message:
+          '"didMethod" must be one of the following values: ' +
+          `${Object.values(DidMethod).map(v => `'${v}'`).join(', ')}.`
+      });
   }
   const issuerDid = didDocument.id;
   const verificationMethod = extractId(didDocument.assertionMethod[0]);
@@ -132,17 +134,17 @@ function decodeBase64AsAscii(text: string): string {
 }
 
 // decodes DID seed
-function decodeSeed(secretKeySeed: string): Uint8Array {
-  let secretKeySeedBytes;
-  if (secretKeySeed.startsWith('z')) {
+function decodeSeed(didSeed: string): Uint8Array {
+  let didSeedBytes;
+  if (didSeed.startsWith('z')) {
     // This is a multibase-encoded seed
-    secretKeySeedBytes = decodeSecretKeySeed({secretKeySeed});
-  } else if (secretKeySeed.length >= 32) {
-      secretKeySeedBytes = (new TextEncoder()).encode(secretKeySeed).slice(0, 32);
+    didSeedBytes = decodeSecretKeySeed({ secretKeySeed: didSeed });
+  } else if (didSeed.length >= 32) {
+      didSeedBytes = (new TextEncoder()).encode(didSeed).slice(0, 32);
   } else {
-    throw Error('"secretKeySeed" must be a multibase-encoded value with at least 32 bytes');
+    throw new InvalidDidSeedError();
   }
-  return secretKeySeedBytes;
+  return didSeedBytes;
 }
 
 // extracts ID from object or string

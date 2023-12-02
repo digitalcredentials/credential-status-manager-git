@@ -15,6 +15,11 @@ import {
   GitlabCredentialStatusManager,
   GitlabCredentialStatusManagerOptions
 } from './credential-status-manager-gitlab.js';
+import {
+  BadRequestError,
+  InvalidTokenError,
+  MissingRepositoryError
+} from './errors.js';
 import { signCredential, getSigningMaterial } from './helpers.js';
 
 // Type definition for base options of createStatusManager function input
@@ -80,10 +85,11 @@ export async function createStatusManager(options: CredentialStatusManagerOption
       break;
     }
     default:
-      throw new Error(
-        '"service" must be one of the following values: ' +
-        `${Object.values(CredentialStatusManagerService).map(v => `'${v}'`).join(', ')}.`
-      );
+      throw new BadRequestError({
+        message:
+          '"service" must be one of the following values: ' +
+          `${Object.values(CredentialStatusManagerService).map(v => `'${v}'`).join(', ')}.`
+      });
   }
 
   // retrieve signing material
@@ -96,12 +102,12 @@ export async function createStatusManager(options: CredentialStatusManagerOption
   // retrieve relevant data from status repo configuration
   const hasAccess = await statusManager.hasStatusAuthority(repoAccessToken, metaRepoAccessToken);
   if (!hasAccess) {
-    throw new Error(`One or more of the access tokens you are using for the credential status repo ("${repoName}") and the credential status metadata repo ("${metaRepoName}") are incorrect or expired.`);
+    throw new InvalidTokenError({ statusManager });
   }
 
   const reposExist = await statusManager.statusReposExist();
   if (!reposExist) {
-    throw new Error(`The credential status repo ("${repoName}") and the credential status metadata repo ("${metaRepoName}") must be manually created in advance.`);
+    throw new MissingRepositoryError({ statusManager });
   }
 
   const reposEmpty = await statusManager.statusReposEmpty();
