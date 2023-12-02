@@ -6,7 +6,11 @@ import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import { createCredential, createList, decodeList } from '@digitalcredentials/vc-status-list';
 import { Mutex } from 'async-mutex';
 import { v4 as uuid } from 'uuid';
-import { StatusRepoInconsistencyError } from './errors.js';
+import {
+  BadRequestError,
+  InconsistentRepositoryError,
+  SnapshotExistsError
+} from './errors.js';
 import {
   DidMethod,
   deriveStatusCredentialId,
@@ -265,7 +269,9 @@ export abstract class BaseCredentialStatusManager {
   async allocateStatusUnsafe(credential: VerifiableCredential): Promise<VerifiableCredential> {
     // report error for compact JWT credentials
     if (typeof credential === 'string') {
-      throw new Error('This library does not support compact JWT credentials.');
+      throw new BadRequestError({
+        message: 'This library does not support compact JWT credentials.'
+      });
     }
 
     // attach status to credential
@@ -369,7 +375,7 @@ export abstract class BaseCredentialStatusManager {
       const result = await this.allocateStatusUnsafe(credential);
       return result;
     } catch(error) {
-      if (!(error instanceof StatusRepoInconsistencyError)) {
+      if (!(error instanceof InconsistentRepositoryError)) {
         return this.allocateStatus(credential);
       } else {
         throw error;
@@ -395,7 +401,9 @@ export abstract class BaseCredentialStatusManager {
 
     // unable to find credential with given ID
     if (!logEntry) {
-      throw new Error(`Unable to find credential with given ID "${credentialId}"`);
+      throw new BadRequestError({
+        message: `Unable to find credential with given ID "${credentialId}".`
+      });
     }
 
     // retrieve relevant log data
@@ -426,7 +434,9 @@ export abstract class BaseCredentialStatusManager {
 
     // report error for compact JWT credentials
     if (typeof statusCredentialBefore === 'string') {
-      throw new Error('This library does not support compact JWT credentials.');
+      throw new BadRequestError({
+        message: 'This library does not support compact JWT credentials.'
+      });
     }
 
     // update status credential
@@ -442,10 +452,11 @@ export abstract class BaseCredentialStatusManager {
         statusCredentialListDecoded.setStatus(credentialStatusIndex, true); // revoked credential is represented as 1 bit
         break;
       default:
-        throw new Error(
-          '"credentialStatus" must be one of the following values: ' +
-          `${Object.values(CredentialState).map(v => `'${v}'`).join(', ')}.`
-        );
+        throw new BadRequestError({
+          message:
+            '"credentialStatus" must be one of the following values: ' +
+            `${Object.values(CredentialState).map(v => `'${v}'`).join(', ')}.`
+        });
     }
     const statusCredentialUrlBase = this.getStatusCredentialUrlBase();
     const statusCredentialUrl = `${statusCredentialUrlBase}/${statusCredentialId}`;
@@ -497,7 +508,7 @@ export abstract class BaseCredentialStatusManager {
       const result = await this.updateStatusUnsafe({ credentialId, credentialStatus });
       return result;
     } catch(error) {
-      if (!(error instanceof StatusRepoInconsistencyError)) {
+      if (!(error instanceof InconsistentRepositoryError)) {
         return this.updateStatus({
           credentialId,
           credentialStatus
@@ -522,7 +533,9 @@ export abstract class BaseCredentialStatusManager {
 
     // unable to find credential with given ID
     if (!logEntry) {
-      throw new Error(`Unable to find credential with given ID "${credentialId}"`);
+      throw new BadRequestError({
+        message: `Unable to find credential with given ID "${credentialId}".`
+      });
     }
 
     return logEntry;
@@ -667,7 +680,7 @@ export abstract class BaseCredentialStatusManager {
     // ensure that snapshot data does not exist
     const snapshotExists = await this.snapshotDataExists();
     if (snapshotExists) {
-      throw new Error('Snapshot data already exists');
+      throw new SnapshotExistsError();
     }
 
     // retrieve status config data
@@ -724,7 +737,7 @@ export abstract class BaseCredentialStatusManager {
       if (snapshotExists) {
         await this.restoreSnapshotData();
       } else {
-        throw new StatusRepoInconsistencyError({ statusManager: this });
+        throw new InconsistentRepositoryError({ statusManager: this });
       }
     } else {
       if (snapshotExists) {
