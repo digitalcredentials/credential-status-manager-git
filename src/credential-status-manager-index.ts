@@ -8,12 +8,12 @@ import {
   composeStatusCredential
 } from './credential-status-manager-base.js';
 import {
-  GithubCredentialStatusManager,
-  GithubCredentialStatusManagerOptions
+  GitHubCredentialStatusManager,
+  GitHubCredentialStatusManagerOptions
 } from './credential-status-manager-github.js';
 import {
-  GitlabCredentialStatusManager,
-  GitlabCredentialStatusManagerOptions
+  GitLabCredentialStatusManager,
+  GitLabCredentialStatusManagerOptions
 } from './credential-status-manager-gitlab.js';
 import {
   BadRequestError,
@@ -29,7 +29,7 @@ interface CredentialStatusManagerBaseOptions {
 
 // Type definition for createStatusManager function input
 type CredentialStatusManagerOptions = CredentialStatusManagerBaseOptions &
-  (GithubCredentialStatusManagerOptions | GitlabCredentialStatusManagerOptions);
+  (GitHubCredentialStatusManagerOptions | GitLabCredentialStatusManagerOptions);
 
 // creates credential status manager
 export async function createStatusManager(options: CredentialStatusManagerOptions)
@@ -49,8 +49,8 @@ export async function createStatusManager(options: CredentialStatusManagerOption
   } = options;
   let statusManager: BaseCredentialStatusManager;
   switch (service) {
-    case CredentialStatusManagerService.Github:
-      statusManager = new GithubCredentialStatusManager({
+    case CredentialStatusManagerService.GitHub:
+      statusManager = new GitHubCredentialStatusManager({
         ownerAccountName,
         repoName,
         metaRepoName,
@@ -63,12 +63,12 @@ export async function createStatusManager(options: CredentialStatusManagerOption
         signStatusCredential
       });
       break;
-    case CredentialStatusManagerService.Gitlab: {
+    case CredentialStatusManagerService.GitLab: {
       const {
         repoId,
         metaRepoId
-      } = options as GitlabCredentialStatusManagerOptions;
-      statusManager = new GitlabCredentialStatusManager({
+      } = options as GitLabCredentialStatusManagerOptions;
+      statusManager = new GitLabCredentialStatusManager({
         ownerAccountName,
         repoName,
         repoId,

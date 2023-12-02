@@ -34,8 +34,8 @@ export const CREDENTIAL_STATUS_SNAPSHOT_FILE = 'snapshot.json';
 
 // Credential status manager source control service
 export enum CredentialStatusManagerService {
-  Github = 'github',
-  Gitlab = 'gitlab'
+  GitHub = 'github',
+  GitLab = 'gitlab'
 }
 
 // States of credential resulting from caller actions and tracked in status log

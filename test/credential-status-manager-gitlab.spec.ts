@@ -14,7 +14,7 @@ import {
   CredentialStatusManagerService,
   CredentialStatusSnapshotData
 } from '../src/credential-status-manager-base.js';
-import * as GitlabStatus from '../src/credential-status-manager-gitlab.js';
+import * as GitLabStatus from '../src/credential-status-manager-gitlab.js';
 import {
   checkLocalCredentialStatus,
   checkRemoteCredentialStatus,
@@ -37,12 +37,12 @@ import {
 
 const sandbox = createSandbox();
 
-class MockGitlabCredentialStatusManager extends GitlabStatus.GitlabCredentialStatusManager {
+class MockGitLabCredentialStatusManager extends GitLabStatus.GitLabCredentialStatusManager {
   private statusCredential: VerifiableCredential;
   private config: CredentialStatusConfigData;
   private snapshot: CredentialStatusSnapshotData;
 
-  constructor(options: GitlabStatus.GitlabCredentialStatusManagerOptions) {
+  constructor(options: GitLabStatus.GitLabCredentialStatusManagerOptions) {
     const {
       ownerAccountName,
       repoName,
@@ -162,9 +162,9 @@ class MockGitlabCredentialStatusManager extends GitlabStatus.GitlabCredentialSta
 
 describe('GitLab Credential Status Manager', () => {
   const service = 'gitlab' as CredentialStatusManagerService;
-  let statusManager: GitlabStatus.GitlabCredentialStatusManager;
+  let statusManager: GitLabStatus.GitLabCredentialStatusManager;
   sandbox.stub(AxiosClient.default, 'create').returnsThis();
-  sandbox.stub(GitlabStatus, 'GitlabCredentialStatusManager').value(MockGitlabCredentialStatusManager);
+  sandbox.stub(GitLabStatus, 'GitLabCredentialStatusManager').value(MockGitLabCredentialStatusManager);
 
   beforeEach(async () => {
     statusManager = await createStatusManager({
@@ -178,12 +178,12 @@ describe('GitLab Credential Status Manager', () => {
       metaRepoAccessToken,
       didMethod,
       didSeed
-    }) as GitlabStatus.GitlabCredentialStatusManager;
+    }) as GitLabStatus.GitLabCredentialStatusManager;
   });
 
   it('tests output of createStatusManager', async () => {
     expect(statusManager).to.be.instanceof(BaseCredentialStatusManager);
-    expect(statusManager).to.be.instanceof(GitlabStatus.GitlabCredentialStatusManager);
+    expect(statusManager).to.be.instanceof(GitLabStatus.GitLabCredentialStatusManager);
   });
 
   it('tests allocateStatus', async () => {
