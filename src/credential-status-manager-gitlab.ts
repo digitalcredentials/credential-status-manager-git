@@ -65,30 +65,30 @@ const CREDENTIAL_STATUS_WEBSITE_FILE_PATHS = [
   CREDENTIAL_STATUS_WEBSITE_GEMFILE_PATH
 ];
 
-// Type definition for GitlabCredentialStatusManager constructor method input
-export type GitlabCredentialStatusManagerOptions = {
+// Type definition for GitLabCredentialStatusManager constructor method input
+export type GitLabCredentialStatusManagerOptions = {
   ownerAccountName: string;
   repoId: string;
   metaRepoId: string;
 } & BaseCredentialStatusManagerOptions;
 
-// Minimal set of options required for configuring GitlabCredentialStatusManager
+// Minimal set of options required for configuring GitLabCredentialStatusManager
 const GITLAB_MANAGER_REQUIRED_OPTIONS = [
   'ownerAccountName',
   'repoId',
   'metaRepoId'
 ].concat(BASE_MANAGER_REQUIRED_OPTIONS) as
-  Array<keyof GitlabCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
+  Array<keyof GitLabCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 
 // Implementation of BaseCredentialStatusManager for GitLab
-export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
+export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
   private readonly ownerAccountName: string;
   private readonly repoId: string;
   private readonly metaRepoId: string;
   private repoClient: AxiosInstance;
   private metaRepoClient: AxiosInstance;
 
-  constructor(options: GitlabCredentialStatusManagerOptions) {
+  constructor(options: GitLabCredentialStatusManagerOptions) {
     const {
       ownerAccountName,
       repoName,
@@ -135,12 +135,12 @@ export class GitlabCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // ensures proper configuration of GitLab status manager
-  ensureProperConfiguration(options: GitlabCredentialStatusManagerOptions): void {
+  ensureProperConfiguration(options: GitLabCredentialStatusManagerOptions): void {
     const missingOptions = [] as
-      Array<keyof GitlabCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
+      Array<keyof GitLabCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 
     const isProperlyConfigured = GITLAB_MANAGER_REQUIRED_OPTIONS.every(
-      (option: keyof GitlabCredentialStatusManagerOptions) => {
+      (option: keyof GitLabCredentialStatusManagerOptions) => {
         if (!options[option]) {
           missingOptions.push(option as any);
         }
