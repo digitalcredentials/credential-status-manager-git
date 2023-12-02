@@ -22,24 +22,24 @@ import {
   getDateString
 } from './helpers.js';
 
-// Type definition for GithubCredentialStatusManager constructor method input
-export type GithubCredentialStatusManagerOptions = {
+// Type definition for GitHubCredentialStatusManager constructor method input
+export type GitHubCredentialStatusManagerOptions = {
   ownerAccountName: string;
 } & BaseCredentialStatusManagerOptions;
 
-// Minimal set of options required for configuring GithubCredentialStatusManager
+// Minimal set of options required for configuring GitHubCredentialStatusManager
 const GITHUB_MANAGER_REQUIRED_OPTIONS = [
   'ownerAccountName'
 ].concat(BASE_MANAGER_REQUIRED_OPTIONS) as
-  Array<keyof GithubCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
+  Array<keyof GitHubCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 
 // Implementation of BaseCredentialStatusManager for GitHub
-export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
+export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
   private readonly ownerAccountName: string;
   private repoClient: Octokit;
   private metaRepoClient: Octokit;
 
-  constructor(options: GithubCredentialStatusManagerOptions) {
+  constructor(options: GitHubCredentialStatusManagerOptions) {
     const {
       ownerAccountName,
       repoName,
@@ -70,12 +70,12 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // ensures proper configuration of GitHub status manager
-  ensureProperConfiguration(options: GithubCredentialStatusManagerOptions): void {
+  ensureProperConfiguration(options: GitHubCredentialStatusManagerOptions): void {
     const missingOptions = [] as
-      Array<keyof GithubCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
+      Array<keyof GitHubCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 
     const isProperlyConfigured = GITHUB_MANAGER_REQUIRED_OPTIONS.every(
-      (option: keyof GithubCredentialStatusManagerOptions) => {
+      (option: keyof GitHubCredentialStatusManagerOptions) => {
         if (!options[option]) {
           missingOptions.push(option as any);
         }

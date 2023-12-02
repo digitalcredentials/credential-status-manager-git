@@ -61,10 +61,10 @@ export function checkLocalCredentialStatus(
 ) {
   let statusCredentialUrl;
   switch (service) {
-    case CredentialStatusManagerService.Github:
+    case CredentialStatusManagerService.GitHub:
       statusCredentialUrl = `https://${ownerAccountName}.github.io/${repoName}/${statusCredentialId}`;
       break;
-    case CredentialStatusManagerService.Gitlab:
+    case CredentialStatusManagerService.GitLab:
       statusCredentialUrl = `https://${ownerAccountName}.gitlab.io/${repoName}/${statusCredentialId}`;
       break;
   }
@@ -109,10 +109,10 @@ export function checkStatusCredential(
 ) {
   let statusCredentialUrl;
   switch (service) {
-    case CredentialStatusManagerService.Github:
+    case CredentialStatusManagerService.GitHub:
       statusCredentialUrl = `https://${ownerAccountName}.github.io/${repoName}/${statusCredentialId}`;
       break;
-    case CredentialStatusManagerService.Gitlab:
+    case CredentialStatusManagerService.GitLab:
       statusCredentialUrl = `https://${ownerAccountName}.gitlab.io/${repoName}/${statusCredentialId}`;
       break;
   }
