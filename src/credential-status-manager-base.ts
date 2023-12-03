@@ -525,7 +525,7 @@ export abstract class BaseCredentialStatusManager {
     }
   }
 
-  // checks status of credential
+  // checks status of credential with given ID
   async checkStatus(credentialId: string): Promise<CredentialStatusLogEntry> {
     // find latest relevant log entry for credential with given ID
     const { eventLog } = await this.readConfigData();
@@ -736,7 +736,7 @@ export abstract class BaseCredentialStatusManager {
     await this.deleteSnapshotData();
   }
 
-  // clean up snapshot data
+  // cleans up snapshot data
   async cleanupSnapshotData(): Promise<void> {
     const reposProperlyConfigured = await this.statusReposProperlyConfigured();
     const snapshotExists = await this.snapshotDataExists();
