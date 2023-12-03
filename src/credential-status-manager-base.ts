@@ -218,7 +218,7 @@ export abstract class BaseCredentialStatusManager {
         credential: {
           ...credential,
           credentialStatus,
-          '@context': [...credential['@context'], CONTEXT_URL_V1]
+          '@context': ensureStatusCredentialContext(credential['@context'])
         },
         newStatusCredential: false,
         latestStatusCredentialId,
@@ -232,8 +232,8 @@ export abstract class BaseCredentialStatusManager {
     let newStatusCredential = false;
     if (latestCredentialsIssuedCounter >= CREDENTIAL_STATUS_LIST_SIZE) {
       newStatusCredential = true;
-      latestStatusCredentialId = this.generateStatusCredentialId();
       latestCredentialsIssuedCounter = 0;
+      latestStatusCredentialId = this.generateStatusCredentialId();
       statusCredentialIds.push(latestStatusCredentialId);
     }
     latestCredentialsIssuedCounter++;
@@ -255,7 +255,7 @@ export abstract class BaseCredentialStatusManager {
       credential: {
         ...credential,
         credentialStatus,
-        '@context': [...credential['@context'], CONTEXT_URL_V1]
+        '@context': ensureStatusCredentialContext(credential['@context'])
       },
       newStatusCredential,
       latestStatusCredentialId,
@@ -746,6 +746,13 @@ export abstract class BaseCredentialStatusManager {
     }
   }
 }
+
+// ensures that the proper status credential context is included
+const ensureStatusCredentialContext = (currentContext: any[]): void => {
+  if (!currentContext.includes(CONTEXT_URL_V1)) {
+    currentContext.push(CONTEXT_URL_V1);
+  }
+};
 
 // composes StatusList2021Credential
 export async function composeStatusCredential({
