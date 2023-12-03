@@ -624,7 +624,10 @@ export abstract class BaseCredentialStatusManager {
       const credentialIdsUnique = credentialIds.filter((value, index, array) => {
         return array.indexOf(value) === index;
       });
-      const hasProperLogEntries = credentialIdsUnique.length === latestCredentialsIssuedCounter;
+      const hasProperLogEntries = credentialIdsUnique.length ===
+                                  (statusCredentialIds.length - 1) *
+                                  CREDENTIAL_STATUS_LIST_SIZE +
+                                  latestCredentialsIssuedCounter;
 
       // ensure that all checks pass
       return hasProperLogDataType && hasProperLogEntries;
@@ -715,7 +718,7 @@ export abstract class BaseCredentialStatusManager {
       ...configData
     } = await this.readSnapshotData();
 
-    // this is necssary for cases in which a transactional operation such as
+    // this is necessary for cases in which a transactional operation such as
     // allocateStatus results in a new status credential file but must be
     // reversed because of an intermittent interruption
     await this.deleteStatusData();
@@ -733,6 +736,7 @@ export abstract class BaseCredentialStatusManager {
     await this.deleteSnapshotData();
   }
 
+  // clean up snapshot data
   async cleanupSnapshotData(): Promise<void> {
     const reposProperlyConfigured = await this.statusReposProperlyConfigured();
     const snapshotExists = await this.snapshotDataExists();

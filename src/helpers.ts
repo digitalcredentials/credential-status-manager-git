@@ -156,11 +156,11 @@ function extractId(objectOrString: any): string {
 }
 
 // derives abbreviated ID from status credential URL
-export const deriveStatusCredentialId = (statusCredentialUrl: string): string => {
+export function deriveStatusCredentialId(statusCredentialUrl: string): string {
   return statusCredentialUrl.split('/').slice(-1).pop() as string;
-};
+}
 
 // retrieves current timestamp
 export function getDateString(): string {
   return (new Date()).toISOString();
-};
+}
