@@ -182,6 +182,11 @@ export abstract class BaseCredentialStatusManager {
       credential.id = uuid();
     }
 
+    // ensure that credential contains the proper status credential context
+    if (!credential['@context'].includes(CONTEXT_URL_V1)) {
+      credential['@context'].push(CONTEXT_URL_V1);
+    }
+
     // retrieve status config data
     let {
       latestStatusCredentialId,
@@ -217,8 +222,7 @@ export abstract class BaseCredentialStatusManager {
       return {
         credential: {
           ...credential,
-          credentialStatus,
-          '@context': ensureStatusCredentialContext(credential['@context'])
+          credentialStatus
         },
         newStatusCredential: false,
         latestStatusCredentialId,
@@ -254,8 +258,7 @@ export abstract class BaseCredentialStatusManager {
     return {
       credential: {
         ...credential,
-        credentialStatus,
-        '@context': ensureStatusCredentialContext(credential['@context'])
+        credentialStatus
       },
       newStatusCredential,
       latestStatusCredentialId,
@@ -746,13 +749,6 @@ export abstract class BaseCredentialStatusManager {
     }
   }
 }
-
-// ensures that the proper status credential context is included
-const ensureStatusCredentialContext = (currentContext: any[]): void => {
-  if (!currentContext.includes(CONTEXT_URL_V1)) {
-    currentContext.push(CONTEXT_URL_V1);
-  }
-};
 
 // composes StatusList2021Credential
 export async function composeStatusCredential({
