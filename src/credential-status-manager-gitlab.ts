@@ -153,7 +153,7 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
         message:
           'You have neglected to set the following required options for the ' +
           'GitLab credential status manager: ' +
-          `${missingOptions.map(o => `'${o}'`).join(', ')}.`
+          `${missingOptions.join(', ')}.`
       });
     }
 
