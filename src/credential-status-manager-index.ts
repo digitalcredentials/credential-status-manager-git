@@ -88,7 +88,7 @@ export async function createStatusManager(options: CredentialStatusManagerOption
       throw new BadRequestError({
         message:
           '"service" must be one of the following values: ' +
-          `${Object.values(CredentialStatusManagerService).map(v => `'${v}'`).join(', ')}.`
+          `${Object.values(CredentialStatusManagerService).join(', ')}.`
       });
   }
 
