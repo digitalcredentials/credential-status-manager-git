@@ -406,7 +406,7 @@ export abstract class BaseCredentialStatusManager {
     // unable to find credential with given ID
     if (!logEntry) {
       throw new NotFoundError({
-        message: `Unable to find credential with given ID "${credentialId}".`
+        message: `Unable to find credential with ID "${credentialId}".`
       });
     }
 
@@ -538,7 +538,7 @@ export abstract class BaseCredentialStatusManager {
     // unable to find credential with given ID
     if (!logEntry) {
       throw new NotFoundError({
-        message: `Unable to find credential with given ID "${credentialId}".`
+        message: `Unable to find credential with ID "${credentialId}".`
       });
     }
 
