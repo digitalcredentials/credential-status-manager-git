@@ -9,6 +9,7 @@ import { v4 as uuid } from 'uuid';
 import {
   BadRequestError,
   InconsistentRepositoryError,
+  NotFoundError,
   SnapshotExistsError
 } from './errors.js';
 import {
@@ -404,7 +405,7 @@ export abstract class BaseCredentialStatusManager {
 
     // unable to find credential with given ID
     if (!logEntry) {
-      throw new BadRequestError({
+      throw new NotFoundError({
         message: `Unable to find credential with given ID "${credentialId}".`
       });
     }
@@ -536,7 +537,7 @@ export abstract class BaseCredentialStatusManager {
 
     // unable to find credential with given ID
     if (!logEntry) {
-      throw new BadRequestError({
+      throw new NotFoundError({
         message: `Unable to find credential with given ID "${credentialId}".`
       });
     }

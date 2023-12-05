@@ -46,6 +46,15 @@ export class BadRequestError extends ChildError {
   }
 }
 
+export class NotFoundError extends ChildError {
+  constructor(options?: CustomErrorOptions) {
+    const { statusManager, message } = options ?? {};
+    const defaultMessage = 'Resource not found.';
+    const label = 'NotFoundError';
+    super({ statusManager, message, defaultMessage, label });
+  }
+}
+
 export class InvalidDidSeedError extends ChildError {
   constructor(options?: CustomErrorOptions) {
     const { statusManager, message } = options ?? {};
