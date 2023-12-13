@@ -88,7 +88,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
         message:
           'You have neglected to set the following required options for the ' +
           'GitHub credential status manager: ' +
-          `${missingOptions.join(', ')}.`
+          `${missingOptions.map(o => `"${o}"`).join(', ')}.`
       });
     }
 
