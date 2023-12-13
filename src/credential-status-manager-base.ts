@@ -459,7 +459,7 @@ export abstract class BaseCredentialStatusManager {
         throw new BadRequestError({
           message:
             '"credentialStatus" must be one of the following values: ' +
-            `${Object.values(CredentialState).join(', ')}.`
+            `${Object.values(CredentialState).map(s => `"${s}"`).join(', ')}.`
         });
     }
     const statusCredentialUrlBase = this.getStatusCredentialUrlBase();
