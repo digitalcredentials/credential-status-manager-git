@@ -105,7 +105,7 @@ export async function getSigningMaterial({
       throw new BadRequestError({
         message:
           '"didMethod" must be one of the following values: ' +
-          `${Object.values(DidMethod).join(', ')}.`
+          `${Object.values(DidMethod).map(m => `"${m}"`).join(', ')}.`
       });
   }
   const issuerDid = didDocument.id;
