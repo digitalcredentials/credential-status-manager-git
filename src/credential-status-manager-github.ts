@@ -13,6 +13,7 @@ import {
   CredentialStatusConfigData,
   CredentialStatusSnapshotData
 } from './credential-status-manager-base.js';
+import { BadRequestError } from './errors.js';
 import {
   DidMethod,
   decodeSystemData,
@@ -21,24 +22,24 @@ import {
   getDateString
 } from './helpers.js';
 
-// Type definition for GithubCredentialStatusManager constructor method input
-export type GithubCredentialStatusManagerOptions = {
+// Type definition for GitHubCredentialStatusManager constructor method input
+export type GitHubCredentialStatusManagerOptions = {
   ownerAccountName: string;
 } & BaseCredentialStatusManagerOptions;
 
-// Minimal set of options required for configuring GithubCredentialStatusManager
+// Minimal set of options required for configuring GitHubCredentialStatusManager
 const GITHUB_MANAGER_REQUIRED_OPTIONS = [
   'ownerAccountName'
 ].concat(BASE_MANAGER_REQUIRED_OPTIONS) as
-  Array<keyof GithubCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
+  Array<keyof GitHubCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 
 // Implementation of BaseCredentialStatusManager for GitHub
-export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
+export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
   private readonly ownerAccountName: string;
   private repoClient: Octokit;
   private metaRepoClient: Octokit;
 
-  constructor(options: GithubCredentialStatusManagerOptions) {
+  constructor(options: GitHubCredentialStatusManagerOptions) {
     const {
       ownerAccountName,
       repoName,
@@ -69,12 +70,12 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // ensures proper configuration of GitHub status manager
-  ensureProperConfiguration(options: GithubCredentialStatusManagerOptions): void {
+  ensureProperConfiguration(options: GitHubCredentialStatusManagerOptions): void {
     const missingOptions = [] as
-      Array<keyof GithubCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
+      Array<keyof GitHubCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 
     const isProperlyConfigured = GITHUB_MANAGER_REQUIRED_OPTIONS.every(
-      (option: keyof GithubCredentialStatusManagerOptions) => {
+      (option: keyof GitHubCredentialStatusManagerOptions) => {
         if (!options[option]) {
           missingOptions.push(option as any);
         }
@@ -83,18 +84,20 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
     );
 
     if (!isProperlyConfigured) {
-      throw new Error(
-        'You have neglected to set the following required options for the ' +
-        'GitHub credential status manager: ' +
-        `${missingOptions.map(o => `'${o}'`).join(', ')}.`
-      );
+      throw new BadRequestError({
+        message:
+          'You have neglected to set the following required options for the ' +
+          'GitHub credential status manager: ' +
+          `${missingOptions.map(o => `"${o}"`).join(', ')}.`
+      });
     }
 
     if (this.didMethod === DidMethod.Web && !this.didWebUrl) {
-      throw new Error(
-        'The value of "didWebUrl" must be provided ' +
-        'when using "didMethod" of type "web".'
-      );
+      throw new BadRequestError({
+        message:
+          'The value of "didWebUrl" must be provided ' +
+          'when using "didMethod" of type "web".'
+      });
     }
   }
 
@@ -231,7 +234,9 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   // creates data in status file
   async createStatusData(data: VerifiableCredential): Promise<void> {
     if (typeof data === 'string') {
-      throw new Error('This library does not support compact JWT credentials.');
+      throw new BadRequestError({
+        message: 'This library does not support compact JWT credentials.'
+      });
     }
     const statusCredentialId = deriveStatusCredentialId(data.id as string);
     const timestamp = getDateString();
@@ -272,7 +277,9 @@ export class GithubCredentialStatusManager extends BaseCredentialStatusManager {
   // updates data in status file
   async updateStatusData(data: VerifiableCredential): Promise<void> {
     if (typeof data === 'string') {
-      throw new Error('This library does not support compact JWT credentials.');
+      throw new BadRequestError({
+        message: 'This library does not support compact JWT credentials.'
+      });
     }
     const statusCredentialId = deriveStatusCredentialId(data.id as string);
     const statusResponse = await this.readStatusResponse();

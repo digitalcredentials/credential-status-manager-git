@@ -6,7 +6,12 @@ import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import { createCredential, createList, decodeList } from '@digitalcredentials/vc-status-list';
 import { Mutex } from 'async-mutex';
 import { v4 as uuid } from 'uuid';
-import { StatusRepoInconsistencyError } from './errors.js';
+import {
+  BadRequestError,
+  InconsistentRepositoryError,
+  NotFoundError,
+  SnapshotExistsError
+} from './errors.js';
 import {
   DidMethod,
   deriveStatusCredentialId,
@@ -30,8 +35,8 @@ export const CREDENTIAL_STATUS_SNAPSHOT_FILE = 'snapshot.json';
 
 // Credential status manager source control service
 export enum CredentialStatusManagerService {
-  Github = 'github',
-  Gitlab = 'gitlab'
+  GitHub = 'github',
+  GitLab = 'gitlab'
 }
 
 // States of credential resulting from caller actions and tracked in status log
@@ -178,6 +183,11 @@ export abstract class BaseCredentialStatusManager {
       credential.id = uuid();
     }
 
+    // ensure that credential contains the proper status credential context
+    if (!credential['@context'].includes(CONTEXT_URL_V1)) {
+      credential['@context'].push(CONTEXT_URL_V1);
+    }
+
     // retrieve status config data
     let {
       latestStatusCredentialId,
@@ -213,8 +223,7 @@ export abstract class BaseCredentialStatusManager {
       return {
         credential: {
           ...credential,
-          credentialStatus,
-          '@context': [...credential['@context'], CONTEXT_URL_V1]
+          credentialStatus
         },
         newStatusCredential: false,
         latestStatusCredentialId,
@@ -228,8 +237,8 @@ export abstract class BaseCredentialStatusManager {
     let newStatusCredential = false;
     if (latestCredentialsIssuedCounter >= CREDENTIAL_STATUS_LIST_SIZE) {
       newStatusCredential = true;
-      latestStatusCredentialId = this.generateStatusCredentialId();
       latestCredentialsIssuedCounter = 0;
+      latestStatusCredentialId = this.generateStatusCredentialId();
       statusCredentialIds.push(latestStatusCredentialId);
     }
     latestCredentialsIssuedCounter++;
@@ -250,8 +259,7 @@ export abstract class BaseCredentialStatusManager {
     return {
       credential: {
         ...credential,
-        credentialStatus,
-        '@context': [...credential['@context'], CONTEXT_URL_V1]
+        credentialStatus
       },
       newStatusCredential,
       latestStatusCredentialId,
@@ -265,7 +273,9 @@ export abstract class BaseCredentialStatusManager {
   async allocateStatusUnsafe(credential: VerifiableCredential): Promise<VerifiableCredential> {
     // report error for compact JWT credentials
     if (typeof credential === 'string') {
-      throw new Error('This library does not support compact JWT credentials.');
+      throw new BadRequestError({
+        message: 'This library does not support compact JWT credentials.'
+      });
     }
 
     // attach status to credential
@@ -369,7 +379,7 @@ export abstract class BaseCredentialStatusManager {
       const result = await this.allocateStatusUnsafe(credential);
       return result;
     } catch(error) {
-      if (!(error instanceof StatusRepoInconsistencyError)) {
+      if (!(error instanceof InconsistentRepositoryError)) {
         return this.allocateStatus(credential);
       } else {
         throw error;
@@ -395,7 +405,9 @@ export abstract class BaseCredentialStatusManager {
 
     // unable to find credential with given ID
     if (!logEntry) {
-      throw new Error(`Unable to find credential with given ID "${credentialId}"`);
+      throw new NotFoundError({
+        message: `Unable to find credential with ID "${credentialId}".`
+      });
     }
 
     // retrieve relevant log data
@@ -426,7 +438,9 @@ export abstract class BaseCredentialStatusManager {
 
     // report error for compact JWT credentials
     if (typeof statusCredentialBefore === 'string') {
-      throw new Error('This library does not support compact JWT credentials.');
+      throw new BadRequestError({
+        message: 'This library does not support compact JWT credentials.'
+      });
     }
 
     // update status credential
@@ -442,10 +456,11 @@ export abstract class BaseCredentialStatusManager {
         statusCredentialListDecoded.setStatus(credentialStatusIndex, true); // revoked credential is represented as 1 bit
         break;
       default:
-        throw new Error(
-          '"credentialStatus" must be one of the following values: ' +
-          `${Object.values(CredentialState).map(v => `'${v}'`).join(', ')}.`
-        );
+        throw new BadRequestError({
+          message:
+            '"credentialStatus" must be one of the following values: ' +
+            `${Object.values(CredentialState).map(s => `"${s}"`).join(', ')}.`
+        });
     }
     const statusCredentialUrlBase = this.getStatusCredentialUrlBase();
     const statusCredentialUrl = `${statusCredentialUrlBase}/${statusCredentialId}`;
@@ -497,7 +512,7 @@ export abstract class BaseCredentialStatusManager {
       const result = await this.updateStatusUnsafe({ credentialId, credentialStatus });
       return result;
     } catch(error) {
-      if (!(error instanceof StatusRepoInconsistencyError)) {
+      if (!(error instanceof InconsistentRepositoryError)) {
         return this.updateStatus({
           credentialId,
           credentialStatus
@@ -511,7 +526,7 @@ export abstract class BaseCredentialStatusManager {
     }
   }
 
-  // checks status of credential
+  // checks status of credential with given ID
   async checkStatus(credentialId: string): Promise<CredentialStatusLogEntry> {
     // find latest relevant log entry for credential with given ID
     const { eventLog } = await this.readConfigData();
@@ -522,7 +537,9 @@ export abstract class BaseCredentialStatusManager {
 
     // unable to find credential with given ID
     if (!logEntry) {
-      throw new Error(`Unable to find credential with given ID "${credentialId}"`);
+      throw new NotFoundError({
+        message: `Unable to find credential with ID "${credentialId}".`
+      });
     }
 
     return logEntry;
@@ -608,7 +625,10 @@ export abstract class BaseCredentialStatusManager {
       const credentialIdsUnique = credentialIds.filter((value, index, array) => {
         return array.indexOf(value) === index;
       });
-      const hasProperLogEntries = credentialIdsUnique.length === latestCredentialsIssuedCounter;
+      const hasProperLogEntries = credentialIdsUnique.length ===
+                                  (statusCredentialIds.length - 1) *
+                                  CREDENTIAL_STATUS_LIST_SIZE +
+                                  latestCredentialsIssuedCounter;
 
       // ensure that all checks pass
       return hasProperLogDataType && hasProperLogEntries;
@@ -667,7 +687,7 @@ export abstract class BaseCredentialStatusManager {
     // ensure that snapshot data does not exist
     const snapshotExists = await this.snapshotDataExists();
     if (snapshotExists) {
-      throw new Error('Snapshot data already exists');
+      throw new SnapshotExistsError();
     }
 
     // retrieve status config data
@@ -699,7 +719,7 @@ export abstract class BaseCredentialStatusManager {
       ...configData
     } = await this.readSnapshotData();
 
-    // this is necssary for cases in which a transactional operation such as
+    // this is necessary for cases in which a transactional operation such as
     // allocateStatus results in a new status credential file but must be
     // reversed because of an intermittent interruption
     await this.deleteStatusData();
@@ -717,6 +737,7 @@ export abstract class BaseCredentialStatusManager {
     await this.deleteSnapshotData();
   }
 
+  // cleans up snapshot data
   async cleanupSnapshotData(): Promise<void> {
     const reposProperlyConfigured = await this.statusReposProperlyConfigured();
     const snapshotExists = await this.snapshotDataExists();
@@ -724,7 +745,7 @@ export abstract class BaseCredentialStatusManager {
       if (snapshotExists) {
         await this.restoreSnapshotData();
       } else {
-        throw new StatusRepoInconsistencyError({ statusManager: this });
+        throw new InconsistentRepositoryError({ statusManager: this });
       }
     } else {
       if (snapshotExists) {
