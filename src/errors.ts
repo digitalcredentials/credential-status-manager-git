@@ -1,112 +1,91 @@
 import { BaseCredentialStatusManager } from './credential-status-manager-base.js';
 
-interface BaseErrorOptions {
-  statusManager?: BaseCredentialStatusManager;
-  message: string;
-}
-
-interface ChildErrorOptions {
+interface CustomErrorOptionalOptions {
   statusManager?: BaseCredentialStatusManager;
   message?: string;
+}
+
+interface CustomErrorRequiredOptions {
   defaultMessage: string;
-  label: string;
+  code: number;
 }
 
-interface CustomErrorOptions {
-  statusManager?: BaseCredentialStatusManager;
-  message?: string;
-}
+type CustomErrorOptions = CustomErrorOptionalOptions & CustomErrorRequiredOptions;
 
-class BaseError extends Error {
-  public statusManager: BaseCredentialStatusManager | undefined;
-  public message: string;
+class CustomError extends Error {
+  public code: number;
 
-  constructor(options: BaseErrorOptions) {
-    const { statusManager, message } = options;
+  constructor(options: CustomErrorOptions) {
+    const { defaultMessage, code } = options;
+    const message = `${options?.message ?? defaultMessage}`;
     super(message);
-    this.statusManager = statusManager;
-    this.message = message;
+    this.code = code;
   }
 }
 
-class ChildError extends BaseError {
-  constructor(options: ChildErrorOptions) {
-    const { statusManager, defaultMessage, label } = options;
-    const message = `[${label}] ${options?.message ?? defaultMessage}`;
-    super({ statusManager, message });
-  }
-}
-
-export class BadRequestError extends ChildError {
-  constructor(options?: CustomErrorOptions) {
-    const { statusManager, message } = options ?? {};
+export class BadRequestError extends CustomError {
+  constructor(options?: CustomErrorOptionalOptions) {
+    const { message } = options ?? {};
     const defaultMessage = 'That is an invalid request.';
-    const label = 'BadRequestError';
-    super({ statusManager, message, defaultMessage, label });
+    super({ message, defaultMessage, code: 400 });
   }
 }
 
-export class NotFoundError extends ChildError {
-  constructor(options?: CustomErrorOptions) {
-    const { statusManager, message } = options ?? {};
+export class NotFoundError extends CustomError {
+  constructor(options?: CustomErrorOptionalOptions) {
+    const { message } = options ?? {};
     const defaultMessage = 'Resource not found.';
-    const label = 'NotFoundError';
-    super({ statusManager, message, defaultMessage, label });
+    super({ message, defaultMessage, code: 404 });
   }
 }
 
-export class InvalidDidSeedError extends ChildError {
-  constructor(options?: CustomErrorOptions) {
-    const { statusManager, message } = options ?? {};
+export class InvalidDidSeedError extends CustomError {
+  constructor(options?: CustomErrorOptionalOptions) {
+    const { message } = options ?? {};
     const defaultMessage = '"didSeed" must be a multibase-encoded value with at least 32 bytes.';
-    const label = 'InvalidDidSeedError';
-    super({ statusManager, message, defaultMessage, label });
+    super({ message, defaultMessage, code: 400 });
   }
 }
 
-export class InvalidTokenError extends ChildError {
-  constructor(options?: CustomErrorOptions) {
+export class InvalidTokenError extends CustomError {
+  constructor(options?: CustomErrorOptionalOptions) {
     const { statusManager, message } = options ?? {};
     const repoName = statusManager?.getRepoName() ?? 'repoName';
     const metaRepoName = statusManager?.getMetaRepoName() ?? 'metaRepoName';
     const defaultMessage = `One or more of the access tokens you are using for the ` +
       `credential status repo ("${repoName}") and the ` +
       `credential status metadata repo ("${metaRepoName}") are incorrect or expired.`;
-    const label = 'InvalidTokenError';
-    super({ statusManager, message, defaultMessage, label });
+    super({ message, defaultMessage, code: 401 });
   }
 }
 
-export class MissingRepositoryError extends ChildError {
-  constructor(options?: CustomErrorOptions) {
+export class MissingRepositoryError extends CustomError {
+  constructor(options?: CustomErrorOptionalOptions) {
     const { statusManager, message } = options ?? {};
     const repoName = statusManager?.getRepoName() ?? 'repoName';
     const metaRepoName = statusManager?.getMetaRepoName() ?? 'metaRepoName';
     const defaultMessage = `The credential status repo ("${repoName}") and the ` +
       `credential status metadata repo ("${metaRepoName}") must be manually created in advance.`
-    const label = 'MissingRepositoryError';
-    super({ statusManager, message, defaultMessage, label });
+    super({ message, defaultMessage, code: 400 });
   }
 }
 
-export class SnapshotExistsError extends ChildError {
-  constructor(options?: CustomErrorOptions) {
-    const { statusManager, message } = options ?? {};
+export class SnapshotExistsError extends CustomError {
+  constructor(options?: CustomErrorOptionalOptions) {
+    const { message } = options ?? {};
     const defaultMessage = 'Snapshot data already exists.';
-    const label = 'SnapshotExistsError';
-    super({ statusManager, message, defaultMessage, label });
+    super({ message, defaultMessage, code: 400 });
   }
 }
 
-export class InconsistentRepositoryError extends ChildError {
-  constructor(options?: CustomErrorOptions) {
+export class InconsistentRepositoryError extends CustomError {
+  constructor(options?: CustomErrorOptionalOptions) {
     const { statusManager, message } = options ?? {};
     const repoName = statusManager?.getRepoName() ?? 'repoName';
     const metaRepoName = statusManager?.getMetaRepoName() ?? 'metaRepoName';
     const defaultMessage = `Inconsistencies in the status repos may need to be manually resolved. ` +
       `If this is your first operation with this library (e.g., "createStatusManager"), please make sure that the ` +
       `credential status repo ("${repoName}") and the credential status metadata repo ("${metaRepoName}") are empty.`;
-    const label = 'InconsistentRepositoryError';
-    super({ statusManager, message, defaultMessage, label });
+    super({ message, defaultMessage, code: 400 });
   }
 }
