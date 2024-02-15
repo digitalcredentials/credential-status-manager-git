@@ -1,6 +1,6 @@
 # credential-status-manager-git Changelog
 
-## 2.0.0 - 2023-XX-24
+## 2.0.0 - 2024-XX-XX
 
 ### Added
 
