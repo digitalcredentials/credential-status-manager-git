@@ -19,7 +19,7 @@ const updateTsconfig = async () => {
 // combine pre-test subscripts
 const runPreTest = async () => {
   await updatePackageJson();
-  updateTsconfig();
+  await updateTsconfig();
 };
 
 // run pre-test subscripts

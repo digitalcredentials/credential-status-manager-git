@@ -19,7 +19,7 @@ const updateTsconfig = async () => {
 // combine post-test subscripts
 const runPostTest = async () => {
   await updatePackageJson();
-  updateTsconfig();
+  await updateTsconfig();
 };
 
 // run post-test subscripts
