@@ -63,18 +63,18 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
       signUserCredential,
       signStatusCredential
     });
-    this.ensureProperConfiguration(options);
+    this.ensureValidConfiguration(options);
     this.ownerAccountName = ownerAccountName;
     this.repoClient = new Octokit({ auth: repoAccessToken });
     this.metaRepoClient = new Octokit({ auth: metaRepoAccessToken });
   }
 
-  // ensures proper configuration of GitHub status manager
-  ensureProperConfiguration(options: GitHubCredentialStatusManagerOptions): void {
+  // ensures valid configuration of GitHub status manager
+  ensureValidConfiguration(options: GitHubCredentialStatusManagerOptions): void {
     const missingOptions = [] as
       Array<keyof GitHubCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 
-    const isProperlyConfigured = GITHUB_MANAGER_REQUIRED_OPTIONS.every(
+    const hasValidConfiguration = GITHUB_MANAGER_REQUIRED_OPTIONS.every(
       (option: keyof GitHubCredentialStatusManagerOptions) => {
         if (!options[option]) {
           missingOptions.push(option as any);
@@ -83,7 +83,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
       }
     );
 
-    if (!isProperlyConfigured) {
+    if (!hasValidConfiguration) {
       throw new BadRequestError({
         message:
           'You have neglected to set the following required options for the ' +
