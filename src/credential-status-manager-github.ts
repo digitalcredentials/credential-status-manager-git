@@ -63,14 +63,14 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
       signUserCredential,
       signStatusCredential
     });
-    this.ensureValidConfiguration(options);
+    this.validateConfiguration(options);
     this.ownerAccountName = ownerAccountName;
     this.repoClient = new Octokit({ auth: repoAccessToken });
     this.metaRepoClient = new Octokit({ auth: metaRepoAccessToken });
   }
 
   // ensures valid configuration of GitHub status manager
-  ensureValidConfiguration(options: GitHubCredentialStatusManagerOptions): void {
+  validateConfiguration(options: GitHubCredentialStatusManagerOptions): void {
     const missingOptions = [] as
       Array<keyof GitHubCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 

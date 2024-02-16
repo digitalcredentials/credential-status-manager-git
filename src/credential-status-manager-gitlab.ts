@@ -114,7 +114,7 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
       signUserCredential,
       signStatusCredential
     });
-    this.ensureValidConfiguration(options);
+    this.validateConfiguration(options);
     this.ownerAccountName = ownerAccountName;
     this.repoId = repoId;
     this.metaRepoId = metaRepoId;
@@ -135,7 +135,7 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // ensures valid configuration of GitLab status manager
-  ensureValidConfiguration(options: GitLabCredentialStatusManagerOptions): void {
+  validateConfiguration(options: GitLabCredentialStatusManagerOptions): void {
     const missingOptions = [] as
       Array<keyof GitLabCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 
