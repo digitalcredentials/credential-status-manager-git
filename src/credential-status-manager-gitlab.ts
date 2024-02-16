@@ -10,8 +10,8 @@ import {
   CREDENTIAL_STATUS_SNAPSHOT_FILE,
   BaseCredentialStatusManager,
   BaseCredentialStatusManagerOptions,
-  CredentialStatusConfigData,
-  CredentialStatusSnapshotData
+  Config,
+  Snapshot
 } from './credential-status-manager-base.js';
 import { BadRequestError } from './errors.js';
 import {
@@ -186,7 +186,7 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     return `/projects/${repoId}/repository/tree`;
   }
 
-  // retrieves credential status URL
+  // retrieves status credential base URL
   getStatusCredentialUrlBase(): string {
     return `https://${this.ownerAccountName}.gitlab.io/${this.repoName}`;
   }
@@ -246,14 +246,14 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
 
     let hasRepoAccess = true;
     try {
-      await this.readRepoData();
+      await this.getRepo();
     } catch (error: any) {
       hasRepoAccess = false;
     }
 
     let hasMetaRepoAccess = true;
     try {
-      await this.readMetaRepoData();
+      await this.getMetaRepo();
     } catch (error: any) {
       hasMetaRepoAccess = false;
     }
@@ -264,8 +264,8 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
   // checks if status repos exist
   async statusReposExist(): Promise<boolean> {
     try {
-      await this.readRepoData();
-      await this.readMetaRepoData();
+      await this.getRepo();
+      await this.getMetaRepo();
     } catch (error) {
       return false;
     }
@@ -277,8 +277,8 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     let repoEmpty = false;
     try {
       // retrieve status repo emptiness state
-      const repoData = await this.readRepoData();
-      repoEmpty = repoData.empty_repo;
+      const repo = await this.getRepo();
+      repoEmpty = repo.empty_repo;
     } catch (error: any) {
       // track that status repo is empty
       repoEmpty = true;
@@ -287,8 +287,8 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     let metaRepoEmpty = false;
     try {
       // retrieve status metadata repo emptiness state
-      const metaRepoData = await this.readMetaRepoData();
-      metaRepoEmpty = metaRepoData.empty_repo;
+      const metaRepo = await this.getMetaRepo();
+      metaRepoEmpty = metaRepo.empty_repo;
     } catch (error: any) {
       // track that status metadata repo is empty
       metaRepoEmpty = true;
@@ -298,8 +298,8 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     return repoEmpty && metaRepoEmpty;
   }
 
-  // retrieves data from status repo
-  async readRepoData(): Promise<any> {
+  // retrieves content of status credential repo
+  async getRepo(): Promise<any> {
     const repoRequestOptions = {
       params: {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
@@ -310,9 +310,9 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     return repoResponse.data;
   }
 
-  // retrieves data from status repo
-  async readRepoTreeData(): Promise<any> {
-    let repoData: any[] = [];
+  // retrieves content of status credential repo tree
+  async getRepoTree(): Promise<any> {
+    let repo: any[] = [];
     let page = 1;
     const repoRequestOptions = {
       params: {
@@ -321,30 +321,30 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     };
     while (true) {
       const repoRequestEndpoint = this.repoTreeEndpoint(this.repoId);
-      const repoDataPartial = (await this.repoClient.get(
+      const repoPartial = (await this.repoClient.get(
         `${repoRequestEndpoint}?per_page=${CREDENTIAL_STATUS_REPO_RESULTS_PER_PAGE}&page=${page}`,
         repoRequestOptions
       )).data;
-      if (repoDataPartial.length === 0) {
+      if (repoPartial.length === 0) {
         break;
       }
-      const repoDataPartialFiltered = repoDataPartial.filter((file: any) => {
+      const repoPartialFiltered = repoPartial.filter((file: any) => {
         return !CREDENTIAL_STATUS_WEBSITE_FILE_PATHS.includes(file.name);
       });
-      repoData = repoData.concat(repoDataPartialFiltered);
+      repo = repo.concat(repoPartialFiltered);
       page++;
     }
-    return repoData;
+    return repo;
   }
 
-  // retrieves file names from repo data
-  async readRepoFilenames(): Promise<string[]> {
-    const repoData = await this.readRepoTreeData();
-    return repoData.map((file: any) => file.name);
+  // retrieves filenames of status credential repo content
+  async getRepoFilenames(): Promise<string[]> {
+    const repo = await this.getRepoTree();
+    return repo.map((file: any) => file.name);
   }
 
-  // retrieves data from status metadata repo
-  async readMetaRepoData(): Promise<any> {
+  // retrieves content of credential status metadata repo
+  async getMetaRepo(): Promise<any> {
     const metaRepoRequestOptions = {
       params: {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
@@ -355,17 +355,17 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     return metaRepoResponse.data;
   }
 
-  // creates data in status file
-  async createStatusData(data: VerifiableCredential): Promise<void> {
-    if (typeof data === 'string') {
+  // creates status credential
+  async createStatusCredential(statusCredential: VerifiableCredential): Promise<void> {
+    if (typeof statusCredential === 'string') {
       throw new BadRequestError({
         message: 'This library does not support compact JWT credentials.'
       });
     }
-    const statusCredentialId = deriveStatusCredentialId(data.id as string);
+    const statusCredentialId = deriveStatusCredentialId(statusCredential.id as string);
     const timestamp = getDateString();
     const message = `[${timestamp}]: created status credential`;
-    const content = JSON.stringify(data, null, 2);
+    const content = JSON.stringify(statusCredential, null, 2);
     const statusRequestOptions = {
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       commit_message: message,
@@ -377,12 +377,12 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // retrieves response from fetching status file
-  async readStatusResponse(statusCredentialId?: string): Promise<any> {
+  async getStatusCredentialResponse(statusCredentialId?: string): Promise<any> {
     let statusCredentialPath;
     if (statusCredentialId) {
       statusCredentialPath = statusCredentialId;
     } else {
-      ({ latestStatusCredentialId: statusCredentialPath } = await this.readConfigData());
+      ({ latestStatusCredentialId: statusCredentialPath } = await this.getConfig());
     }
     const statusRequestOptions = {
       params: {
@@ -395,23 +395,23 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     return statusResponse.data;
   }
 
-  // retrieves data from status file
-  async readStatusData(statusCredentialId?: string): Promise<VerifiableCredential> {
-    const statusResponse = await this.readStatusResponse(statusCredentialId);
+  // retrieves status credential
+  async getStatusCredential(statusCredentialId?: string): Promise<VerifiableCredential> {
+    const statusResponse = await this.getStatusCredentialResponse(statusCredentialId);
     return decodeSystemData(statusResponse.content);
   }
 
-  // updates data in status file
-  async updateStatusData(data: VerifiableCredential): Promise<void> {
-    if (typeof data === 'string') {
+  // updates status credential
+  async updateStatusCredential(statusCredential: VerifiableCredential): Promise<void> {
+    if (typeof statusCredential === 'string') {
       throw new BadRequestError({
         message: 'This library does not support compact JWT credentials.'
       });
     }
-    const statusCredentialId = deriveStatusCredentialId(data.id as string);
+    const statusCredentialId = deriveStatusCredentialId(statusCredential.id as string);
     const timestamp = getDateString();
     const message = `[${timestamp}]: updated status credential`;
-    const content = JSON.stringify(data, null, 2);
+    const content = JSON.stringify(statusCredential, null, 2);
     const statusRequestOptions = {
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       commit_message: message,
@@ -422,9 +422,9 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     await this.repoClient.put(statusRequestEndpoint, statusRequestOptions);
   }
 
-  // deletes data in status files
-  async deleteStatusData(): Promise<void> {
-    const repoFilenames = await this.readRepoFilenames();
+  // deletes status credentials
+  async deleteStatusCredentials(): Promise<void> {
+    const repoFilenames = await this.getRepoFilenames();
     const actions = repoFilenames.map((repoFilename) => {
       return {
         action: 'delete',
@@ -442,11 +442,11 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     await this.repoClient.post(statusRequestEndpoint, statusRequestOptions);
   }
 
-  // creates data in config file
-  async createConfigData(data: CredentialStatusConfigData): Promise<void> {
+  // creates config
+  async createConfig(config: Config): Promise<void> {
     const timestamp = getDateString();
     const message = `[${timestamp}]: created status credential config`;
-    const content = JSON.stringify(data, null, 2);
+    const content = JSON.stringify(config, null, 2);
     const configRequestOptions = {
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       commit_message: message,
@@ -460,7 +460,7 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // retrieves response from fetching config file
-  async readConfigResponse(): Promise<any> {
+  async getConfigResponse(): Promise<any> {
     const configRequestOptions = {
       params: {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
@@ -474,17 +474,17 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     return configResponse.data;
   }
 
-  // retrieves data from config file
-  async readConfigData(): Promise<CredentialStatusConfigData> {
-    const configResponse = await this.readConfigResponse();
+  // retrieves config
+  async getConfig(): Promise<Config> {
+    const configResponse = await this.getConfigResponse();
     return decodeSystemData(configResponse.content);
   }
 
-  // updates data in config file
-  async updateConfigData(data: CredentialStatusConfigData): Promise<void> {
+  // updates config
+  async updateConfig(config: Config): Promise<void> {
     const timestamp = getDateString();
     const message = `[${timestamp}]: updated status credential config`;
-    const content = JSON.stringify(data, null, 2);
+    const content = JSON.stringify(config, null, 2);
     const configRequestOptions = {
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       commit_message: message,
@@ -497,8 +497,8 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     await this.metaRepoClient.put(configRequestEndpoint, configRequestOptions);
   }
 
-  // deletes data in config file
-  async deleteConfigData(): Promise<void> {
+  // deletes config
+  async deleteConfig(): Promise<void> {
     const timestamp = getDateString();
     const message = `[${timestamp}]: deleted config data`;
     const configRequestOptions = {
@@ -514,11 +514,11 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     await this.metaRepoClient.delete(configRequestEndpoint, configRequestOptions);
   }
 
-  // creates data in snapshot file
-  async createSnapshotData(data: CredentialStatusSnapshotData): Promise<void> {
+  // creates snapshot
+  async createSnapshot(snapshot: Snapshot): Promise<void> {
     const timestamp = getDateString();
     const message = `[${timestamp}]: created status credential snapshot`;
-    const content = JSON.stringify(data, null, 2);
+    const content = JSON.stringify(snapshot, null, 2);
     const snapshotRequestOptions = {
       branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
       commit_message: message,
@@ -532,7 +532,7 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // retrieves response from fetching snapshot file
-  async readSnapshotResponse(): Promise<any> {
+  async getSnapshotResponse(): Promise<any> {
     const snapshotRequestOptions = {
       params: {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
@@ -546,14 +546,14 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     return snapshotResponse.data;
   }
 
-  // retrieves data from snapshot file
-  async readSnapshotData(): Promise<CredentialStatusSnapshotData> {
-    const snapshotResponse = await this.readSnapshotResponse();
+  // retrieves snapshot
+  async getSnapshot(): Promise<Snapshot> {
+    const snapshotResponse = await this.getSnapshotResponse();
     return decodeSystemData(snapshotResponse.content);
   }
 
-  // deletes data in snapshot file
-  async deleteSnapshotData(): Promise<void> {
+  // deletes snapshot
+  async deleteSnapshot(): Promise<void> {
     const timestamp = getDateString();
     const message = `[${timestamp}]: deleted snapshot data`;
     const snapshotRequestOptions = {
@@ -569,8 +569,8 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     await this.metaRepoClient.delete(snapshotRequestEndpoint, snapshotRequestOptions);
   }
 
-  // checks if snapshot data exists
-  async snapshotDataExists(): Promise<boolean> {
+  // checks if snapshot exists
+  async snapshotExists(): Promise<boolean> {
     try {
       const snapshotRequestOptions = {
         params: {

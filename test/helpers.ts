@@ -4,7 +4,7 @@
 import { expect } from 'chai';
 import {
   BaseCredentialStatusManager,
-  CredentialStatusManagerService
+  GitService
 } from '../src/credential-status-manager-base.js';
 import { DidMethod } from '../src/helpers.js';
 
@@ -60,14 +60,14 @@ export const statusCredentialId = 'V27UAUYPNR';
 export function checkLocalCredentialStatus(
   credentialWithStatus: any,
   credentialStatusIndex: number,
-  service: CredentialStatusManagerService
+  gitService: GitService
 ) {
   let statusCredentialUrl;
-  switch (service) {
-    case CredentialStatusManagerService.GitHub:
+  switch (gitService) {
+    case GitService.GitHub:
       statusCredentialUrl = `https://${ownerAccountName}.github.io/${repoName}/${statusCredentialId}`;
       break;
-    case CredentialStatusManagerService.GitLab:
+    case GitService.GitLab:
       statusCredentialUrl = `https://${ownerAccountName}.gitlab.io/${repoName}/${statusCredentialId}`;
       break;
   }
@@ -108,14 +108,14 @@ export function checkRemoteCredentialStatus(
 
 export function checkStatusCredential(
   statusCredential: any,
-  service: CredentialStatusManagerService
+  gitService: GitService
 ) {
   let statusCredentialUrl;
-  switch (service) {
-    case CredentialStatusManagerService.GitHub:
+  switch (gitService) {
+    case GitService.GitHub:
       statusCredentialUrl = `https://${ownerAccountName}.github.io/${repoName}/${statusCredentialId}`;
       break;
-    case CredentialStatusManagerService.GitLab:
+    case GitService.GitLab:
       statusCredentialUrl = `https://${ownerAccountName}.gitlab.io/${repoName}/${statusCredentialId}`;
       break;
   }
@@ -133,14 +133,14 @@ export function checkStatusCredential(
   expect(statusCredential.credentialSubject.statusPurpose).to.equal('revocation');
 }
 
-export async function checkSnapshotData(
+export async function checkSnapshot(
   statusManager: BaseCredentialStatusManager,
   allocateCount: number,
   updateCount: number
 ) {
-  const snapshot = await statusManager.readSnapshotData();
-  const config = await statusManager.readConfigData();
-  const statusCredential = await statusManager.readStatusData();
+  const snapshot = await statusManager.getSnapshot();
+  const config = await statusManager.getConfig();
+  const statusCredential = await statusManager.getStatusCredential();
   expect(snapshot.eventLog.length).to.equal(allocateCount + updateCount);
   expect(snapshot.latestCredentialsIssuedCounter).to.equal(allocateCount);
   // report error for compact JWT credentials

@@ -3,8 +3,8 @@
  */
 import {
   BaseCredentialStatusManager,
-  CredentialStatusConfigData,
-  CredentialStatusManagerService,
+  Config,
+  GitService,
   composeStatusCredential
 } from './credential-status-manager-base.js';
 import {
@@ -24,7 +24,7 @@ import { signCredential, getSigningMaterial } from './helpers.js';
 
 // Type definition for base options of createStatusManager function input
 interface CredentialStatusManagerBaseOptions {
-  service: CredentialStatusManagerService;
+  gitService: GitService;
 }
 
 // Type definition for createStatusManager function input
@@ -35,7 +35,7 @@ type CredentialStatusManagerOptions = CredentialStatusManagerBaseOptions &
 export async function createStatusManager(options: CredentialStatusManagerOptions)
 : Promise<BaseCredentialStatusManager> {
   const {
-    service,
+    gitService,
     ownerAccountName,
     repoName,
     metaRepoName,
@@ -48,8 +48,8 @@ export async function createStatusManager(options: CredentialStatusManagerOption
     signStatusCredential=false
   } = options;
   let statusManager: BaseCredentialStatusManager;
-  switch (service) {
-    case CredentialStatusManagerService.GitHub:
+  switch (gitService) {
+    case GitService.GitHub:
       statusManager = new GitHubCredentialStatusManager({
         ownerAccountName,
         repoName,
@@ -63,7 +63,7 @@ export async function createStatusManager(options: CredentialStatusManagerOption
         signStatusCredential
       });
       break;
-    case CredentialStatusManagerService.GitLab: {
+    case GitService.GitLab: {
       const {
         repoId,
         metaRepoId
@@ -87,8 +87,8 @@ export async function createStatusManager(options: CredentialStatusManagerOption
     default:
       throw new BadRequestError({
         message:
-          '"service" must be one of the following values: ' +
-          `${Object.values(CredentialStatusManagerService).map(s => `"${s}"`).join(', ')}.`
+          '"gitService" must be one of the following values: ' +
+          `${Object.values(GitService).map(s => `"${s}"`).join(', ')}.`
       });
   }
 
@@ -112,17 +112,17 @@ export async function createStatusManager(options: CredentialStatusManagerOption
 
   const reposEmpty = await statusManager.statusReposEmpty();
   if (!reposEmpty) {
-    await statusManager.cleanupSnapshotData();
+    await statusManager.cleanupSnapshot();
   } else {
     // create and persist status config
     const statusCredentialId = statusManager.generateStatusCredentialId();
-    const configData: CredentialStatusConfigData = {
+    const config: Config = {
       latestStatusCredentialId: statusCredentialId,
       latestCredentialsIssuedCounter: 0,
       statusCredentialIds: [statusCredentialId],
       eventLog: []
     };
-    await statusManager.createConfigData(configData);
+    await statusManager.createConfig(config);
 
     // create status credential
     const statusCredentialUrlBase = statusManager.getStatusCredentialUrlBase();
@@ -143,7 +143,7 @@ export async function createStatusManager(options: CredentialStatusManagerOption
     }
 
     // create and persist status data
-    await statusManager.createStatusData(statusCredential);
+    await statusManager.createStatusCredential(statusCredential);
 
     // setup credential status website
     await statusManager.deployCredentialStatusWebsite();
