@@ -64,6 +64,7 @@ type EventLog = EventLogEntry[];
 export interface Config {
   latestStatusCredentialId: string;
   latestCredentialsIssuedCounter: number;
+  allCredentialsIssuedCounter: number;
   statusCredentialIds: string[];
   eventLog: EventLog;
 }
@@ -194,10 +195,11 @@ export abstract class BaseCredentialStatusManager {
       credential['@context'].push(CONTEXT_URL_V1);
     }
 
-    // retrieve status config data
+    // retrieve config
     let {
       latestStatusCredentialId,
       latestCredentialsIssuedCounter,
+      allCredentialsIssuedCounter,
       statusCredentialIds,
       eventLog
     } = await this.getConfig();
@@ -211,7 +213,7 @@ export abstract class BaseCredentialStatusManager {
 
     // do not allocate new entry if ID is already being tracked
     if (eventLogEntry) {
-      // retrieve relevant log data
+      // retrieve relevant log entry
       const { statusCredentialId, credentialStatusIndex } = eventLogEntry;
 
       // attach credential status
@@ -234,6 +236,7 @@ export abstract class BaseCredentialStatusManager {
         newStatusCredential: false,
         latestStatusCredentialId,
         latestCredentialsIssuedCounter,
+        allCredentialsIssuedCounter,
         statusCredentialIds,
         eventLog
       };
@@ -246,6 +249,7 @@ export abstract class BaseCredentialStatusManager {
       latestCredentialsIssuedCounter = 0;
       latestStatusCredentialId = this.generateStatusCredentialId();
       statusCredentialIds.push(latestStatusCredentialId);
+      allCredentialsIssuedCounter++;
     }
     latestCredentialsIssuedCounter++;
 
@@ -270,6 +274,7 @@ export abstract class BaseCredentialStatusManager {
       newStatusCredential,
       latestStatusCredentialId,
       latestCredentialsIssuedCounter,
+      allCredentialsIssuedCounter,
       statusCredentialIds,
       eventLog
     };
@@ -366,7 +371,7 @@ export abstract class BaseCredentialStatusManager {
     };
     eventLog.push(eventLogEntry);
 
-    // persist updates to config data
+    // persist updates to config
     await this.updateConfig({
       latestStatusCredentialId,
       eventLog,
@@ -416,7 +421,7 @@ export abstract class BaseCredentialStatusManager {
       });
     }
 
-    // retrieve relevant log data
+    // retrieve relevant log entry
     const {
       credentialSubject,
       statusCredentialId,
@@ -594,7 +599,7 @@ export abstract class BaseCredentialStatusManager {
             valid: false,
             error: new InvalidRepoStateError({
               message: 'This library does not support compact JWT ' +
-              `status credentials: ${statusCredential}`
+                `status credentials: ${statusCredential}`
             })
           };
         }
@@ -606,14 +611,13 @@ export abstract class BaseCredentialStatusManager {
         const hasValidStatusCredentialSubType = statusCredential.credentialSubject.type === 'StatusList2021';
         const hasValidStatusCredentialSubStatusPurpose = statusCredential.credentialSubject.statusPurpose === 'revocation';
         const hasValidStatusCredentialFormat = hasValidStatusCredentialType &&
-                                                hasValidStatusCredentialSubId &&
-                                                hasValidStatusCredentialSubType &&
-                                                hasValidStatusCredentialSubStatusPurpose;
+                                               hasValidStatusCredentialSubId &&
+                                               hasValidStatusCredentialSubType &&
+                                               hasValidStatusCredentialSubStatusPurpose;
         if (!hasValidStatusCredentialFormat) {
           invalidStatusCredentialIds.push(statusCredential.id);
         }
       }
-
       if (invalidStatusCredentialIds.length !== 0) {
         return {
           valid: false,
@@ -631,7 +635,7 @@ export abstract class BaseCredentialStatusManager {
           valid: false,
           error: new InvalidRepoStateError({
             message: `Latest status credential ("${latestStatusCredentialId}") ` +
-            'is not being tracked in config.'
+              'is not being tracked in config.'
           })
         };
       }
@@ -684,23 +688,23 @@ export abstract class BaseCredentialStatusManager {
       const credentialsIssuedCounter = (statusCredentialIds.length - 1) *
                                        CREDENTIAL_STATUS_LIST_SIZE +
                                        latestCredentialsIssuedCounter;
-      const hasValidLogEntries = credentialIdsUniqueCounter === credentialsIssuedCounter;
-      if (!hasValidLogEntries) {
+      const hasValidEventLogEntries = credentialIdsUniqueCounter === credentialsIssuedCounter;
+      if (!hasValidEventLogEntries) {
         return {
           valid: false,
           error: new InvalidRepoStateError({
             message: 'There is a mismatch between the credentials tracked ' +
-            'in the config and the credentials tracked in the event log.'
+              'in the config and the credentials tracked in the event log.'
           })
         };
       }
 
       // ensure that all checks pass
       return { valid: true };
-    } catch (error) {
+    } catch (error: any) {
       return {
         valid: false,
-        error: new InvalidRepoStateError()
+        error: new InvalidRepoStateError({ message: error.message })
       };
     }
   }
@@ -752,25 +756,25 @@ export abstract class BaseCredentialStatusManager {
 
   // saves snapshot
   async saveSnapshot(): Promise<void> {
-    // ensure that snapshot data does not exist
+    // ensure that snapshot does not exist
     const snapExists = await this.snapshotExists();
     if (snapExists) {
       throw new SnapshotExistsError();
     }
 
-    // retrieve status config data
+    // retrieve config
     const {
       statusCredentialIds,
       ...configRest
     } = await this.getConfig();
 
-    // retrieve status credential data
+    // retrieve status credential
     const statusCredentials: Record<string, VerifiableCredential> = {};
     for (const statusCredentialId of statusCredentialIds) {
       statusCredentials[statusCredentialId] = await this.getStatusCredential(statusCredentialId);
     }
 
-    // create snapshot data
+    // create snapshot
     const snapshot: Snapshot = {
       statusCredentialIds,
       statusCredentials,
@@ -781,7 +785,7 @@ export abstract class BaseCredentialStatusManager {
 
   // restores snapshot
   async restoreSnapshot(): Promise<void> {
-    // retrieve snapshot data
+    // retrieve snapshot
     const {
       statusCredentials,
       ...config
@@ -793,15 +797,15 @@ export abstract class BaseCredentialStatusManager {
     await this.deleteStatusCredentials();
     await this.deleteConfig();
 
-    // restore status credential data
+    // restore status credential
     for (const [, statusCredential] of Object.entries(statusCredentials)) {
       await this.createStatusCredential(statusCredential);
     }
 
-    // restore status config data
+    // restore config
     await this.createConfig(config);
 
-    // delete snapshot data
+    // delete snapshot
     await this.deleteSnapshot();
   }
 

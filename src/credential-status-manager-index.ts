@@ -119,6 +119,7 @@ export async function createStatusManager(options: CredentialStatusManagerOption
     const config: Config = {
       latestStatusCredentialId: statusCredentialId,
       latestCredentialsIssuedCounter: 0,
+      allCredentialsIssuedCounter: 0,
       statusCredentialIds: [statusCredentialId],
       eventLog: []
     };
