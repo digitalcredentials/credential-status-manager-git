@@ -10,8 +10,8 @@ import {
   CREDENTIAL_STATUS_SNAPSHOT_FILE,
   BaseCredentialStatusManager,
   BaseCredentialStatusManagerOptions,
-  CredentialStatusConfigData,
-  CredentialStatusSnapshotData
+  Config,
+  Snapshot
 } from './credential-status-manager-base.js';
 import { BadRequestError } from './errors.js';
 import {
@@ -101,7 +101,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     }
   }
 
-  // retrieves credential status URL
+  // retrieves status credential base URL
   getStatusCredentialUrlBase(): string {
     return `https://${this.ownerAccountName}.github.io/${this.repoName}`;
   }
@@ -186,7 +186,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     let repoEmpty = false;
     try {
       // retrieve status repo content
-      await this.readRepoData();
+      await this.getRepo();
     } catch (error: any) {
       // track that status repo is empty
       repoEmpty = true;
@@ -195,7 +195,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     let metaRepoEmpty = false;
     try {
       // retrieve status metadata repo content
-      await this.readMetaRepoData();
+      await this.getMetaRepo();
     } catch (error: any) {
       // track that status metadata repo is empty
       metaRepoEmpty = true;
@@ -205,8 +205,8 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     return repoEmpty && metaRepoEmpty;
   }
 
-  // retrieves data from status repo
-  async readRepoData(): Promise<any> {
+  // retrieves content of status credential repo
+  async getRepo(): Promise<any> {
     const repoResponse = await this.repoClient.repos.getContent({
       owner: this.ownerAccountName,
       repo: this.repoName,
@@ -215,14 +215,14 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     return repoResponse.data;
   }
 
-  // retrieves file names from repo data
-  async readRepoFilenames(): Promise<string[]> {
-    const repoData = await this.readRepoData();
-    return repoData.map((file: any) => file.name);
+  // retrieves filenames of status credential repo content
+  async getRepoFilenames(): Promise<string[]> {
+    const repo = await this.getRepo();
+    return repo.map((file: any) => file.name);
   }
 
-  // retrieves data from status metadata repo
-  async readMetaRepoData(): Promise<any> {
+  // retrieves content of credential status metadata repo
+  async getMetaRepo(): Promise<any> {
     const metaRepoResponse = await this.metaRepoClient.repos.getContent({
       owner: this.ownerAccountName,
       repo: this.metaRepoName,
@@ -231,17 +231,17 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     return metaRepoResponse.data;
   }
 
-  // creates data in status file
-  async createStatusData(data: VerifiableCredential): Promise<void> {
-    if (typeof data === 'string') {
+  // creates status credential
+  async createStatusCredential(statusCredential: VerifiableCredential): Promise<void> {
+    if (typeof statusCredential === 'string') {
       throw new BadRequestError({
         message: 'This library does not support compact JWT credentials.'
       });
     }
-    const statusCredentialId = deriveStatusCredentialId(data.id as string);
+    const statusCredentialId = deriveStatusCredentialId(statusCredential.id as string);
     const timestamp = getDateString();
     const message = `[${timestamp}]: created status credential`;
-    const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
+    const content = encodeAsciiAsBase64(JSON.stringify(statusCredential, null, 2));
     await this.repoClient.repos.createOrUpdateFileContents({
       owner: this.ownerAccountName,
       repo: this.repoName,
@@ -253,12 +253,12 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // retrieves response from fetching status file
-  async readStatusResponse(statusCredentialId?: string): Promise<any> {
+  async getStatusCredentialResponse(statusCredentialId?: string): Promise<any> {
     let statusCredentialPath;
     if (statusCredentialId) {
       statusCredentialPath = statusCredentialId;
     } else {
-      ({ latestStatusCredentialId: statusCredentialPath } = await this.readConfigData());
+      ({ latestStatusCredentialId: statusCredentialPath } = await this.getConfig());
     }
     const statusResponse = await this.repoClient.repos.getContent({
       owner: this.ownerAccountName,
@@ -268,25 +268,25 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     return statusResponse.data;
   }
 
-  // retrieves data from status file
-  async readStatusData(statusCredentialId?: string): Promise<VerifiableCredential> {
-    const statusResponse = await this.readStatusResponse(statusCredentialId);
+  // retrieves status credential
+  async getStatusCredential(statusCredentialId?: string): Promise<VerifiableCredential> {
+    const statusResponse = await this.getStatusCredentialResponse(statusCredentialId);
     return decodeSystemData(statusResponse.content);
   }
 
-  // updates data in status file
-  async updateStatusData(data: VerifiableCredential): Promise<void> {
-    if (typeof data === 'string') {
+  // updates status credential
+  async updateStatusCredential(statusCredential: VerifiableCredential): Promise<void> {
+    if (typeof statusCredential === 'string') {
       throw new BadRequestError({
         message: 'This library does not support compact JWT credentials.'
       });
     }
-    const statusCredentialId = deriveStatusCredentialId(data.id as string);
-    const statusResponse = await this.readStatusResponse();
+    const statusCredentialId = deriveStatusCredentialId(statusCredential.id as string);
+    const statusResponse = await this.getStatusCredentialResponse();
     const { sha } = statusResponse;
     const timestamp = getDateString();
     const message = `[${timestamp}]: updated status credential`;
-    const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
+    const content = encodeAsciiAsBase64(JSON.stringify(statusCredential, null, 2));
     await this.repoClient.repos.createOrUpdateFileContents({
       owner: this.ownerAccountName,
       repo: this.repoName,
@@ -297,11 +297,11 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     });
   }
 
-  // deletes data in status files
-  async deleteStatusData(): Promise<void> {
-    const repoFilenames = await this.readRepoFilenames();
+  // deletes status credentials
+  async deleteStatusCredentials(): Promise<void> {
+    const repoFilenames = await this.getRepoFilenames();
     for (const repoFilename of repoFilenames) {
-      const { sha } = await this.readStatusResponse(repoFilename);
+      const { sha } = await this.getStatusCredentialResponse(repoFilename);
       const timestamp = getDateString();
       const message = `[${timestamp}]: deleted status credential data: ${repoFilename}`;
       await this.repoClient.repos.deleteFile({
@@ -315,10 +315,10 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // create data in config file
-  async createConfigData(data: CredentialStatusConfigData): Promise<void> {
+  async createConfig(config: Config): Promise<void> {
     const timestamp = getDateString();
     const message = `[${timestamp}]: created status credential config`;
-    const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
+    const content = encodeAsciiAsBase64(JSON.stringify(config, null, 2));
     await this.metaRepoClient.repos.createOrUpdateFileContents({
       owner: this.ownerAccountName,
       repo: this.metaRepoName,
@@ -330,7 +330,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // retrieves response from fetching config file
-  async readConfigResponse(): Promise<any> {
+  async getConfigResponse(): Promise<any> {
     const configResponse = await this.metaRepoClient.repos.getContent({
       owner: this.ownerAccountName,
       repo: this.metaRepoName,
@@ -339,19 +339,19 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     return configResponse.data;
   }
 
-  // retrieves data from config file
-  async readConfigData(): Promise<CredentialStatusConfigData> {
-    const configResponse = await this.readConfigResponse();
+  // retrieves config
+  async getConfig(): Promise<Config> {
+    const configResponse = await this.getConfigResponse();
     return decodeSystemData(configResponse.content);
   }
 
-  // updates data in config file
-  async updateConfigData(data: CredentialStatusConfigData): Promise<void> {
-    const configResponse = await this.readConfigResponse();
+  // updates config
+  async updateConfig(config: Config): Promise<void> {
+    const configResponse = await this.getConfigResponse();
     const { sha } = configResponse;
     const timestamp = getDateString();
     const message = `[${timestamp}]: updated status credential config`;
-    const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
+    const content = encodeAsciiAsBase64(JSON.stringify(config, null, 2));
     await this.metaRepoClient.repos.createOrUpdateFileContents({
       owner: this.ownerAccountName,
       repo: this.metaRepoName,
@@ -362,9 +362,9 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     });
   }
 
-  // deletes data in config file
-  async deleteConfigData(): Promise<void> {
-    const { sha } = await this.readConfigResponse();
+  // deletes config
+  async deleteConfig(): Promise<void> {
+    const { sha } = await this.getConfigResponse();
     const timestamp = getDateString();
     const message = `[${timestamp}]: deleted config data`;
     await this.metaRepoClient.repos.deleteFile({
@@ -376,11 +376,11 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     });
   }
 
-  // creates data in snapshot file
-  async createSnapshotData(data: CredentialStatusSnapshotData): Promise<void> {
+  // creates snapshot
+  async createSnapshot(snapshot: Snapshot): Promise<void> {
     const timestamp = getDateString();
     const message = `[${timestamp}]: created status credential snapshot`;
-    const content = encodeAsciiAsBase64(JSON.stringify(data, null, 2));
+    const content = encodeAsciiAsBase64(JSON.stringify(snapshot, null, 2));
     await this.metaRepoClient.repos.createOrUpdateFileContents({
       owner: this.ownerAccountName,
       repo: this.metaRepoName,
@@ -392,7 +392,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // retrieves response from fetching snapshot file
-  async readSnapshotResponse(): Promise<any> {
+  async getSnapshotResponse(): Promise<any> {
     const snapshotResponse = await this.metaRepoClient.repos.getContent({
       owner: this.ownerAccountName,
       repo: this.metaRepoName,
@@ -401,15 +401,15 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     return snapshotResponse.data;
   }
 
-  // retrieves data from snapshot file
-  async readSnapshotData(): Promise<CredentialStatusSnapshotData> {
-    const snapshotResponse = await this.readSnapshotResponse();
+  // retrieves snapshot
+  async getSnapshot(): Promise<Snapshot> {
+    const snapshotResponse = await this.getSnapshotResponse();
     return decodeSystemData(snapshotResponse.content);
   }
 
-  // deletes data in snapshot file
-  async deleteSnapshotData(): Promise<void> {
-    const { sha } = await this.readSnapshotResponse();
+  // deletes snapshot
+  async deleteSnapshot(): Promise<void> {
+    const { sha } = await this.getSnapshotResponse();
     const timestamp = getDateString();
     const message = `[${timestamp}]: deleted snapshot data`;
     await this.metaRepoClient.repos.deleteFile({
@@ -421,8 +421,8 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     });
   }
 
-  // checks if snapshot data exists
-  async snapshotDataExists(): Promise<boolean> {
+  // checks if snapshot exists
+  async snapshotExists(): Promise<boolean> {
     try {
       await this.metaRepoClient.repos.getContent({
         owner: this.ownerAccountName,
