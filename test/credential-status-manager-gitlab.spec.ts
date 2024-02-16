@@ -203,8 +203,9 @@ describe('GitLab Credential Status Manager', () => {
     const credentialWithStatus2Copy = await statusManager.allocateStatus(unsignedCredential2) as any;
     checkLocalCredentialStatus(credentialWithStatus2Copy, 2, gitService);
 
-    // check if status repos are properly configured
-    expect(await statusManager.statusReposProperlyConfigured()).to.be.true;
+    // check if status repos have valid configuration
+    const repoState = await statusManager.getRepoState();
+    expect(repoState.valid).to.be.true;
   });
 
   it('tests updateStatus and checkStatus', async () => {
@@ -224,8 +225,9 @@ describe('GitLab Credential Status Manager', () => {
     const credentialStatus = await statusManager.checkStatus(credentialWithStatus.id);
     checkRemoteCredentialStatus(credentialStatus, credentialWithStatus.id, 1);
 
-    // check if status repos are properly configured
-    expect(await statusManager.statusReposProperlyConfigured()).to.be.true;
+    // check if status repos have valid configuration
+    const repoState = await statusManager.getRepoState();
+    expect(repoState.valid).to.be.true;
   });
 
   it('tests saveSnapshot and restoreSnapshot', async () => {
@@ -248,7 +250,8 @@ describe('GitLab Credential Status Manager', () => {
     // save snapshot of status repos
     await statusManager.restoreSnapshot();
 
-    // check if status repos are properly configured
-    expect(await statusManager.statusReposProperlyConfigured()).to.be.true;
+    // check if status repos have valid configuration
+    const repoState = await statusManager.getRepoState();
+    expect(repoState.valid).to.be.true;
   });
 });

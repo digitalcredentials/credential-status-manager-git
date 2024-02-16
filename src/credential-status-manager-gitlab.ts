@@ -114,7 +114,7 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
       signUserCredential,
       signStatusCredential
     });
-    this.ensureProperConfiguration(options);
+    this.ensureValidConfiguration(options);
     this.ownerAccountName = ownerAccountName;
     this.repoId = repoId;
     this.metaRepoId = metaRepoId;
@@ -134,12 +134,12 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     });
   }
 
-  // ensures proper configuration of GitLab status manager
-  ensureProperConfiguration(options: GitLabCredentialStatusManagerOptions): void {
+  // ensures valid configuration of GitLab status manager
+  ensureValidConfiguration(options: GitLabCredentialStatusManagerOptions): void {
     const missingOptions = [] as
       Array<keyof GitLabCredentialStatusManagerOptions & BaseCredentialStatusManagerOptions>;
 
-    const isProperlyConfigured = GITLAB_MANAGER_REQUIRED_OPTIONS.every(
+    const hasValidConfiguration = GITLAB_MANAGER_REQUIRED_OPTIONS.every(
       (option: keyof GitLabCredentialStatusManagerOptions) => {
         if (!options[option]) {
           missingOptions.push(option as any);
@@ -148,7 +148,7 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
       }
     );
 
-    if (!isProperlyConfigured) {
+    if (!hasValidConfiguration) {
       throw new BadRequestError({
         message:
           'You have neglected to set the following required options for the ' +

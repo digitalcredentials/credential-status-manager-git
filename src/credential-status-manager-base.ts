@@ -8,7 +8,7 @@ import { Mutex } from 'async-mutex';
 import { v4 as uuid } from 'uuid';
 import {
   BadRequestError,
-  InconsistentRepositoryError,
+  InvalidRepoStateError,
   NotFoundError,
   SnapshotExistsError
 } from './errors.js';
@@ -99,6 +99,12 @@ interface UpdateStatusOptions {
   credentialStatus: CredentialState;
 }
 
+// Type definition for getRepoState method output
+interface GetRepoStateResult {
+  valid: boolean;
+  error?: InvalidRepoStateError;
+}
+
 // Type definition for BaseCredentialStatusManager constructor method input
 export interface BaseCredentialStatusManagerOptions {
   repoName: string;
@@ -183,7 +189,7 @@ export abstract class BaseCredentialStatusManager {
       credential.id = uuid();
     }
 
-    // ensure that credential contains the proper status credential context
+    // ensure that credential contains valid status credential context
     if (!credential['@context'].includes(CONTEXT_URL_V1)) {
       credential['@context'].push(CONTEXT_URL_V1);
     }
@@ -379,7 +385,7 @@ export abstract class BaseCredentialStatusManager {
       const result = await this.allocateStatusUnsafe(credential);
       return result;
     } catch(error) {
-      if (!(error instanceof InconsistentRepositoryError)) {
+      if (!(error instanceof InvalidRepoStateError)) {
         return this.allocateStatus(credential);
       } else {
         throw error;
@@ -514,7 +520,7 @@ export abstract class BaseCredentialStatusManager {
       const result = await this.updateStatusUnsafe({ credentialId, credentialStatus });
       return result;
     } catch(error) {
-      if (!(error instanceof InconsistentRepositoryError)) {
+      if (!(error instanceof InvalidRepoStateError)) {
         return this.updateStatus({
           credentialId,
           credentialStatus
@@ -562,8 +568,8 @@ export abstract class BaseCredentialStatusManager {
   // checks if status repos are empty
   abstract statusReposEmpty(): Promise<boolean>;
 
-  // checks if status repos are properly configured
-  async statusReposProperlyConfigured(): Promise<boolean> {
+  // retrieves repo state
+  async getRepoState(): Promise<GetRepoStateResult> {
     try {
       // retrieve config
       const {
@@ -577,71 +583,125 @@ export abstract class BaseCredentialStatusManager {
 
       // ensure that status is consistent
       let hasLatestStatusCredentialId = false;
+      const invalidStatusCredentialIds = [];
       for (const statusCredentialId of statusCredentialIds) {
         // retrieve status credential
         const statusCredential = await this.getStatusCredential(statusCredentialId);
 
-        // ensure that status credential has proper type
+        // ensure that status credential has valid type
         if (typeof statusCredential === 'string') {
-          return false;
+          return {
+            valid: false,
+            error: new InvalidRepoStateError({
+              message: 'This library does not support compact JWT ' +
+              `status credentials: ${statusCredential}`
+            })
+          };
         }
 
         // ensure that status credential is well formed
         hasLatestStatusCredentialId = hasLatestStatusCredentialId || (statusCredential.id?.endsWith(latestStatusCredentialId) ?? false);
-        const hasProperStatusCredentialType = statusCredential.type.includes('StatusList2021Credential');
-        const hasProperStatusCredentialSubId = statusCredential.credentialSubject.id?.startsWith(statusCredentialUrl) ?? false;
-        const hasProperStatusCredentialSubType = statusCredential.credentialSubject.type === 'StatusList2021';
-        const hasProperStatusCredentialSubStatusPurpose = statusCredential.credentialSubject.statusPurpose === 'revocation';
-        const hasProperStatusCredentialFormat = hasProperStatusCredentialType &&
-                                      hasProperStatusCredentialSubId &&
-                                      hasProperStatusCredentialSubType &&
-                                      hasProperStatusCredentialSubStatusPurpose;
-        if (!hasProperStatusCredentialFormat) {
-          return false;
+        const hasValidStatusCredentialType = statusCredential.type.includes('StatusList2021Credential');
+        const hasValidStatusCredentialSubId = statusCredential.credentialSubject.id?.startsWith(statusCredentialUrl) ?? false;
+        const hasValidStatusCredentialSubType = statusCredential.credentialSubject.type === 'StatusList2021';
+        const hasValidStatusCredentialSubStatusPurpose = statusCredential.credentialSubject.statusPurpose === 'revocation';
+        const hasValidStatusCredentialFormat = hasValidStatusCredentialType &&
+                                                hasValidStatusCredentialSubId &&
+                                                hasValidStatusCredentialSubType &&
+                                                hasValidStatusCredentialSubStatusPurpose;
+        if (!hasValidStatusCredentialFormat) {
+          invalidStatusCredentialIds.push(statusCredential.id);
         }
+      }
+
+      if (invalidStatusCredentialIds.length !== 0) {
+        return {
+          valid: false,
+          error: new InvalidRepoStateError({
+            message: 'Status credentials with the following IDs ' +
+              'have an invalid format: ' +
+              `${invalidStatusCredentialIds.map(id => `"${id as string}"`).join(', ')}`
+          })
+        };
       }
 
       // ensure that latest status credential is being tracked in the config
       if (!hasLatestStatusCredentialId) {
-        return false;
+        return {
+          valid: false,
+          error: new InvalidRepoStateError({
+            message: `Latest status credential ("${latestStatusCredentialId}") ` +
+            'is not being tracked in config.'
+          })
+        };
       }
 
       // ensure that all status credentials are being tracked in the config
       const repoFilenames = await this.getRepoFilenames();
       if (repoFilenames.length !== statusCredentialIds.length) {
-        return false;
-      }
-      repoFilenames.sort();
-      statusCredentialIds.sort();
-      const hasAllStatusCredentialIds = repoFilenames.every((value, index) => {
-        return value === statusCredentialIds[index];
-      });
-      if (!hasAllStatusCredentialIds) {
-        return false;
+        const missingStatusCredentialIds = [];
+        for (const statusCredentialId of statusCredentialIds) {
+          if (!repoFilenames.includes(statusCredentialId)) {
+            missingStatusCredentialIds.push(statusCredentialId);
+          }
+        }
+
+        if (missingStatusCredentialIds.length !== 0) {
+          return {
+            valid: false,
+            error: new InvalidRepoStateError({
+              message: 'Status credentials with the following IDs ' +
+                'are missing in the status credential repo: ' +
+                `${missingStatusCredentialIds.map(id => `"${id}"`).join(', ')}`
+            })
+          };
+        }
+
+        // Note: If the code reaches this point, the status credential repo
+        // includes more status credentials than we are tracking in config.
+        // While the repo should not reach this state, it is relatively harmless.
       }
 
-      // ensure that log has proper type
-      const hasProperLogType = Array.isArray(eventLog);
-      if (!hasProperLogType) {
-        return false;
+      // ensure that event log has valid type
+      const hasValidEventLogType = Array.isArray(eventLog);
+      if (!hasValidEventLogType) {
+        return {
+          valid: false,
+          error: new InvalidRepoStateError({
+            message: 'Event log must be an array.'
+          })
+        };
       }
 
-      // ensure that log data is well formed
+      // ensure that event log is well formed
       const credentialIds = eventLog.map((value) => {
         return value.credentialId;
       });
       const credentialIdsUnique = credentialIds.filter((value, index, array) => {
         return array.indexOf(value) === index;
       });
-      const hasProperLogEntries = credentialIdsUnique.length ===
-                                  (statusCredentialIds.length - 1) *
-                                  CREDENTIAL_STATUS_LIST_SIZE +
-                                  latestCredentialsIssuedCounter;
+      const credentialIdsUniqueCounter = credentialIdsUnique.length;
+      const credentialsIssuedCounter = (statusCredentialIds.length - 1) *
+                                       CREDENTIAL_STATUS_LIST_SIZE +
+                                       latestCredentialsIssuedCounter;
+      const hasValidLogEntries = credentialIdsUniqueCounter === credentialsIssuedCounter;
+      if (!hasValidLogEntries) {
+        return {
+          valid: false,
+          error: new InvalidRepoStateError({
+            message: 'There is a mismatch between the credentials tracked ' +
+            'in the config and the credentials tracked in the event log.'
+          })
+        };
+      }
 
       // ensure that all checks pass
-      return hasProperLogEntries;
+      return { valid: true };
     } catch (error) {
-      return false;
+      return {
+        valid: false,
+        error: new InvalidRepoStateError()
+      };
     }
   }
 
@@ -747,13 +807,13 @@ export abstract class BaseCredentialStatusManager {
 
   // cleans up snapshot
   async cleanupSnapshot(): Promise<void> {
-    const reposProperlyConfigured = await this.statusReposProperlyConfigured();
+    const repoState = await this.getRepoState();
     const snapExists = await this.snapshotExists();
-    if (!reposProperlyConfigured) {
+    if (!repoState.valid) {
       if (snapExists) {
         await this.restoreSnapshot();
       } else {
-        throw new InconsistentRepositoryError({ statusManager: this });
+        throw repoState.error as InvalidRepoStateError;
       }
     } else {
       if (snapExists) {

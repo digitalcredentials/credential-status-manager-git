@@ -39,6 +39,14 @@ export class NotFoundError extends CustomError {
   }
 }
 
+export class InvalidRepoStateError extends CustomError {
+  constructor(options?: CustomErrorOptionalOptions) {
+    const { message } = options ?? {};
+    const defaultMessage = 'The status repos have an invalid state.';
+    super({ message, defaultMessage, code: 500 });
+  }
+}
+
 export class InvalidDidSeedError extends CustomError {
   constructor(options?: CustomErrorOptionalOptions) {
     const { message } = options ?? {};
@@ -74,18 +82,6 @@ export class SnapshotExistsError extends CustomError {
   constructor(options?: CustomErrorOptionalOptions) {
     const { message } = options ?? {};
     const defaultMessage = 'Snapshot data already exists.';
-    super({ message, defaultMessage, code: 400 });
-  }
-}
-
-export class InconsistentRepositoryError extends CustomError {
-  constructor(options?: CustomErrorOptionalOptions) {
-    const { statusManager, message } = options ?? {};
-    const repoName = statusManager?.getRepoName() ?? 'repoName';
-    const metaRepoName = statusManager?.getMetaRepoName() ?? 'metaRepoName';
-    const defaultMessage = `Inconsistencies in the status repos may need to be manually resolved. ` +
-      `If this is your first operation with this library (e.g., "createStatusManager"), please make sure that the ` +
-      `credential status repo ("${repoName}") and the credential status metadata repo ("${metaRepoName}") are empty.`;
     super({ message, defaultMessage, code: 400 });
   }
 }
