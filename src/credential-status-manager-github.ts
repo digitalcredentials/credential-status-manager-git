@@ -254,16 +254,16 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
 
   // retrieves response from fetching status file
   async getStatusCredentialResponse(statusCredentialId?: string): Promise<any> {
-    let statusCredentialPath;
+    let statusCredentialFinal;
     if (statusCredentialId) {
-      statusCredentialPath = statusCredentialId;
+      statusCredentialFinal = statusCredentialId;
     } else {
-      ({ latestStatusCredentialId: statusCredentialPath } = await this.getConfig());
+      ({ latestStatusCredentialId: statusCredentialFinal } = await this.getConfig());
     }
     const statusResponse = await this.repoClient.repos.getContent({
       owner: this.ownerAccountName,
       repo: this.repoName,
-      path: statusCredentialPath
+      path: statusCredentialFinal
     });
     return statusResponse.data;
   }

@@ -378,18 +378,18 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
 
   // retrieves response from fetching status file
   async getStatusCredentialResponse(statusCredentialId?: string): Promise<any> {
-    let statusCredentialPath;
+    let statusCredentialFinal;
     if (statusCredentialId) {
-      statusCredentialPath = statusCredentialId;
+      statusCredentialFinal = statusCredentialId;
     } else {
-      ({ latestStatusCredentialId: statusCredentialPath } = await this.getConfig());
+      ({ latestStatusCredentialId: statusCredentialFinal } = await this.getConfig());
     }
     const statusRequestOptions = {
       params: {
         ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
       }
     };
-    const statusPath = encodeURIComponent(statusCredentialPath);
+    const statusPath = encodeURIComponent(statusCredentialFinal);
     const statusRequestEndpoint = this.filesEndpoint(this.repoId, statusPath);
     const statusResponse = await this.repoClient.get(statusRequestEndpoint, statusRequestOptions);
     return statusResponse.data;
