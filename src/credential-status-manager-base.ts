@@ -249,8 +249,8 @@ export abstract class BaseCredentialStatusManager {
       latestCredentialsIssuedCounter = 0;
       latestStatusCredentialId = this.generateStatusCredentialId();
       statusCredentialIds.push(latestStatusCredentialId);
-      allCredentialsIssuedCounter++;
     }
+    allCredentialsIssuedCounter++;
     latestCredentialsIssuedCounter++;
 
     // attach credential status
