@@ -13,7 +13,7 @@ const updateTsconfig = async () => {
   const tsconfigFilePath = './tsconfig.spec.json';
   const tsconfigJson = JSON.parse(fs.readFileSync(tsconfigFilePath));
   tsconfigJson.compilerOptions.module = 'commonjs';
-  fs.writeFileSync(tsconfigFilePath, JSON.stringify(tsconfigJson, null, 2));
+  fs.writeFileSync(tsconfigFilePath, JSON.stringify(tsconfigJson, null, 2) + '\n');
 };
 
 // combine pre-test subscripts
