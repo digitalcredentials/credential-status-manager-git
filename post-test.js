@@ -13,7 +13,7 @@ const updateTsconfig = async () => {
   const tsconfigFilePath = './tsconfig.spec.json';
   const tsconfigJson = require(tsconfigFilePath);
   tsconfigJson.compilerOptions.module = 'es2022';
-  fs.writeFileSync(tsconfigFilePath, JSON.stringify(tsconfigJson, null, 2));
+  fs.writeFileSync(tsconfigFilePath, JSON.stringify(tsconfigJson, null, 2) + '\n');
 };
 
 // combine post-test subscripts
