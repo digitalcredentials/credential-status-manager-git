@@ -124,7 +124,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // checks if caller has authority to update status based on status repo access token
-  async hasStatusAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean> {
+  async hasAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean> {
     this.resetClientAuthorization(repoAccessToken, metaRepoAccessToken);
 
     let hasRepoAccess: boolean;

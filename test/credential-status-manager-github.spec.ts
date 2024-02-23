@@ -5,7 +5,7 @@ import 'mocha';
 import { expect } from 'chai';
 import { createSandbox } from 'sinon';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
-import * as OctokitClient from '@octokit/rest';
+import * as Octokit from '@octokit/rest';
 import { createStatusManager } from '../src/index.js';
 import {
   BaseCredentialStatusManager,
@@ -41,24 +41,7 @@ class MockGitHubCredentialStatusManager extends GitHubStatus.GitHubCredentialSta
   private snapshot: Snapshot;
 
   constructor(options: GitHubStatus.GitHubCredentialStatusManagerOptions) {
-    const {
-      ownerAccountName,
-      repoName,
-      metaRepoName,
-      repoAccessToken,
-      metaRepoAccessToken,
-      didMethod,
-      didSeed
-    } = options;
-    super({
-      ownerAccountName,
-      repoName,
-      metaRepoName,
-      repoAccessToken,
-      metaRepoAccessToken,
-      didMethod,
-      didSeed
-    });
+    super(options);
     this.statusCredential = {} as VerifiableCredential;
     this.config = {} as Config;
     this.snapshot = {} as Snapshot;
@@ -73,7 +56,7 @@ class MockGitHubCredentialStatusManager extends GitHubStatus.GitHubCredentialSta
   async deployCredentialStatusWebsite(): Promise<void> {}
 
   // checks if caller has authority to update status based on status repo access token
-  async hasStatusAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean> { return true; }
+  async hasAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean> { return true; }
 
   // checks if status repos exist
   async statusReposExist(): Promise<boolean> { return true; }
@@ -157,7 +140,7 @@ class MockGitHubCredentialStatusManager extends GitHubStatus.GitHubCredentialSta
 describe('GitHub Credential Status Manager', () => {
   const gitService = 'github' as GitService;
   let statusManager: GitHubStatus.GitHubCredentialStatusManager;
-  sandbox.stub(OctokitClient.Octokit.prototype, 'constructor').returns(null);
+  sandbox.stub(Octokit.Octokit.prototype, 'constructor').returns(null);
   sandbox.stub(GitHubStatus, 'GitHubCredentialStatusManager').value(MockGitHubCredentialStatusManager);
 
   beforeEach(async () => {
@@ -236,7 +219,7 @@ describe('GitHub Credential Status Manager', () => {
     // save snapshot of status repos
     await statusManager.saveSnapshot();
 
-    // check status credential
+    // check snapshot
     await checkSnapshot(statusManager, 3, 1);
 
     // save snapshot of status repos

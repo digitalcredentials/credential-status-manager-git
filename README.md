@@ -198,9 +198,9 @@ console.log(credentialStatus);
 
 ### Check if caller has authority to update status of credentials
 
-The `hasStatusAuthority` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts an access token for the API of the caller's Git service of choice, and reports whether the caller has the authority to update the status of credentials.
+The `hasAuthority` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts an access token for the API of the caller's Git service of choice, and reports whether the caller has the authority to update the status of credentials.
 
-Here is a sample call to `hasStatusAuthority` in the context of Express.js middleware:
+Here is a sample call to `hasAuthority` in the context of Express.js middleware:
 
 ```ts
 // retrieves status credential manager
@@ -233,7 +233,7 @@ async function verifyStatusRepoAccess(req, res, next) {
     return res.send('Failed to provide access token in request');
   }
   // check if caller has access to status repo
-  const hasAccess = await req.statusManager.hasStatusAuthority(repoAccessToken);
+  const hasAccess = await req.statusManager.hasAuthority(repoAccessToken);
   if (!hasAccess) {
     return res.send('Caller is unauthorized to access status repo');
   }
@@ -283,7 +283,7 @@ async function verifyStatusRepoAccess(req, res, next) {
 11. Select the *Read and write* access level for the *Administration*, *Contents*, and *Pages* permissions and keep the default *Read-only* access level for the *Metadata* permission
 12. Click the *Generate token* button
 13. Copy the generated token
-14. Use the token as the value for `repoAccessToken` and/or `metaRepoAccessToken` in invocations of `createStatusManager` and `hasStatusAuthority` \*
+14. Use the token as the value for `repoAccessToken` and/or `metaRepoAccessToken` in invocations of `createStatusManager` and `hasAuthority` \*
 
 **\*Note:** For the credential status metadata repository, you can either generate a separate access token and use that as the value for `metaRepoAccessToken` or include it along with `repoAccessToken` when selecting repositories. Whatever you decide, make sure to pass values for both of these values in invocations of `createStatusManager` (even though the latter option will result in the same value for these properties). If you are using an organization as the owner account for the credential status manager and `ownerAccountName` is not listed, follow [these instructions](https://docs.github.com/en/organizations/managing-programmatic-access-to-your-organization/setting-a-personal-access-token-policy-for-your-organization) to set a personal access token policy for it.
 
@@ -297,7 +297,7 @@ async function verifyStatusRepoAccess(req, res, next) {
 7. Select the *api* scope
 8. Click the *Create project access token* button
 9. Copy the generated token
-10. Use the token as the value for `repoAccessToken` in invocations of `createStatusManager` and `hasStatusAuthority`
+10. Use the token as the value for `repoAccessToken` in invocations of `createStatusManager` and `hasAuthority`
 11. Repeat these steps for `metaRepoName` and `metaRepoAccessToken`
 
 **\*Note:** At the time of this writing, group access tokens are only available in paid GitLab plans (i.e., Premium SaaS and Ultimate SaaS). Additionally, unlike other services, you cannot use the same access token for multiple repositories at this time (hence the need for `repoAccessToken` *and* `metaRepoAccessToken`). Finally, if you are unable to create access tokens, you are either on e free plan or you need to [enable project access token creation](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html#enable-or-disable-project-access-token-creation).

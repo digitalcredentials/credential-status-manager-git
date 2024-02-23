@@ -44,8 +44,8 @@ export async function createStatusManager(options: CredentialStatusManagerOption
     didMethod,
     didSeed,
     didWebUrl,
-    signUserCredential=false,
-    signStatusCredential=false
+    signUserCredential = false,
+    signStatusCredential = false
   } = options;
   let statusManager: BaseCredentialStatusManager;
   switch (gitService) {
@@ -100,7 +100,7 @@ export async function createStatusManager(options: CredentialStatusManagerOption
   });
 
   // retrieve relevant data from status repo configuration
-  const hasAccess = await statusManager.hasStatusAuthority(repoAccessToken, metaRepoAccessToken);
+  const hasAccess = await statusManager.hasAuthority(repoAccessToken, metaRepoAccessToken);
   if (!hasAccess) {
     throw new InvalidTokenError({ statusManager });
   }
