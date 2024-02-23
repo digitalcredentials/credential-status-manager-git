@@ -5,7 +5,7 @@ import 'mocha';
 import { expect } from 'chai';
 import { createSandbox } from 'sinon';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
-import * as AxiosClient from 'axios';
+import * as Axios from 'axios';
 import { createStatusManager } from '../src/index.js';
 import {
   BaseCredentialStatusManager,
@@ -43,28 +43,7 @@ class MockGitLabCredentialStatusManager extends GitLabStatus.GitLabCredentialSta
   private snapshot: Snapshot;
 
   constructor(options: GitLabStatus.GitLabCredentialStatusManagerOptions) {
-    const {
-      ownerAccountName,
-      repoName,
-      repoId,
-      metaRepoName,
-      metaRepoId,
-      repoAccessToken,
-      metaRepoAccessToken,
-      didMethod,
-      didSeed
-    } = options;
-    super({
-      ownerAccountName,
-      repoName,
-      repoId,
-      metaRepoName,
-      metaRepoId,
-      repoAccessToken,
-      metaRepoAccessToken,
-      didMethod,
-      didSeed
-    });
+    super(options);
     this.statusCredential = {} as VerifiableCredential;
     this.config = {} as Config;
     this.snapshot = {} as Snapshot;
@@ -79,7 +58,7 @@ class MockGitLabCredentialStatusManager extends GitLabStatus.GitLabCredentialSta
   async deployCredentialStatusWebsite(): Promise<void> {}
 
   // checks if caller has authority to update status based on status repo access token
-  async hasStatusAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean> { return true; }
+  async hasAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean> { return true; }
 
   // checks if status repos exist
   async statusReposExist(): Promise<boolean> { return true; }
@@ -163,7 +142,7 @@ class MockGitLabCredentialStatusManager extends GitLabStatus.GitLabCredentialSta
 describe('GitLab Credential Status Manager', () => {
   const gitService = 'gitlab' as GitService;
   let statusManager: GitLabStatus.GitLabCredentialStatusManager;
-  sandbox.stub(AxiosClient.default, 'create').returnsThis();
+  sandbox.stub(Axios.default, 'create').returnsThis();
   sandbox.stub(GitLabStatus, 'GitLabCredentialStatusManager').value(MockGitLabCredentialStatusManager);
 
   beforeEach(async () => {
@@ -244,7 +223,7 @@ describe('GitLab Credential Status Manager', () => {
     // save snapshot of status repos
     await statusManager.saveSnapshot();
 
-    // check status credential
+    // check snapshot
     await checkSnapshot(statusManager, 3, 1);
 
     // save snapshot of status repos

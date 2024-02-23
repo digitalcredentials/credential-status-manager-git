@@ -82,15 +82,16 @@ interface ComposeStatusCredentialOptions {
   statusPurpose?: string;
 }
 
-// Type definition for embedCredentialStatus method input
-interface EmbedCredentialStatusOptions {
+// Type definition for attachCredentialStatus method input
+interface AttachCredentialStatusOptions {
   credential: any;
   statusPurpose?: string;
 }
 
-// Type definition for embedCredentialStatus method output
-type EmbedCredentialStatusResult = Config & {
+// Type definition for attachCredentialStatus method output
+type AttachCredentialStatusResult = Config & {
   credential: any;
+  newUserCredential: boolean;
   newStatusCredential: boolean;
 };
 
@@ -177,12 +178,14 @@ export abstract class BaseCredentialStatusManager {
   }
 
   // generates new status credential ID
+  // Note: We assume this method will never generate an ID that
+  // has never been generated for a status credential in this system
   generateStatusCredentialId(): string {
     return Math.random().toString(36).substring(2, 12).toUpperCase();
   }
 
-  // embeds status into credential
-  async embedCredentialStatus({ credential, statusPurpose = 'revocation' }: EmbedCredentialStatusOptions): Promise<EmbedCredentialStatusResult> {
+  // attaches status to credential
+  async attachCredentialStatus({ credential, statusPurpose = 'revocation' }: AttachCredentialStatusOptions): Promise<AttachCredentialStatusResult> {
     // ensure that credential has ID
     if (!credential.id) {
       // Note: This assumes that uuid will never generate an ID that
@@ -233,6 +236,7 @@ export abstract class BaseCredentialStatusManager {
           ...credential,
           credentialStatus
         },
+        newUserCredential: false,
         newStatusCredential: false,
         latestStatusCredentialId,
         latestCredentialsIssuedCounter,
@@ -271,6 +275,7 @@ export abstract class BaseCredentialStatusManager {
         ...credential,
         credentialStatus
       },
+      newUserCredential: true,
       newStatusCredential,
       latestStatusCredentialId,
       latestCredentialsIssuedCounter,
@@ -292,11 +297,12 @@ export abstract class BaseCredentialStatusManager {
     // attach status to credential
     let {
       credential: credentialWithStatus,
+      newUserCredential,
       newStatusCredential,
       latestStatusCredentialId,
       eventLog,
-      ...embedCredentialStatusResultRest
-    } = await this.embedCredentialStatus({ credential });
+      ...attachCredentialStatusResultRest
+    } = await this.attachCredentialStatus({ credential });
 
     // retrieve signing material
     const {
@@ -314,6 +320,22 @@ export abstract class BaseCredentialStatusManager {
       didSeed,
       didWebUrl
     });
+
+    // sign credential if necessary
+    if (signUserCredential) {
+      credentialWithStatus = await signCredential({
+        credential: credentialWithStatus,
+        didMethod,
+        didSeed,
+        didWebUrl
+      });
+    }
+
+    // return credential without updating database resources
+    // if we are already accounting for this credential
+    if (!newUserCredential) {
+      return credentialWithStatus;
+    }
 
     // create new status credential only if the last one has reached capacity
     if (newStatusCredential) {
@@ -337,16 +359,6 @@ export abstract class BaseCredentialStatusManager {
 
       // create and persist status credential
       await this.createStatusCredential(statusCredential);
-    }
-
-    // sign credential if necessary
-    if (signUserCredential) {
-      credentialWithStatus = await signCredential({
-        credential: credentialWithStatus,
-        didMethod,
-        didSeed,
-        didWebUrl
-      });
     }
 
     // extract relevant data from credential status
@@ -375,7 +387,7 @@ export abstract class BaseCredentialStatusManager {
     await this.updateConfig({
       latestStatusCredentialId,
       eventLog,
-      ...embedCredentialStatusResultRest
+      ...attachCredentialStatusResultRest
     });
 
     return credentialWithStatus;
@@ -565,7 +577,7 @@ export abstract class BaseCredentialStatusManager {
   async deployCredentialStatusWebsite(): Promise<void> {};
 
   // checks if caller has authority to update status based on status repo access token
-  abstract hasStatusAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean>;
+  abstract hasAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean>;
 
   // checks if status repos exist
   abstract statusReposExist(): Promise<boolean>;
@@ -580,6 +592,7 @@ export abstract class BaseCredentialStatusManager {
       const {
         latestStatusCredentialId,
         latestCredentialsIssuedCounter,
+        allCredentialsIssuedCounter,
         statusCredentialIds,
         eventLog
       } = await this.getConfig();
@@ -688,13 +701,29 @@ export abstract class BaseCredentialStatusManager {
       const credentialsIssuedCounter = (statusCredentialIds.length - 1) *
                                        CREDENTIAL_STATUS_LIST_SIZE +
                                        latestCredentialsIssuedCounter;
-      const hasValidEventLogEntries = credentialIdsUniqueCounter === credentialsIssuedCounter;
-      if (!hasValidEventLogEntries) {
+      const hasValidEventsLogToConfig = credentialIdsUniqueCounter === allCredentialsIssuedCounter;
+      const hasValidEventsConfigToReality = allCredentialsIssuedCounter === credentialsIssuedCounter;
+
+      if (!hasValidEventsLogToConfig) {
         return {
           valid: false,
           error: new InvalidRepoStateError({
             message: 'There is a mismatch between the credentials tracked ' +
-              'in the config and the credentials tracked in the event log.'
+              `in the event log (${credentialIdsUniqueCounter}) ` +
+              'and the credentials tracked ' +
+              `in the config (${allCredentialsIssuedCounter}).`
+          })
+        };
+      }
+
+      if (!hasValidEventsConfigToReality) {
+        return {
+          valid: false,
+          error: new InvalidRepoStateError({
+            message: 'There is a mismatch between the credentials tracked ' +
+              `in the config (${allCredentialsIssuedCounter}) ` +
+              'and the credentials tracked ' +
+              `in reality (${credentialsIssuedCounter}).`
           })
         };
       }
