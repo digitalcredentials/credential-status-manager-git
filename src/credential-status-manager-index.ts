@@ -44,8 +44,8 @@ export async function createStatusManager(options: CredentialStatusManagerOption
     didMethod,
     didSeed,
     didWebUrl,
-    signUserCredential = false,
-    signStatusCredential = false
+    signStatusCredential = true,
+    signUserCredential = false
   } = options;
   let statusManager: BaseCredentialStatusManager;
   switch (gitService) {
@@ -59,8 +59,8 @@ export async function createStatusManager(options: CredentialStatusManagerOption
         didMethod,
         didSeed,
         didWebUrl,
-        signUserCredential,
-        signStatusCredential
+        signStatusCredential,
+        signUserCredential
       });
       break;
     case GitService.GitLab: {
@@ -79,8 +79,8 @@ export async function createStatusManager(options: CredentialStatusManagerOption
         didMethod,
         didSeed,
         didWebUrl,
-        signUserCredential,
-        signStatusCredential
+        signStatusCredential,
+        signUserCredential
       });
       break;
     }
