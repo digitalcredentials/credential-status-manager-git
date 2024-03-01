@@ -16,7 +16,6 @@
   - [Allocate status for credential](#allocate-status-for-credential)
   - [Update status of credential](#update-status-of-credential)
   - [Check status of credential](#check-status-of-credential)
-  - [Check if caller has authority to update status of credential](#check-if-caller-has-authority-to-update-status-of-credential)
 - [Dependencies](#dependencies)
   - [Create credential status repositories](#create-credential-status-repositories)
   - [Generate access tokens](#generate-access-tokens)
@@ -194,53 +193,6 @@ console.log(credentialStatus);
 }
 */
 ```
-
-### Check if caller has authority to update status of credential
-
-The `hasAuthority` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts an access token for the API of the caller's Git service of choice, and reports whether the caller has the authority to update the status of credentials.
-
-Here is a sample call to `hasAuthority` in the context of Express.js middleware:
-
-```ts
-// retrieves status credential manager
-export async function getCredentialStatusManager(req, res, next) {
-  try {
-    req.statusManager = await getStatusManager();
-    next();
-  } catch (error) {
-    return res.send('Failed to retrieve credential status manager');
-  }
-}
-
-// extracts access token from request header
-function extractAccessToken(headers) {
-  if (!headers.authorization) {
-    return;
-  }
-  const [scheme, token] = headers.authorization.split(' ');
-  if (scheme === 'Bearer') {
-    return token;
-  }
-}
-
-// verifies whether caller has access to status repo
-async function verifyStatusRepoAccess(req, res, next) {
-  const { headers } = req;
-  // verify that access token was included in request
-  const repoAccessToken = extractAccessToken(headers);
-  if (!repoAccessToken) {
-    return res.send('Failed to provide access token in request');
-  }
-  // check if caller has access to status repo
-  const hasAccess = await req.statusManager.hasAuthority(repoAccessToken);
-  if (!hasAccess) {
-    return res.send('Caller is unauthorized to access status repo');
-  }
-  next();
-}
-```
-
-**Note:** This code assumes that `getStatusManager` either calls `createStatusManager` or retrieves an existing status manager instance created at an earlier point in time.
 
 ## Dependencies
 
