@@ -1,6 +1,6 @@
 # credential-status-manager-git
 
-A Typescript library for managing the status of [Verifiable Credentials](https://www.w3.org/TR/vc-data-model) in Git using [Status List 2021](https://w3c-ccg.github.io/vc-status-list-2021)
+> A Typescript library for managing the status of [Verifiable Credentials](https://www.w3.org/TR/vc-data-model) in Git using [Status List 2021](https://w3c-ccg.github.io/vc-status-list-2021)
 
 [![Build status](https://img.shields.io/github/actions/workflow/status/digitalcredentials/credential-status-manager-git/main.yml?branch=main)](https://github.com/digitalcredentials/credential-status-manager-git/actions?query=workflow%3A%22Node.js+CI%22)
 [![NPM Version](https://img.shields.io/npm/v/@digitalcredentials/credential-status-manager-git.svg)](https://npm.im/@digitalcredentials/credential-status-manager-git)
@@ -16,8 +16,8 @@ A Typescript library for managing the status of [Verifiable Credentials](https:/
   - [Allocate status for credential](#allocate-status-for-credential)
   - [Update status of credential](#update-status-of-credential)
   - [Check status of credential](#check-status-of-credential)
-  - [Check if caller has authority to update status of credentials](#check-if-caller-has-authority-to-update-status-of-credentials)
-- [Dependencies](#Dependencies)
+  - [Check if caller has authority to update status of credential](#check-if-caller-has-authority-to-update-status-of-credential)
+- [Dependencies](#dependencies)
   - [Create credential status repositories](#create-credential-status-repositories)
   - [Generate access tokens](#generate-access-tokens)
   - [Generate DID seeds](#generate-did-seeds)
@@ -26,11 +26,11 @@ A Typescript library for managing the status of [Verifiable Credentials](https:/
 
 ## Background
 
-Credentials are dynamic artifacts with a robust lifecycle that goes well beyond issuance. This lifecycle is liable to span revocation, suspension, and expiry, among other common states. Many proposals have been put forth to capture this model in Verifiable Credentials. One of the most mature specifications for this is [Status List 2021](https://w3c-ccg.github.io/vc-status-list-2021). This library provides an implementation of this specification that leverages Git services like GitHub and GitLab for storage and authentication.
+Credentials are dynamic artifacts with a lifecycle that goes well beyond issuance. This lifecycle is liable to span revocation, suspension, and expiry, among other common states. Many proposals have been put forth to capture these statuses in Verifiable Credentials. One of the most mature specifications for this is [Status List 2021](https://w3c-ccg.github.io/vc-status-list-2021). This library provides an implementation of this specification that leverages Git services like GitHub and GitLab for storage and authentication.
 
 ## Install
 
-- Node.js 16+ is recommended.
+- Node.js 20+ is recommended.
 
 ### NPM
 
@@ -69,8 +69,8 @@ The `createStatusManager` function is the only exported pure function of this li
 | `didMethod` | name of the DID method used for signing | `key` \| `web` | yes |
 | `didSeed` | seed used to deterministically generate DID | string | yes |
 | `didWebUrl` | URL for `did:web` | string | yes (if `didMethod` = `web`) |
+| `signStatusCredential` | whether or not to sign status credentials | boolean | no (default: `true`) |
 | `signUserCredential` | whether or not to sign user credentials | boolean | no (default: `false`) |
-| `signStatusCredential` | whether or not to sign status credentials | boolean | no (default: `false`) |
 
 Here is a sample call to `createStatusManager`:
 
@@ -85,8 +85,7 @@ const statusManager = await createStatusManager({
   repoAccessToken: 'abc123', // Please create your own access token in your Git service of choice (see Dependencies section for detailed instructions)
   metaRepoAccessToken: 'def456', // Please create your own access token in your Git service of choice (see Dependencies section for detailed instructions)
   didMethod: 'key',
-  didSeed: 'DsnrHBHFQP0ab59dQELh3uEwy7i5ArcOTwxkwRO2hM87CBRGWBEChPO7AjmwkAZ2', // Please create your own DID seed (see Dependencies section for detailed instructions)
-  signStatusCredential: true
+  didSeed: 'DsnrHBHFQP0ab59dQELh3uEwy7i5ArcOTwxkwRO2hM87CBRGWBEChPO7AjmwkAZ2' // Please create your own DID seed (see Dependencies section for detailed instructions)
 });
 ```
 
@@ -94,7 +93,7 @@ const statusManager = await createStatusManager({
 
 ### Allocate status for credential
 
-The `allocateStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts a credential as input, records its status in the caller's Git service of choice, and returns the credential with status metadata attached.
+`allocateStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts a credential as input, records its status in the caller's Git service of choice, and returns the credential with status metadata attached.
 
 Here is a sample call to `allocateStatus`:
 
@@ -143,7 +142,7 @@ console.log(credentialWithStatus);
 
 ### Update status of credential
 
-The `updateStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts a credential ID and desired credential status as input (options: `active` | `revoked`), records its new status in the caller's Git service of choice, and returns the status credential.
+`updateStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts a credential ID and desired credential status as input (options: `active` | `revoked`), records its new status in the caller's Git service of choice, and returns the status credential.
 
 Here is a sample call to `updateStatus`:
 
@@ -175,7 +174,7 @@ console.log(statusCredential);
 
 ### Check status of credential
 
-The `checkStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts a credential ID as input and returns status information for the credential.
+`checkStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts a credential ID as input and returns status information for the credential.
 
 Here is a sample call to `checkStatus`:
 
@@ -196,7 +195,7 @@ console.log(credentialStatus);
 */
 ```
 
-### Check if caller has authority to update status of credentials
+### Check if caller has authority to update status of credential
 
 The `hasAuthority` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts an access token for the API of the caller's Git service of choice, and reports whether the caller has the authority to update the status of credentials.
 

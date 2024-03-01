@@ -100,8 +100,8 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
       didMethod,
       didSeed,
       didWebUrl,
-      signUserCredential,
-      signStatusCredential
+      signStatusCredential,
+      signUserCredential
     } = options;
     super({
       repoName,
@@ -111,8 +111,8 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
       didMethod,
       didSeed,
       didWebUrl,
-      signUserCredential,
-      signStatusCredential
+      signStatusCredential,
+      signUserCredential
     });
     this.validateConfiguration(options);
     this.ownerAccountName = ownerAccountName;

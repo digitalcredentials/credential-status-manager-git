@@ -116,8 +116,8 @@ export interface BaseCredentialStatusManagerOptions {
   didMethod: DidMethod;
   didSeed: string;
   didWebUrl?: string;
-  signUserCredential?: boolean;
   signStatusCredential?: boolean;
+  signUserCredential?: boolean;
 }
 
 // Minimal set of options required for configuring BaseCredentialStatusManager
@@ -139,8 +139,8 @@ export abstract class BaseCredentialStatusManager {
   protected readonly didMethod: DidMethod;
   protected readonly didSeed: string;
   protected readonly didWebUrl: string;
-  protected readonly signUserCredential: boolean;
   protected readonly signStatusCredential: boolean;
+  protected readonly signUserCredential: boolean;
   protected readonly lock: Mutex;
 
   constructor(options: BaseCredentialStatusManagerOptions) {
@@ -152,8 +152,8 @@ export abstract class BaseCredentialStatusManager {
       didMethod,
       didSeed,
       didWebUrl,
-      signUserCredential,
-      signStatusCredential
+      signStatusCredential,
+      signUserCredential
     } = options;
     this.repoName = repoName;
     this.metaRepoName = metaRepoName;
@@ -162,8 +162,8 @@ export abstract class BaseCredentialStatusManager {
     this.didMethod = didMethod;
     this.didSeed = didSeed;
     this.didWebUrl = didWebUrl ?? '';
+    this.signStatusCredential = signStatusCredential ?? true;
     this.signUserCredential = signUserCredential ?? false;
-    this.signStatusCredential = signStatusCredential ?? false;
     this.lock = new Mutex();
   }
 
@@ -309,8 +309,8 @@ export abstract class BaseCredentialStatusManager {
       didMethod,
       didSeed,
       didWebUrl,
-      signUserCredential,
-      signStatusCredential
+      signStatusCredential,
+      signUserCredential
     } = this;
     const {
       issuerDid,
