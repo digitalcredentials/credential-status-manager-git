@@ -57,8 +57,8 @@ The `createStatusManager` function is the only exported pure function of this li
 
 | Key | Description | Type | Required |
 | --- | --- | --- | --- |
-| `gitService` | name of the Git service that will host the credential status resources | `github` \| `gitlab` | yes |
-| `ownerAccountName` | name of the owner account (personal or organization) in the Git service that will host the credential status resources | string | yes |
+| `gitService` | name of the Git service used to manage credential status data | `github` \| `gitlab` | yes |
+| `ownerAccountName` | name of the owner account (personal or organization) in the Git service used to manage credential status data | string | yes |
 | `repoName` | name of the status credential repository | string | yes |
 | `repoId` | ID of the status credential repository | string | yes (if `gitService` = `gitlab`) |
 | `metaRepoName` | name of the credential status metadata repository | string | yes |
