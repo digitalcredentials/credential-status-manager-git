@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
+ * Copyright (c) 2023-2024 Digital Credentials Consortium. All rights reserved.
  */
 import 'mocha';
 import { expect } from 'chai';
@@ -9,7 +9,6 @@ import * as Axios from 'axios';
 import { createStatusManager } from '../src/index.js';
 import {
   BaseCredentialStatusManager,
-  CredentialState,
   Config,
   GitService,
   Snapshot
@@ -156,7 +155,9 @@ describe('GitLab Credential Status Manager', () => {
       repoAccessToken,
       metaRepoAccessToken,
       didMethod,
-      didSeed
+      didSeed,
+      signStatusCredential: true,
+      signUserCredential: true
     }) as GitLabStatus.GitLabCredentialStatusManager;
   });
 
@@ -167,19 +168,19 @@ describe('GitLab Credential Status Manager', () => {
 
   it('tests allocateStatus', async () => {
     // allocate and check status for first credential
-    const credentialWithStatus1 = await statusManager.allocateStatus(unsignedCredential1) as any;
+    const credentialWithStatus1 = await statusManager.allocateRevocationStatus(unsignedCredential1) as any;
     checkLocalCredentialStatus(credentialWithStatus1, 1, gitService);
 
     // allocate and check status for second credential
-    const credentialWithStatus2 = await statusManager.allocateStatus(unsignedCredential2) as any;
+    const credentialWithStatus2 = await statusManager.allocateRevocationStatus(unsignedCredential2) as any;
     checkLocalCredentialStatus(credentialWithStatus2, 2, gitService);
 
     // allocate and check status for third credential
-    const credentialWithStatus3 = await statusManager.allocateStatus(unsignedCredential3) as any;
+    const credentialWithStatus3 = await statusManager.allocateRevocationStatus(unsignedCredential3) as any;
     checkLocalCredentialStatus(credentialWithStatus3, 3, gitService);
 
     // attempt to allocate and check status for existing credential
-    const credentialWithStatus2Copy = await statusManager.allocateStatus(unsignedCredential2) as any;
+    const credentialWithStatus2Copy = await statusManager.allocateRevocationStatus(unsignedCredential2) as any;
     checkLocalCredentialStatus(credentialWithStatus2Copy, 2, gitService);
 
     // check if status repos have valid configuration
@@ -189,13 +190,10 @@ describe('GitLab Credential Status Manager', () => {
 
   it('tests updateStatus and checkStatus', async () => {
     // allocate status for credential
-    const credentialWithStatus = await statusManager.allocateStatus(unsignedCredential1) as any;
+    const credentialWithStatus = await statusManager.allocateRevocationStatus(unsignedCredential1) as any;
 
     // update status of credential
-    const statusCredential = await statusManager.updateStatus({
-      credentialId: credentialWithStatus.id,
-      credentialStatus: 'revoked' as CredentialState
-    }) as any;
+    const statusCredential = await statusManager.revokeCredential(credentialWithStatus.id) as any;
 
     // check status credential
     checkStatusCredential(statusCredential, gitService);
@@ -211,14 +209,11 @@ describe('GitLab Credential Status Manager', () => {
 
   it('tests saveSnapshot and restoreSnapshot', async () => {
     // allocate status for credentials
-    await statusManager.allocateStatus(unsignedCredential1) as any;
-    const credentialWithStatus2 = await statusManager.allocateStatus(unsignedCredential2) as any;
-    await statusManager.allocateStatus(unsignedCredential3) as any;
+    await statusManager.allocateRevocationStatus(unsignedCredential1) as any;
+    const credentialWithStatus2 = await statusManager.allocateRevocationStatus(unsignedCredential2) as any;
+    await statusManager.allocateRevocationStatus(unsignedCredential3) as any;
     // update status of one credential
-    await statusManager.updateStatus({
-      credentialId: credentialWithStatus2.id,
-      credentialStatus: 'revoked' as CredentialState
-    }) as any;
+    await statusManager.revokeCredential(credentialWithStatus2.id) as any;
 
     // save snapshot of status repos
     await statusManager.saveSnapshot();

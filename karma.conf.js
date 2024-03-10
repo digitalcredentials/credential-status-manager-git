@@ -16,14 +16,14 @@ module.exports = function (config) {
     karmaTypescriptConfig: {
       bundlerOptions: {
         transforms: [
-          require("karma-typescript-es6-transform")()
+          require('karma-typescript-es6-transform')()
         ]
       },
-      reports: {} // Disables the code coverage report
+      reports: {}
     },
 
     preprocessors: {
-      '**/*.ts': 'karma-typescript' // *.tsx for React Jsx
+      '**/*.ts': 'karma-typescript'
     },
 
     reporters: ['mocha', 'karma-typescript'],
