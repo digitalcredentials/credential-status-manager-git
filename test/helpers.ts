@@ -1,10 +1,10 @@
 /*!
- * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
+ * Copyright (c) 2023-2024 Digital Credentials Consortium. All rights reserved.
  */
 import { expect } from 'chai';
 import {
   BaseCredentialStatusManager,
-  CredentialStatusManagerService
+  GitService
 } from '../src/credential-status-manager-base.js';
 import { DidMethod } from '../src/helpers.js';
 
@@ -18,14 +18,13 @@ const verificationMethod = `${issuerDid}#${issuerKey}`;
 
 const unsignedCredential = {
   '@context': [
-    'https://www.w3.org/2018/credentials/v1',
-    'https://w3id.org/security/suites/ed25519-2020/v1'
+    'https://www.w3.org/ns/credentials/v2'
   ],
   type: [
     'VerifiableCredential'
   ],
   issuer: issuerDid,
-  issuanceDate: '2020-03-10T04:24:12.164Z',
+  validFrom: '2020-03-10T04:24:12.164Z',
   credentialSubject: {
     id: credentialSubject
   }
@@ -60,14 +59,14 @@ export const statusCredentialId = 'V27UAUYPNR';
 export function checkLocalCredentialStatus(
   credentialWithStatus: any,
   credentialStatusIndex: number,
-  service: CredentialStatusManagerService
+  gitService: GitService
 ) {
   let statusCredentialUrl;
-  switch (service) {
-    case CredentialStatusManagerService.GitHub:
+  switch (gitService) {
+    case GitService.GitHub:
       statusCredentialUrl = `https://${ownerAccountName}.github.io/${repoName}/${statusCredentialId}`;
       break;
-    case CredentialStatusManagerService.GitLab:
+    case GitService.GitLab:
       statusCredentialUrl = `https://${ownerAccountName}.gitlab.io/${repoName}/${statusCredentialId}`;
       break;
   }
@@ -77,7 +76,7 @@ export function checkLocalCredentialStatus(
   expect(credentialWithStatus.credentialStatus).to.have.property('statusPurpose');
   expect(credentialWithStatus.credentialStatus).to.have.property('statusListIndex');
   expect(credentialWithStatus.credentialStatus).to.have.property('statusListCredential');
-  expect(credentialWithStatus.credentialStatus.type).to.equal('StatusList2021Entry');
+  expect(credentialWithStatus.credentialStatus.type).to.equal('BitstringStatusListEntry');
   expect(credentialWithStatus.credentialStatus.statusPurpose).to.equal('revocation');
   expect(credentialWithStatus.credentialStatus.statusListIndex).to.equal(credentialStatusIndex.toString());
   expect(credentialWithStatus.credentialStatus.id.startsWith(statusCredentialUrl)).to.be.true;
@@ -108,14 +107,14 @@ export function checkRemoteCredentialStatus(
 
 export function checkStatusCredential(
   statusCredential: any,
-  service: CredentialStatusManagerService
+  gitService: GitService
 ) {
   let statusCredentialUrl;
-  switch (service) {
-    case CredentialStatusManagerService.GitHub:
+  switch (gitService) {
+    case GitService.GitHub:
       statusCredentialUrl = `https://${ownerAccountName}.github.io/${repoName}/${statusCredentialId}`;
       break;
-    case CredentialStatusManagerService.GitLab:
+    case GitService.GitLab:
       statusCredentialUrl = `https://${ownerAccountName}.gitlab.io/${repoName}/${statusCredentialId}`;
       break;
   }
@@ -127,20 +126,20 @@ export function checkStatusCredential(
   expect(statusCredential.credentialSubject).to.have.property('encodedList');
   expect(statusCredential.credentialSubject).to.have.property('statusPurpose');
   expect(statusCredential.id).to.equal(statusCredentialUrl);
-  expect(statusCredential.type).to.include('StatusList2021Credential');
+  expect(statusCredential.type).to.include('BitstringStatusListCredential');
   expect(statusCredential.credentialSubject.id.startsWith(statusCredentialUrl)).to.be.true;
-  expect(statusCredential.credentialSubject.type).to.equal('StatusList2021');
+  expect(statusCredential.credentialSubject.type).to.equal('BitstringStatusList');
   expect(statusCredential.credentialSubject.statusPurpose).to.equal('revocation');
 }
 
-export async function checkSnapshotData(
+export async function checkSnapshot(
   statusManager: BaseCredentialStatusManager,
   allocateCount: number,
   updateCount: number
 ) {
-  const snapshot = await statusManager.readSnapshotData();
-  const config = await statusManager.readConfigData();
-  const statusCredential = await statusManager.readStatusData();
+  const snapshot = await statusManager.getSnapshot();
+  const config = await statusManager.getConfig();
+  const statusCredential = await statusManager.getStatusCredential();
   expect(snapshot.eventLog.length).to.equal(allocateCount + updateCount);
   expect(snapshot.latestCredentialsIssuedCounter).to.equal(allocateCount);
   // report error for compact JWT credentials

@@ -1,10 +1,10 @@
 /*!
- * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
+ * Copyright (c) 2023-2024 Digital Credentials Consortium. All rights reserved.
  */
 import {
   BaseCredentialStatusManager,
-  CredentialStatusConfigData,
-  CredentialStatusManagerService,
+  Config,
+  GitService,
   composeStatusCredential
 } from './credential-status-manager-base.js';
 import {
@@ -24,7 +24,7 @@ import { signCredential, getSigningMaterial } from './helpers.js';
 
 // Type definition for base options of createStatusManager function input
 interface CredentialStatusManagerBaseOptions {
-  service: CredentialStatusManagerService;
+  gitService: GitService;
 }
 
 // Type definition for createStatusManager function input
@@ -35,7 +35,7 @@ type CredentialStatusManagerOptions = CredentialStatusManagerBaseOptions &
 export async function createStatusManager(options: CredentialStatusManagerOptions)
 : Promise<BaseCredentialStatusManager> {
   const {
-    service,
+    gitService,
     ownerAccountName,
     repoName,
     metaRepoName,
@@ -44,12 +44,12 @@ export async function createStatusManager(options: CredentialStatusManagerOption
     didMethod,
     didSeed,
     didWebUrl,
-    signUserCredential=false,
-    signStatusCredential=false
+    signStatusCredential = true,
+    signUserCredential = false
   } = options;
   let statusManager: BaseCredentialStatusManager;
-  switch (service) {
-    case CredentialStatusManagerService.GitHub:
+  switch (gitService) {
+    case GitService.GitHub:
       statusManager = new GitHubCredentialStatusManager({
         ownerAccountName,
         repoName,
@@ -59,11 +59,11 @@ export async function createStatusManager(options: CredentialStatusManagerOption
         didMethod,
         didSeed,
         didWebUrl,
-        signUserCredential,
-        signStatusCredential
+        signStatusCredential,
+        signUserCredential
       });
       break;
-    case CredentialStatusManagerService.GitLab: {
+    case GitService.GitLab: {
       const {
         repoId,
         metaRepoId
@@ -79,16 +79,16 @@ export async function createStatusManager(options: CredentialStatusManagerOption
         didMethod,
         didSeed,
         didWebUrl,
-        signUserCredential,
-        signStatusCredential
+        signStatusCredential,
+        signUserCredential
       });
       break;
     }
     default:
       throw new BadRequestError({
         message:
-          '"service" must be one of the following values: ' +
-          `${Object.values(CredentialStatusManagerService).map(s => `"${s}"`).join(', ')}.`
+          '"gitService" must be one of the following values: ' +
+          `${Object.values(GitService).map(s => `"${s}"`).join(', ')}.`
       });
   }
 
@@ -100,7 +100,7 @@ export async function createStatusManager(options: CredentialStatusManagerOption
   });
 
   // retrieve relevant data from status repo configuration
-  const hasAccess = await statusManager.hasStatusAuthority(repoAccessToken, metaRepoAccessToken);
+  const hasAccess = await statusManager.hasAuthority(repoAccessToken, metaRepoAccessToken);
   if (!hasAccess) {
     throw new InvalidTokenError({ statusManager });
   }
@@ -112,19 +112,20 @@ export async function createStatusManager(options: CredentialStatusManagerOption
 
   const reposEmpty = await statusManager.statusReposEmpty();
   if (!reposEmpty) {
-    await statusManager.cleanupSnapshotData();
+    await statusManager.cleanupSnapshot();
   } else {
     // create and persist status config
     const statusCredentialId = statusManager.generateStatusCredentialId();
-    const configData: CredentialStatusConfigData = {
+    const config: Config = {
       latestStatusCredentialId: statusCredentialId,
       latestCredentialsIssuedCounter: 0,
+      allCredentialsIssuedCounter: 0,
       statusCredentialIds: [statusCredentialId],
       eventLog: []
     };
-    await statusManager.createConfigData(configData);
+    await statusManager.createConfig(config);
 
-    // create status credential
+    // compose status credential
     const statusCredentialUrlBase = statusManager.getStatusCredentialUrlBase();
     const statusCredentialUrl = `${statusCredentialUrlBase}/${statusCredentialId}`;
     let statusCredential = await composeStatusCredential({
@@ -143,7 +144,7 @@ export async function createStatusManager(options: CredentialStatusManagerOption
     }
 
     // create and persist status data
-    await statusManager.createStatusData(statusCredential);
+    await statusManager.createStatusCredential(statusCredential);
 
     // setup credential status website
     await statusManager.deployCredentialStatusWebsite();

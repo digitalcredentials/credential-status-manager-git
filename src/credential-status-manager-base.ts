@@ -1,30 +1,39 @@
 /*!
- * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
+ * Copyright (c) 2023-2024 Digital Credentials Consortium. All rights reserved.
  */
-import { CONTEXT_URL_V1 } from '@digitalbazaar/vc-status-list-context';
+import { createCredential, createList, decodeList } from '@digitalcredentials/vc-bitstring-status-list';
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
-import { createCredential, createList, decodeList } from '@digitalcredentials/vc-status-list';
 import { Mutex } from 'async-mutex';
 import { v4 as uuid } from 'uuid';
 import {
   BadRequestError,
-  InconsistentRepositoryError,
+  InvalidRepoStateError,
   NotFoundError,
   SnapshotExistsError
 } from './errors.js';
 import {
   DidMethod,
   deriveStatusCredentialId,
+  getCredentialSubjectObject,
   getDateString,
   getSigningMaterial,
-  signCredential
+  signCredential,
+  validateCredential
 } from './helpers.js';
+
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 
 // Number of credentials tracked in a list
 const CREDENTIAL_STATUS_LIST_SIZE = 100000;
 
+// Status credential type
+const STATUS_CREDENTIAL_TYPE = 'BitstringStatusListCredential';
+
+// Status credential subject type
+const STATUS_CREDENTIAL_SUBJECT_TYPE = 'BitstringStatusList';
+
 // Credential status type
-const CREDENTIAL_STATUS_TYPE = 'StatusList2021Entry';
+const CREDENTIAL_STATUS_TYPE = 'BitstringStatusListEntry';
 
 // Name of credential status branch
 export const CREDENTIAL_STATUS_REPO_BRANCH_NAME = 'main';
@@ -33,20 +42,27 @@ export const CREDENTIAL_STATUS_REPO_BRANCH_NAME = 'main';
 export const CREDENTIAL_STATUS_CONFIG_FILE = 'config.json';
 export const CREDENTIAL_STATUS_SNAPSHOT_FILE = 'snapshot.json';
 
-// Credential status manager source control service
-export enum CredentialStatusManagerService {
+// Credential status manager Git service
+export enum GitService {
   GitHub = 'github',
   GitLab = 'gitlab'
 }
 
-// States of credential resulting from caller actions and tracked in status log
-export enum CredentialState {
-  Active = 'active',
-  Revoked = 'revoked'
+// Status purpose of a status credential
+enum StatusPurpose {
+  Revocation = 'revocation',
+  Suspension = 'suspension'
 }
 
-// Type definition for credential status log entry
-interface CredentialStatusLogEntry {
+// States of credential resulting from caller actions and tracked in event log
+export enum CredentialState {
+  Active = 'active',
+  Revoked = 'revoked',
+  Suspended = 'suspended'
+}
+
+// Type definition for event log entry
+interface EventLogEntry {
   timestamp: string;
   credentialId: string;
   credentialIssuer: string;
@@ -57,19 +73,20 @@ interface CredentialStatusLogEntry {
   credentialStatusIndex: number;
 }
 
-// Type definition for credential status log
-type CredentialStatusLogData = CredentialStatusLogEntry[];
+// Type definition for event log
+type EventLog = EventLogEntry[];
 
-// Type definition for credential status config file
-export interface CredentialStatusConfigData {
+// Type definition for config
+export interface Config {
   latestStatusCredentialId: string;
   latestCredentialsIssuedCounter: number;
+  allCredentialsIssuedCounter: number;
   statusCredentialIds: string[];
-  eventLog: CredentialStatusLogData;
+  eventLog: EventLog;
 }
 
-// Type definition for credential status snapshot file
-export type CredentialStatusSnapshotData = CredentialStatusConfigData & {
+// Type definition for snapshot
+export type Snapshot = Config & {
   statusCredentials: Record<string, VerifiableCredential>;
 };
 
@@ -78,25 +95,38 @@ interface ComposeStatusCredentialOptions {
   issuerDid: string;
   credentialId: string;
   statusList?: any;
-  statusPurpose?: string;
+  statusPurpose?: StatusPurpose;
 }
 
-// Type definition for embedCredentialStatus method input
-interface EmbedCredentialStatusOptions {
+// Type definition for attachCredentialStatus method input
+interface AttachCredentialStatusOptions {
   credential: any;
-  statusPurpose?: string;
+  statusPurpose?: StatusPurpose;
 }
 
-// Type definition for embedCredentialStatus method output
-type EmbedCredentialStatusResult = CredentialStatusConfigData & {
+// Type definition for attachCredentialStatus method output
+type AttachCredentialStatusResult = Config & {
   credential: any;
+  newUserCredential: boolean;
   newStatusCredential: boolean;
 };
+
+// Type definition for allocateStatus method input
+interface AllocateStatusOptions {
+  credential: VerifiableCredential;
+  statusPurpose?: StatusPurpose;
+}
 
 // Type definition for updateStatus method input
 interface UpdateStatusOptions {
   credentialId: string;
-  credentialStatus: CredentialState;
+  credentialState: CredentialState;
+}
+
+// Type definition for getRepoState method output
+interface GetRepoStateResult {
+  valid: boolean;
+  error?: InvalidRepoStateError;
 }
 
 // Type definition for BaseCredentialStatusManager constructor method input
@@ -108,8 +138,8 @@ export interface BaseCredentialStatusManagerOptions {
   didMethod: DidMethod;
   didSeed: string;
   didWebUrl?: string;
-  signUserCredential?: boolean;
   signStatusCredential?: boolean;
+  signUserCredential?: boolean;
 }
 
 // Minimal set of options required for configuring BaseCredentialStatusManager
@@ -131,8 +161,8 @@ export abstract class BaseCredentialStatusManager {
   protected readonly didMethod: DidMethod;
   protected readonly didSeed: string;
   protected readonly didWebUrl: string;
-  protected readonly signUserCredential: boolean;
   protected readonly signStatusCredential: boolean;
+  protected readonly signUserCredential: boolean;
   protected readonly lock: Mutex;
 
   constructor(options: BaseCredentialStatusManagerOptions) {
@@ -144,8 +174,8 @@ export abstract class BaseCredentialStatusManager {
       didMethod,
       didSeed,
       didWebUrl,
-      signUserCredential,
-      signStatusCredential
+      signStatusCredential,
+      signUserCredential
     } = options;
     this.repoName = repoName;
     this.metaRepoName = metaRepoName;
@@ -154,8 +184,8 @@ export abstract class BaseCredentialStatusManager {
     this.didMethod = didMethod;
     this.didSeed = didSeed;
     this.didWebUrl = didWebUrl ?? '';
+    this.signStatusCredential = signStatusCredential ?? true;
     this.signUserCredential = signUserCredential ?? false;
-    this.signStatusCredential = signStatusCredential ?? false;
     this.lock = new Mutex();
   }
 
@@ -170,43 +200,56 @@ export abstract class BaseCredentialStatusManager {
   }
 
   // generates new status credential ID
+  // Note: We assume this method will never generate an ID that
+  // has previously been generated for a status credential in this system
   generateStatusCredentialId(): string {
     return Math.random().toString(36).substring(2, 12).toUpperCase();
   }
 
-  // embeds status into credential
-  async embedCredentialStatus({ credential, statusPurpose = 'revocation' }: EmbedCredentialStatusOptions): Promise<EmbedCredentialStatusResult> {
+  // generates new user credential ID
+  // Note: We assume this method will never generate an ID that
+  // has previously been generated for a user credential in this system
+  generateUserCredentialId(): string {
+    return `urn:uuid:${uuid()}`;
+  }
+
+  // attaches status to credential
+  async attachCredentialStatus({ credential, statusPurpose = StatusPurpose.Revocation }: AttachCredentialStatusOptions): Promise<AttachCredentialStatusResult> {
+    // copy credential and delete appropriate fields
+    const credentialCopy = Object.assign({}, credential);
+    delete credentialCopy.credentialStatus;
+    delete credentialCopy.proof;
+
     // ensure that credential has ID
-    if (!credential.id) {
+    if (!credentialCopy.id) {
       // Note: This assumes that uuid will never generate an ID that
       // conflicts with an ID that has already been tracked in the log
-      credential.id = uuid();
+      credentialCopy.id = this.generateUserCredentialId();
     }
 
-    // ensure that credential contains the proper status credential context
-    if (!credential['@context'].includes(CONTEXT_URL_V1)) {
-      credential['@context'].push(CONTEXT_URL_V1);
-    }
+    // validate credential before attaching status
+    validateCredential(credentialCopy);
 
-    // retrieve status config data
+    // retrieve config
     let {
       latestStatusCredentialId,
       latestCredentialsIssuedCounter,
+      allCredentialsIssuedCounter,
       statusCredentialIds,
       eventLog
-    } = await this.readConfigData();
+    } = await this.getConfig();
 
     // find latest relevant log entry for credential with given ID
     eventLog.reverse();
-    const logEntry = eventLog.find((entry) => {
-      return entry.credentialId === credential.id;
+    const eventLogEntry = eventLog.find((entry) => {
+      return entry.credentialId === credentialCopy.id;
     });
     eventLog.reverse();
 
     // do not allocate new entry if ID is already being tracked
-    if (logEntry) {
-      // retrieve relevant log data
-      const { statusCredentialId, credentialStatusIndex } = logEntry;
+    if (eventLogEntry) {
+      // retrieve relevant log entry
+      const { statusCredentialId, credentialStatusIndex } = eventLogEntry;
 
       // attach credential status
       const statusCredentialUrlBase = this.getStatusCredentialUrlBase();
@@ -222,12 +265,14 @@ export abstract class BaseCredentialStatusManager {
 
       return {
         credential: {
-          ...credential,
+          ...credentialCopy,
           credentialStatus
         },
+        newUserCredential: false,
         newStatusCredential: false,
         latestStatusCredentialId,
         latestCredentialsIssuedCounter,
+        allCredentialsIssuedCounter,
         statusCredentialIds,
         eventLog
       };
@@ -241,6 +286,7 @@ export abstract class BaseCredentialStatusManager {
       latestStatusCredentialId = this.generateStatusCredentialId();
       statusCredentialIds.push(latestStatusCredentialId);
     }
+    allCredentialsIssuedCounter++;
     latestCredentialsIssuedCounter++;
 
     // attach credential status
@@ -258,19 +304,21 @@ export abstract class BaseCredentialStatusManager {
 
     return {
       credential: {
-        ...credential,
+        ...credentialCopy,
         credentialStatus
       },
+      newUserCredential: true,
       newStatusCredential,
       latestStatusCredentialId,
       latestCredentialsIssuedCounter,
+      allCredentialsIssuedCounter,
       statusCredentialIds,
       eventLog
     };
   }
 
   // allocates status for credential in race-prone manner
-  async allocateStatusUnsafe(credential: VerifiableCredential): Promise<VerifiableCredential> {
+  async allocateStatusUnsafe({ credential, statusPurpose = StatusPurpose.Revocation }: AllocateStatusOptions): Promise<VerifiableCredential> {
     // report error for compact JWT credentials
     if (typeof credential === 'string') {
       throw new BadRequestError({
@@ -281,19 +329,20 @@ export abstract class BaseCredentialStatusManager {
     // attach status to credential
     let {
       credential: credentialWithStatus,
+      newUserCredential,
       newStatusCredential,
       latestStatusCredentialId,
       eventLog,
-      ...embedCredentialStatusResultRest
-    } = await this.embedCredentialStatus({ credential });
+      ...attachCredentialStatusResultRest
+    } = await this.attachCredentialStatus({ credential, statusPurpose });
 
     // retrieve signing material
     const {
       didMethod,
       didSeed,
       didWebUrl,
-      signUserCredential,
-      signStatusCredential
+      signStatusCredential,
+      signUserCredential
     } = this;
     const {
       issuerDid,
@@ -304,9 +353,24 @@ export abstract class BaseCredentialStatusManager {
       didWebUrl
     });
 
-    // create new status credential only if the last one has reached capacity
+    // sign credential if necessary
+    if (signUserCredential) {
+      credentialWithStatus = await signCredential({
+        credential: credentialWithStatus,
+        didMethod,
+        didSeed,
+        didWebUrl
+      });
+    }
+
+    // return credential without updating database resources
+    // if we are already accounting for this credential
+    if (!newUserCredential) {
+      return credentialWithStatus;
+    }
+
+    // compose new status credential only if the last one has reached capacity
     if (newStatusCredential) {
-      // create status credential
       const statusCredentialUrlBase = this.getStatusCredentialUrlBase();
       const statusCredentialUrl = `${statusCredentialUrlBase}/${latestStatusCredentialId}`;
       let statusCredential = await composeStatusCredential({
@@ -324,18 +388,8 @@ export abstract class BaseCredentialStatusManager {
         });
       }
 
-      // create and persist status data
-      await this.createStatusData(statusCredential);
-    }
-
-    // sign credential if necessary
-    if (signUserCredential) {
-      credentialWithStatus = await signCredential({
-        credential: credentialWithStatus,
-        didMethod,
-        didSeed,
-        didWebUrl
-      });
+      // create and persist status credential
+      await this.createStatusCredential(statusCredential);
     }
 
     // extract relevant data from credential status
@@ -347,75 +401,86 @@ export abstract class BaseCredentialStatusManager {
     // retrieve status credential ID from status credential URL
     const statusCredentialId = deriveStatusCredentialId(statusCredentialUrl);
 
-    // add new entry to status log
-    const statusLogEntry: CredentialStatusLogEntry = {
+    // add new entry to event log
+    const credentialSubjectObject = getCredentialSubjectObject(credentialWithStatus);
+    const eventLogEntry: EventLogEntry = {
       timestamp: getDateString(),
-      credentialId: credential.id as string,
+      credentialId: credentialWithStatus.id as string,
       credentialIssuer: issuerDid,
-      credentialSubject: credential.credentialSubject?.id,
+      credentialSubject: credentialSubjectObject?.id,
       credentialState: CredentialState.Active,
       verificationMethod,
       statusCredentialId,
       credentialStatusIndex: parseInt(statusListIndex)
     };
-    eventLog.push(statusLogEntry);
+    eventLog.push(eventLogEntry);
 
-    // persist updates to config data
-    await this.updateConfigData({
+    // persist updates to config
+    await this.updateConfig({
       latestStatusCredentialId,
       eventLog,
-      ...embedCredentialStatusResultRest
+      ...attachCredentialStatusResultRest
     });
 
     return credentialWithStatus;
   }
 
   // allocates status for credential in thread-safe manner
-  async allocateStatus(credential: VerifiableCredential): Promise<VerifiableCredential> {
+  async allocateStatus({ credential, statusPurpose = StatusPurpose.Revocation }: AllocateStatusOptions): Promise<VerifiableCredential> {
     const release = await this.lock.acquire();
     try {
-      await this.cleanupSnapshotData();
-      await this.saveSnapshotData();
-      const result = await this.allocateStatusUnsafe(credential);
+      await this.cleanupSnapshot();
+      await this.saveSnapshot();
+      const result = await this.allocateStatusUnsafe({ credential, statusPurpose });
       return result;
     } catch(error) {
-      if (!(error instanceof InconsistentRepositoryError)) {
-        return this.allocateStatus(credential);
+      if (!(error instanceof InvalidRepoStateError)) {
+        return this.allocateStatus({ credential, statusPurpose });
       } else {
         throw error;
       }
     } finally {
-      await this.cleanupSnapshotData();
+      await this.cleanupSnapshot();
       release();
     }
+  }
+
+  // allocates revocation status for credential
+  async allocateRevocationStatus(credential: VerifiableCredential): Promise<VerifiableCredential> {
+    return this.allocateStatus({ credential, statusPurpose: StatusPurpose.Revocation });
+  }
+
+  // allocates suspension status for credential
+  async allocateSuspensionStatus(credential: VerifiableCredential): Promise<VerifiableCredential> {
+    return this.allocateStatus({ credential, statusPurpose: StatusPurpose.Suspension });
   }
 
   // updates status of credential in race-prone manner
   async updateStatusUnsafe({
     credentialId,
-    credentialStatus
+    credentialState = CredentialState.Revoked
   }: UpdateStatusOptions): Promise<VerifiableCredential> {
     // find latest relevant log entry for credential with given ID
-    const { eventLog, ...configRest } = await this.readConfigData();
+    const { eventLog, ...configRest } = await this.getConfig();
     eventLog.reverse();
-    const logEntry = eventLog.find((entry) => {
+    const eventLogEntryBefore = eventLog.find((entry) => {
       return entry.credentialId === credentialId;
     });
     eventLog.reverse();
 
     // unable to find credential with given ID
-    if (!logEntry) {
+    if (!eventLogEntryBefore) {
       throw new NotFoundError({
         message: `Unable to find credential with ID "${credentialId}".`
       });
     }
 
-    // retrieve relevant log data
+    // retrieve relevant log entry
     const {
       credentialSubject,
       statusCredentialId,
       credentialStatusIndex
-    } = logEntry;
+    } = eventLogEntryBefore;
 
     // retrieve signing material
     const {
@@ -434,7 +499,7 @@ export abstract class BaseCredentialStatusManager {
     });
 
     // retrieve status credential
-    const statusCredentialBefore = await this.readStatusData(statusCredentialId);
+    const statusCredentialBefore = await this.getStatusCredential(statusCredentialId);
 
     // report error for compact JWT credentials
     if (typeof statusCredentialBefore === 'string') {
@@ -444,21 +509,24 @@ export abstract class BaseCredentialStatusManager {
     }
 
     // update status credential
-    const statusCredentialListEncodedBefore = statusCredentialBefore.credentialSubject.encodedList;
+    const statusCredentialSubjectObjectBefore = getCredentialSubjectObject(statusCredentialBefore);
+    const statusCredentialListEncodedBefore = statusCredentialSubjectObjectBefore.encodedList;
     const statusCredentialListDecoded = await decodeList({
       encodedList: statusCredentialListEncodedBefore
     });
-    switch (credentialStatus) {
+    switch (credentialState) {
       case CredentialState.Active:
-        statusCredentialListDecoded.setStatus(credentialStatusIndex, false); // active credential is represented as 0 bit
+        // active credential is represented as 0 bit
+        statusCredentialListDecoded.setStatus(credentialStatusIndex, false);
         break;
       case CredentialState.Revoked:
-        statusCredentialListDecoded.setStatus(credentialStatusIndex, true); // revoked credential is represented as 1 bit
+        // revoked credential is represented as 1 bit
+        statusCredentialListDecoded.setStatus(credentialStatusIndex, true);
         break;
       default:
         throw new BadRequestError({
           message:
-            '"credentialStatus" must be one of the following values: ' +
+            '"credentialState" must be one of the following values: ' +
             `${Object.values(CredentialState).map(s => `"${s}"`).join(', ')}.`
         });
     }
@@ -481,21 +549,21 @@ export abstract class BaseCredentialStatusManager {
     }
 
     // persist status credential
-    await this.updateStatusData(statusCredential);
+    await this.updateStatusCredential(statusCredential);
 
-    // add new entries to status log
-    const statusLogEntry: CredentialStatusLogEntry = {
+    // add new entries to event log
+    const eventLogEntryAfter: EventLogEntry = {
       timestamp: getDateString(),
       credentialId,
       credentialIssuer: issuerDid,
       credentialSubject,
-      credentialState: credentialStatus,
+      credentialState,
       verificationMethod,
       statusCredentialId,
       credentialStatusIndex
     };
-    eventLog.push(statusLogEntry);
-    await this.updateConfigData({ eventLog, ...configRest });
+    eventLog.push(eventLogEntryAfter);
+    await this.updateConfig({ eventLog, ...configRest });
 
     return statusCredential;
   }
@@ -503,56 +571,66 @@ export abstract class BaseCredentialStatusManager {
   // updates status of credential in thread-safe manner
   async updateStatus({
     credentialId,
-    credentialStatus
+    credentialState
   }: UpdateStatusOptions): Promise<VerifiableCredential> {
     const release = await this.lock.acquire();
     try {
-      await this.cleanupSnapshotData();
-      await this.saveSnapshotData();
-      const result = await this.updateStatusUnsafe({ credentialId, credentialStatus });
+      await this.cleanupSnapshot();
+      await this.saveSnapshot();
+      const result = await this.updateStatusUnsafe({ credentialId, credentialState });
       return result;
     } catch(error) {
-      if (!(error instanceof InconsistentRepositoryError)) {
+      if (!(error instanceof InvalidRepoStateError)) {
         return this.updateStatus({
           credentialId,
-          credentialStatus
+          credentialState
         });
       } else {
         throw error;
       }
     } finally {
-      await this.cleanupSnapshotData();
+      await this.cleanupSnapshot();
       release();
     }
   }
 
+  // revokes credential
+  async revokeCredential(credentialId: string): Promise<VerifiableCredential> {
+    return this.updateStatus({ credentialId, credentialState: CredentialState.Revoked });
+  }
+
+  // suspends credential
+  async suspendCredential(credentialId: string): Promise<VerifiableCredential> {
+    return this.updateStatus({ credentialId, credentialState: CredentialState.Suspended });
+  }
+
   // checks status of credential with given ID
-  async checkStatus(credentialId: string): Promise<CredentialStatusLogEntry> {
+  async checkStatus(credentialId: string): Promise<EventLogEntry> {
     // find latest relevant log entry for credential with given ID
-    const { eventLog } = await this.readConfigData();
+    const { eventLog } = await this.getConfig();
     eventLog.reverse();
-    const logEntry = eventLog.find((entry) => {
+    const eventLogEntry = eventLog.find((entry) => {
       return entry.credentialId === credentialId;
-    }) as CredentialStatusLogEntry;
+    }) as EventLogEntry;
 
     // unable to find credential with given ID
-    if (!logEntry) {
+    if (!eventLogEntry) {
       throw new NotFoundError({
         message: `Unable to find credential with ID "${credentialId}".`
       });
     }
 
-    return logEntry;
+    return eventLogEntry;
   }
 
-  // retrieves credential status URL
+  // retrieves status credential base URL
   abstract getStatusCredentialUrlBase(): string;
 
   // deploys website to host credential status management resources
   async deployCredentialStatusWebsite(): Promise<void> {};
 
   // checks if caller has authority to update status based on status repo access token
-  abstract hasStatusAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean>;
+  abstract hasAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean>;
 
   // checks if status repos exist
   abstract statusReposExist(): Promise<boolean>;
@@ -560,207 +638,284 @@ export abstract class BaseCredentialStatusManager {
   // checks if status repos are empty
   abstract statusReposEmpty(): Promise<boolean>;
 
-  // checks if status repos are properly configured
-  async statusReposProperlyConfigured(): Promise<boolean> {
+  // retrieves repo state
+  async getRepoState(): Promise<GetRepoStateResult> {
     try {
-      // retrieve config data
+      // retrieve config
       const {
         latestStatusCredentialId,
         latestCredentialsIssuedCounter,
+        allCredentialsIssuedCounter,
         statusCredentialIds,
         eventLog
-      } = await this.readConfigData();
+      } = await this.getConfig();
       const statusCredentialUrlBase = this.getStatusCredentialUrlBase();
       const statusCredentialUrl = `${statusCredentialUrlBase}/${latestStatusCredentialId}`;
 
-      // ensure status data is consistent
+      // ensure that status is consistent
       let hasLatestStatusCredentialId = false;
+      const invalidStatusCredentialIds = [];
       for (const statusCredentialId of statusCredentialIds) {
         // retrieve status credential
-        const statusData = await this.readStatusData(statusCredentialId);
+        const statusCredential = await this.getStatusCredential(statusCredentialId);
 
-        // ensure status data has proper type
-        if (typeof statusData === 'string') {
-          return false;
+        // ensure that status credential has valid type
+        if (typeof statusCredential === 'string') {
+          return {
+            valid: false,
+            error: new InvalidRepoStateError({
+              message: 'This library does not support compact JWT ' +
+                `status credentials: ${statusCredential}`
+            })
+          };
         }
 
-        // ensure status credential is well formed
-        hasLatestStatusCredentialId = hasLatestStatusCredentialId || (statusData.id?.endsWith(latestStatusCredentialId) ?? false);
-        const hasProperStatusCredentialType = statusData.type.includes('StatusList2021Credential');
-        const hasProperStatusCredentialSubId = statusData.credentialSubject.id?.startsWith(statusCredentialUrl) ?? false;
-        const hasProperStatusCredentialSubType = statusData.credentialSubject.type === 'StatusList2021';
-        const hasProperStatusCredentialSubStatusPurpose = statusData.credentialSubject.statusPurpose === 'revocation';
-        const hasProperStatusFormat = hasProperStatusCredentialType &&
-                                      hasProperStatusCredentialSubId &&
-                                      hasProperStatusCredentialSubType &&
-                                      hasProperStatusCredentialSubStatusPurpose;
-        if (!hasProperStatusFormat) {
-          return false;
+        // ensure that status credential is well formed
+        const statusCredentialSubjectObject = getCredentialSubjectObject(statusCredential);
+        hasLatestStatusCredentialId = hasLatestStatusCredentialId || (statusCredential.id?.endsWith(latestStatusCredentialId) ?? false);
+        const hasValidStatusCredentialType = statusCredential.type.includes(STATUS_CREDENTIAL_TYPE);
+        const hasValidStatusCredentialSubId = statusCredentialSubjectObject.id?.startsWith(statusCredentialUrl) ?? false;
+        const hasValidStatusCredentialSubType = statusCredentialSubjectObject.type === STATUS_CREDENTIAL_SUBJECT_TYPE;
+        const hasValidStatusCredentialSubStatusPurpose = statusCredentialSubjectObject.statusPurpose === StatusPurpose.Revocation;
+        const hasValidStatusCredentialFormat = hasValidStatusCredentialType &&
+                                               hasValidStatusCredentialSubId &&
+                                               hasValidStatusCredentialSubType &&
+                                               hasValidStatusCredentialSubStatusPurpose;
+        if (!hasValidStatusCredentialFormat) {
+          invalidStatusCredentialIds.push(statusCredential.id);
         }
       }
+      if (invalidStatusCredentialIds.length !== 0) {
+        return {
+          valid: false,
+          error: new InvalidRepoStateError({
+            message: 'Status credentials with the following IDs ' +
+              'have an invalid format: ' +
+              `${invalidStatusCredentialIds.map(id => `"${id as string}"`).join(', ')}`
+          })
+        };
+      }
+
       // ensure that latest status credential is being tracked in the config
       if (!hasLatestStatusCredentialId) {
-        return false;
+        return {
+          valid: false,
+          error: new InvalidRepoStateError({
+            message: `Latest status credential ("${latestStatusCredentialId}") ` +
+              'is not being tracked in config.'
+          })
+        };
       }
 
       // ensure that all status credentials are being tracked in the config
-      const repoFilenames = await this.readRepoFilenames();
+      const repoFilenames = await this.getRepoFilenames();
       if (repoFilenames.length !== statusCredentialIds.length) {
-        return false;
-      }
-      repoFilenames.sort();
-      statusCredentialIds.sort();
-      const hasAllStatusCredentialIds = repoFilenames.every((value, index) => {
-        return value === statusCredentialIds[index];
-      });
-      if (!hasAllStatusCredentialIds) {
-        return false;
+        const missingStatusCredentialIds = [];
+        for (const statusCredentialId of statusCredentialIds) {
+          if (!repoFilenames.includes(statusCredentialId)) {
+            missingStatusCredentialIds.push(statusCredentialId);
+          }
+        }
+
+        if (missingStatusCredentialIds.length !== 0) {
+          return {
+            valid: false,
+            error: new InvalidRepoStateError({
+              message: 'Status credentials with the following IDs ' +
+                'are missing in the status credential repo: ' +
+                `${missingStatusCredentialIds.map(id => `"${id}"`).join(', ')}`
+            })
+          };
+        }
+
+        // Note: If the code reaches this point, the status credential repo
+        // includes more status credentials than we are tracking in config.
+        // While the repo should not reach this state, it is relatively harmless.
       }
 
-      // ensure log data is well formed
-      const hasProperLogDataType = Array.isArray(eventLog);
+      // ensure that event log has valid type
+      const hasValidEventLogType = Array.isArray(eventLog);
+      if (!hasValidEventLogType) {
+        return {
+          valid: false,
+          error: new InvalidRepoStateError({
+            message: 'Event log must be an array.'
+          })
+        };
+      }
+
+      // ensure that event log is well formed
       const credentialIds = eventLog.map((value) => {
         return value.credentialId;
       });
       const credentialIdsUnique = credentialIds.filter((value, index, array) => {
         return array.indexOf(value) === index;
       });
-      const hasProperLogEntries = credentialIdsUnique.length ===
-                                  (statusCredentialIds.length - 1) *
-                                  CREDENTIAL_STATUS_LIST_SIZE +
-                                  latestCredentialsIssuedCounter;
+      const credentialIdsUniqueCounter = credentialIdsUnique.length;
+      const credentialsIssuedCounter = (statusCredentialIds.length - 1) *
+                                       CREDENTIAL_STATUS_LIST_SIZE +
+                                       latestCredentialsIssuedCounter;
+      const hasValidEventsLogToConfig = credentialIdsUniqueCounter === allCredentialsIssuedCounter;
+      const hasValidEventsConfigToReality = allCredentialsIssuedCounter === credentialsIssuedCounter;
+
+      if (!hasValidEventsLogToConfig) {
+        return {
+          valid: false,
+          error: new InvalidRepoStateError({
+            message: 'There is a mismatch between the credentials tracked ' +
+              `in the event log (${credentialIdsUniqueCounter}) ` +
+              'and the credentials tracked ' +
+              `in the config (${allCredentialsIssuedCounter}).`
+          })
+        };
+      }
+
+      if (!hasValidEventsConfigToReality) {
+        return {
+          valid: false,
+          error: new InvalidRepoStateError({
+            message: 'There is a mismatch between the credentials tracked ' +
+              `in the config (${allCredentialsIssuedCounter}) ` +
+              'and the credentials tracked ' +
+              `in reality (${credentialsIssuedCounter}).`
+          })
+        };
+      }
 
       // ensure that all checks pass
-      return hasProperLogDataType && hasProperLogEntries;
-    } catch (error) {
-      return false;
+      return { valid: true };
+    } catch (error: any) {
+      return {
+        valid: false,
+        error: new InvalidRepoStateError({ message: error.message })
+      };
     }
   }
 
-  // retrieves data from status repo
-  abstract readRepoData(): Promise<any>;
+  // retrieves content of status credential repo
+  abstract getRepo(): Promise<any>;
 
-  // retrieves file names from repo data
-  abstract readRepoFilenames(): Promise<string[]>;
+  // retrieves filenames of status credential repo content
+  abstract getRepoFilenames(): Promise<string[]>;
 
-  // retrieves data from status metadata repo
-  abstract readMetaRepoData(): Promise<any>;
+  // retrieves content of credential status metadata repo
+  abstract getMetaRepo(): Promise<any>;
 
-  // creates data in status file
-  abstract createStatusData(data: VerifiableCredential): Promise<void>;
+  // creates status credential
+  abstract createStatusCredential(statusCredential: VerifiableCredential): Promise<void>;
 
-  // retrieves data from status file
-  abstract readStatusData(statusCredentialId?: string): Promise<VerifiableCredential>;
+  // retrieves status credential
+  abstract getStatusCredential(statusCredentialId?: string): Promise<VerifiableCredential>;
 
-  // updates data in status file
-  abstract updateStatusData(data: VerifiableCredential): Promise<void>;
+  // updates status credential
+  abstract updateStatusCredential(statusCredential: VerifiableCredential): Promise<void>;
 
-  // deletes data in status files
-  abstract deleteStatusData(): Promise<void>;
+  // deletes status credentials
+  abstract deleteStatusCredentials(): Promise<void>;
 
-  // creates data in config file
-  abstract createConfigData(data: CredentialStatusConfigData): Promise<void>;
+  // creates config
+  abstract createConfig(config: Config): Promise<void>;
 
-  // retrieves data from config file
-  abstract readConfigData(): Promise<CredentialStatusConfigData>;
+  // retrieves config
+  abstract getConfig(): Promise<Config>;
 
-  // updates data in config file
-  abstract updateConfigData(data: CredentialStatusConfigData): Promise<void>;
+  // updates config
+  abstract updateConfig(config: Config): Promise<void>;
 
-  // deletes data in config file
-  abstract deleteConfigData(): Promise<void>;
+  // deletes config
+  abstract deleteConfig(): Promise<void>;
 
-  // creates data in snapshot file
-  abstract createSnapshotData(data: CredentialStatusSnapshotData): Promise<void>;
+  // creates snapshot
+  abstract createSnapshot(snapshot: Snapshot): Promise<void>;
 
-  // retrieves data from snapshot file
-  abstract readSnapshotData(): Promise<CredentialStatusSnapshotData>;
+  // retrieves snapshot
+  abstract getSnapshot(): Promise<Snapshot>;
 
-  // deletes data in snapshot file
-  abstract deleteSnapshotData(): Promise<void>;
+  // deletes snapshot
+  abstract deleteSnapshot(): Promise<void>;
 
-  // checks if snapshot data exists
-  abstract snapshotDataExists(): Promise<boolean>;
+  // checks if snapshot exists
+  abstract snapshotExists(): Promise<boolean>;
 
-  // saves snapshot of status repos
-  async saveSnapshotData(): Promise<void> {
-    // ensure that snapshot data does not exist
-    const snapshotExists = await this.snapshotDataExists();
-    if (snapshotExists) {
+  // saves snapshot
+  async saveSnapshot(): Promise<void> {
+    // ensure that snapshot does not exist
+    const snapExists = await this.snapshotExists();
+    if (snapExists) {
       throw new SnapshotExistsError();
     }
 
-    // retrieve status config data
+    // retrieve config
     const {
       statusCredentialIds,
       ...configRest
-    } = await this.readConfigData();
+    } = await this.getConfig();
 
-    // retrieve status credential data
+    // retrieve status credential
     const statusCredentials: Record<string, VerifiableCredential> = {};
     for (const statusCredentialId of statusCredentialIds) {
-      statusCredentials[statusCredentialId] = await this.readStatusData(statusCredentialId);
+      statusCredentials[statusCredentialId] = await this.getStatusCredential(statusCredentialId);
     }
 
-    // create snapshot data
-    const snapshotData: CredentialStatusSnapshotData = {
+    // create snapshot
+    const snapshot: Snapshot = {
       statusCredentialIds,
       statusCredentials,
       ...configRest
     };
-    await this.createSnapshotData(snapshotData);
+    await this.createSnapshot(snapshot);
   }
 
-  // restores snapshot of status repos
-  async restoreSnapshotData(): Promise<void> {
-    // retrieve snapshot data
+  // restores snapshot
+  async restoreSnapshot(): Promise<void> {
+    // retrieve snapshot
     const {
       statusCredentials,
-      ...configData
-    } = await this.readSnapshotData();
+      ...config
+    } = await this.getSnapshot();
 
     // this is necessary for cases in which a transactional operation such as
     // allocateStatus results in a new status credential file but must be
     // reversed because of an intermittent interruption
-    await this.deleteStatusData();
-    await this.deleteConfigData();
+    await this.deleteStatusCredentials();
+    await this.deleteConfig();
 
-    // restore status credential data
+    // restore status credential
     for (const [, statusCredential] of Object.entries(statusCredentials)) {
-      await this.createStatusData(statusCredential);
+      await this.createStatusCredential(statusCredential);
     }
 
-    // restore status config data
-    await this.createConfigData(configData);
+    // restore config
+    await this.createConfig(config);
 
-    // delete snapshot data
-    await this.deleteSnapshotData();
+    // delete snapshot
+    await this.deleteSnapshot();
   }
 
-  // cleans up snapshot data
-  async cleanupSnapshotData(): Promise<void> {
-    const reposProperlyConfigured = await this.statusReposProperlyConfigured();
-    const snapshotExists = await this.snapshotDataExists();
-    if (!reposProperlyConfigured) {
-      if (snapshotExists) {
-        await this.restoreSnapshotData();
+  // cleans up snapshot
+  async cleanupSnapshot(): Promise<void> {
+    const repoState = await this.getRepoState();
+    const snapExists = await this.snapshotExists();
+    if (!repoState.valid) {
+      if (snapExists) {
+        await this.restoreSnapshot();
       } else {
-        throw new InconsistentRepositoryError({ statusManager: this });
+        throw repoState.error as InvalidRepoStateError;
       }
     } else {
-      if (snapshotExists) {
-        await this.deleteSnapshotData();
+      if (snapExists) {
+        await this.deleteSnapshot();
       }
     }
   }
 }
 
-// composes StatusList2021Credential
+// composes BitstringStatusListCredential
 export async function composeStatusCredential({
   issuerDid,
   credentialId,
   statusList,
-  statusPurpose = 'revocation'
+  statusPurpose = StatusPurpose.Revocation
 }: ComposeStatusCredentialOptions): Promise<any> {
   // determine whether or not to create a new status credential
   if (!statusList) {
@@ -768,7 +923,6 @@ export async function composeStatusCredential({
   }
 
   // create status credential
-  const issuanceDate = getDateString();
   let credential = await createCredential({
     id: credentialId,
     list: statusList,
@@ -777,7 +931,7 @@ export async function composeStatusCredential({
   credential = {
     ...credential,
     issuer: issuerDid,
-    issuanceDate
+    validFrom: getDateString()
   };
 
   return credential;
