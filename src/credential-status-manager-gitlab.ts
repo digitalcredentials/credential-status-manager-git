@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
+ * Copyright (c) 2023-2024 Digital Credentials Consortium. All rights reserved.
  */
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import axios, { AxiosInstance } from 'axios';
@@ -118,18 +118,17 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     this.ownerAccountName = ownerAccountName;
     this.repoId = repoId;
     this.metaRepoId = metaRepoId;
-    this.repoClient = axios.create({
+    this.repoClient = this.getServiceClient(repoAccessToken);
+    this.metaRepoClient = this.getServiceClient(metaRepoAccessToken);
+  }
+
+  // retrieves Git service client
+  getServiceClient(accessToken: string): AxiosInstance {
+    return axios.create({
       baseURL: 'https://gitlab.com/api/v4',
       timeout: 10000,
       headers: {
-        'Authorization': `Bearer ${repoAccessToken}`
-      }
-    });
-    this.metaRepoClient = axios.create({
-      baseURL: 'https://gitlab.com/api/v4',
-      timeout: 10000,
-      headers: {
-        'Authorization': `Bearer ${metaRepoAccessToken}`
+        'Authorization': `Bearer ${accessToken}`
       }
     });
   }
@@ -222,21 +221,9 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
 
   // resets client authorization
   resetClientAuthorization(repoAccessToken: string, metaRepoAccessToken?: string): void {
-    this.repoClient = axios.create({
-      baseURL: 'https://gitlab.com/api/v4',
-      timeout: 6000,
-      headers: {
-        'Authorization': `Bearer ${repoAccessToken}`
-      }
-    });
+    this.repoClient = this.getServiceClient(repoAccessToken);
     if (metaRepoAccessToken) {
-      this.metaRepoClient = axios.create({
-        baseURL: 'https://gitlab.com/api/v4',
-        timeout: 6000,
-        headers: {
-          'Authorization': `Bearer ${metaRepoAccessToken}`
-        }
-      });
+      this.metaRepoClient = this.getServiceClient(metaRepoAccessToken);
     }
   }
 

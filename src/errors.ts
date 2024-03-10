@@ -1,3 +1,6 @@
+/*!
+ * Copyright (c) 2024 Digital Credentials Consortium. All rights reserved.
+ */
 import { BaseCredentialStatusManager } from './credential-status-manager-base.js';
 
 interface CustomErrorOptionalOptions {

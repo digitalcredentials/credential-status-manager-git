@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
+ * Copyright (c) 2023-2024 Digital Credentials Consortium. All rights reserved.
  */
 import {
   BaseCredentialStatusManager,
@@ -125,7 +125,7 @@ export async function createStatusManager(options: CredentialStatusManagerOption
     };
     await statusManager.createConfig(config);
 
-    // create status credential
+    // compose status credential
     const statusCredentialUrlBase = statusManager.getStatusCredentialUrlBase();
     const statusCredentialUrl = `${statusCredentialUrlBase}/${statusCredentialId}`;
     let statusCredential = await composeStatusCredential({

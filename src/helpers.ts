@@ -1,6 +1,9 @@
 /*!
- * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
+ * Copyright (c) 2023-2024 Digital Credentials Consortium. All rights reserved.
  */
+import * as vc1Context from 'credentials-context';
+import * as vc2Context from '@digitalbazaar/credentials-v2-context';
+import * as vcBitstringStatusListContext from '@digitalbazaar/vc-bitstring-status-list-context';
 import { decodeSecretKeySeed } from '@digitalcredentials/bnid';
 import { Ed25519Signature2020 } from '@digitalcredentials/ed25519-signature-2020';
 import { Ed25519VerificationKey2020 } from '@digitalcredentials/ed25519-verification-key-2020';
@@ -12,6 +15,8 @@ import * as DidKey from '@digitalcredentials/did-method-key';
 import * as DidWeb from '@interop/did-web-resolver';
 import { CryptoLD } from '@digitalcredentials/crypto-ld';
 import { BadRequestError, InvalidDidSeedError } from './errors.js';
+
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 
 // Crypto library for linked data
 const cryptoLd = new CryptoLD();
@@ -52,6 +57,55 @@ interface GetSigningKeysResult {
   issuerDid: string;
   keyPairs: Map<string, any>;
   verificationMethod: string;
+}
+
+// validates credential
+export function validateCredential(credential: VerifiableCredential): void {
+  if (typeof credential === 'string') {
+    throw new BadRequestError({
+      message: 'This library does not support compact JWT credentials.'
+    });
+  }
+
+  if (!Array.isArray(credential['@context']) || credential['@context'].length === 0) {
+    throw new BadRequestError({
+      message: 'This library does not support credentials with ' +
+        'a "@context" value that is not a non-empty array.'
+    });
+  }
+
+  switch (credential['@context'][0]) {
+    case vc1Context.CONTEXT_URL:
+      // ensure that credential contains valid status credential context in VC 1.1
+      if (!credential['@context'].includes(vcBitstringStatusListContext.CONTEXT_URL)) {
+        credential['@context'].push(vcBitstringStatusListContext.CONTEXT_URL);
+      }
+      break;
+    case vc2Context.CONTEXT_URL:
+      // no additional contexts need to be added in VC 2.0
+      break;
+    default:
+      throw new BadRequestError({
+        message: 'This library does not support credentials ' +
+          'that do not conform to VC 1.1 or VC 2.0. ' +
+          'Note: The first value in the "@context" array must be ' +
+          `${vc1Context.CONTEXT_URL} or ${vc2Context.CONTEXT_URL}.`
+      });
+  }
+}
+
+// retrieves credential subject entry
+export function getCredentialSubjectObject(credential: VerifiableCredential): any {
+  // report error for compact JWT credentials
+  if (typeof credential === 'string') {
+    throw new BadRequestError({
+      message: 'This library does not support compact JWT credentials.'
+    });
+  }
+  if (Array.isArray(credential.credentialSubject)) {
+    return credential.credentialSubject[0];
+  }
+  return credential.credentialSubject;
 }
 
 // signs credential

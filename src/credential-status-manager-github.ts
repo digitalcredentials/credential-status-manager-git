@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2023 Digital Credentials Consortium. All rights reserved.
+ * Copyright (c) 2023-2024 Digital Credentials Consortium. All rights reserved.
  */
 import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import { Octokit } from '@octokit/rest';
@@ -65,8 +65,13 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     });
     this.validateConfiguration(options);
     this.ownerAccountName = ownerAccountName;
-    this.repoClient = new Octokit({ auth: repoAccessToken });
-    this.metaRepoClient = new Octokit({ auth: metaRepoAccessToken });
+    this.repoClient = this.getServiceClient(repoAccessToken);
+    this.metaRepoClient = this.getServiceClient(metaRepoAccessToken);
+  }
+
+  // retrieves Git service client
+  getServiceClient(accessToken: string): Octokit {
+    return new Octokit({ auth: accessToken });
   }
 
   // ensures valid configuration of GitHub status manager
@@ -117,9 +122,9 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
 
   // resets client authorization
   resetClientAuthorization(repoAccessToken: string, metaRepoAccessToken?: string): void {
-    this.repoClient = new Octokit({ auth: repoAccessToken });
+    this.repoClient = this.getServiceClient(repoAccessToken);
     if (metaRepoAccessToken) {
-      this.metaRepoClient = new Octokit({ auth: metaRepoAccessToken });
+      this.metaRepoClient = this.getServiceClient(metaRepoAccessToken);
     }
   }
 
