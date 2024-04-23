@@ -29,8 +29,8 @@ const didKeyDriver = DidKey.driver();
 // Document loader
 const documentLoader = securityLoader().build();
 
-// Max length for IDs
-export const MAX_ID_LENGTH = 64;
+// Max length for credential IDs
+export const MAX_CREDENTIAL_ID_LENGTH = 64;
 
 // DID method used to sign credentials
 export enum DidMethod {
@@ -219,7 +219,7 @@ export function deriveStatusCredentialId(statusCredentialUrl: string): string {
 // determines if credential ID is valid
 export function isValidCredentialId(credentialId: string): boolean {
   const isValidFormat = URL.canParse(credentialId) || uuid.validate(credentialId);
-  const isValidLength = credentialId.length <= MAX_ID_LENGTH;
+  const isValidLength = credentialId.length <= MAX_CREDENTIAL_ID_LENGTH;
   return isValidFormat && isValidLength;
 }
 

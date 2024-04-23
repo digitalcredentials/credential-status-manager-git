@@ -114,7 +114,7 @@ const credential = {
 };
 const credentialWithStatus = await statusManager.allocateStatus({
   credential,
-  statusPurposes: ['revocation']
+  statusPurposes: ['revocation', 'suspension']
 });
 console.log(credentialWithStatus);
 /*
@@ -127,18 +127,27 @@ console.log(credentialWithStatus);
   issuer: 'did:key:z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC',
   validFrom: '2020-03-10T04:24:12.164Z',
   credentialSubject: { id: 'did:example:abcdef' },
-  credentialStatus: {
-    id: 'https://university-xyz.github.io/credential-status/V27UAUYPNR#1',
-    type: 'BitstringStatusListEntry',
-    statusPurpose: 'revocation',
-    statusListIndex: '1',
-    statusListCredential: 'https://university-xyz.github.io/credential-status/V27UAUYPNR'
-  }
+  credentialStatus: [
+    {
+      id: 'https://credentials.example.edu/status/Uz42qSDSXTcoLH7kZ6ST#1',
+      type: 'BitstringStatusListEntry',
+      statusPurpose: 'revocation',
+      statusListIndex: '1',
+      statusListCredential: 'https://credentials.example.edu/status/Uz42qSDSXTcoLH7kZ6ST'
+    },
+    {
+      id: 'https://credentials.example.edu/status/9kGimd8POqM88l32F9aT#1',
+      type: 'BitstringStatusListEntry',
+      statusPurpose: 'suspension',
+      statusListIndex: '1',
+      statusListCredential: 'https://credentials.example.edu/status/9kGimd8POqM88l32F9aT'
+    }
+  ]
 }
 */
 ```
 
-**Note:** You can also call `allocateRevocationStatus(credential)` to achieve the same effect as `allocateStatus({ credential, statusPurposes: ['revocation'] })` and `allocateSuspensionStatus(credential)` to achieve the same effect as `allocateStatus({ credential, statusPurposes: ['suspension'] })`.
+**Note:** You can also call `allocateRevocationStatus(credential)` to achieve the same effect as `allocateStatus({ credential, statusPurposes: ['revocation'] })`, `allocateSuspensionStatus(credential)` to achieve the same effect as `allocateStatus({ credential, statusPurposes: ['suspension'] })`, and `allocateSupportedStatuses(credential)` to achieve the same effect as `allocateStatus({ credential, statusPurposes: ['revocation', 'suspension'] })`.
 
 Additionally, if the caller invokes `allocateStatus` multiple times with the same credential ID against the same instance of a credential status manager, the library will not allocate a new entry. It will just return a credential with the same status info as it did in the previous invocation.
 
@@ -160,10 +169,10 @@ console.log(statusCredential);
   '@context': [
     'https://www.w3.org/ns/credentials/v2'
   ],
-  id: 'https://university-xyz.github.io/credential-status/V27UAUYPNR',
+  id: 'https://university-xyz.github.io/credential-status/Uz42qSDSXTcoLH7kZ6ST',
   type: [ 'VerifiableCredential', 'BitstringStatusListCredential' ],
   credentialSubject: {
-    id: 'https://university-xyz.github.io/credential-status/V27UAUYPNR#list',
+    id: 'https://university-xyz.github.io/credential-status/Uz42qSDSXTcoLH7kZ6ST#list',
     type: 'BitstringStatusList',
     encodedList: 'H4sIAAAAAAAAA-3BMQ0AAAACIGf_0LbwAhoAAAAAAAAAAAAAAIC_AfqBUGnUMAAA',
     statusPurpose: 'revocation'
@@ -188,12 +197,12 @@ console.log(credentialStatus);
 /*
 {
   revocation: {
-    statusCredentialId: 'V27UAUYPNR',
+    statusCredentialId: 'Uz42qSDSXTcoLH7kZ6ST',
     statusListIndex: 1,
     valid: true
   },
   suspension: {
-    statusCredentialId: '4R7EA3YPTR',
+    statusCredentialId: '9kGimd8POqM88l32F9aT',
     statusListIndex: 1,
     valid: false
   }
