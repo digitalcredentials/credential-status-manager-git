@@ -5,12 +5,12 @@ import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import axios, { AxiosInstance } from 'axios';
 import {
   BASE_MANAGER_REQUIRED_OPTIONS,
-  CREDENTIAL_STATUS_CONFIG_FILE,
-  CREDENTIAL_STATUS_REPO_BRANCH_NAME,
-  CREDENTIAL_STATUS_SNAPSHOT_FILE,
   BaseCredentialStatusManager,
   BaseCredentialStatusManagerOptions,
+  CONFIG_FILE_PATH_ENCODED,
   Config,
+  SNAPSHOT_FILE_PATH_ENCODED,
+  STATUS_CREDENTIAL_REPO_BRANCH_NAME,
   Snapshot
 } from './credential-status-manager-base.js';
 import { BadRequestError } from './errors.js';
@@ -21,13 +21,10 @@ import {
   getDateString
 } from './helpers.js';
 
-const CREDENTIAL_STATUS_REPO_RESULTS_PER_PAGE = 100;
+const STATUS_CREDENTIAL_REPO_RESULTS_PER_PAGE = 100;
 
-const CREDENTIAL_STATUS_CONFIG_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_CONFIG_FILE);
-const CREDENTIAL_STATUS_SNAPSHOT_PATH_ENCODED = encodeURIComponent(CREDENTIAL_STATUS_SNAPSHOT_FILE);
-
-const CREDENTIAL_STATUS_WEBSITE_HOME_PAGE_PATH = 'index.html';
-const CREDENTIAL_STATUS_WEBSITE_HOME_PAGE =
+const STATUS_CREDENTIAL_WEBSITE_HOME_PAGE_PATH = 'index.html';
+const STATUS_CREDENTIAL_WEBSITE_HOME_PAGE =
 `<html>
   <head>
     <title>Credential Status Management Service</title>
@@ -40,8 +37,8 @@ const CREDENTIAL_STATUS_WEBSITE_HOME_PAGE =
   </body>
 </html>`;
 
-const CREDENTIAL_STATUS_WEBSITE_CI_CONFIG_PATH = '.gitlab-ci.yml';
-const CREDENTIAL_STATUS_WEBSITE_CI_CONFIG =
+const STATUS_CREDENTIAL_WEBSITE_CI_CONFIG_PATH = '.gitlab-ci.yml';
+const STATUS_CREDENTIAL_WEBSITE_CI_CONFIG =
 `image: ruby:2.7
 
 pages:
@@ -53,16 +50,16 @@ pages:
     paths:
       - public`;
 
-const CREDENTIAL_STATUS_WEBSITE_GEMFILE_PATH = 'Gemfile';
-const CREDENTIAL_STATUS_WEBSITE_GEMFILE =
+const STATUS_CREDENTIAL_WEBSITE_GEMFILE_PATH = 'Gemfile';
+const STATUS_CREDENTIAL_WEBSITE_GEMFILE =
 `source "https://rubygems.org"
 
 gem "jekyll"`;
 
-const CREDENTIAL_STATUS_WEBSITE_FILE_PATHS = [
-  CREDENTIAL_STATUS_WEBSITE_HOME_PAGE_PATH,
-  CREDENTIAL_STATUS_WEBSITE_CI_CONFIG_PATH,
-  CREDENTIAL_STATUS_WEBSITE_GEMFILE_PATH
+const STATUS_CREDENTIAL_WEBSITE_FILE_PATHS = [
+  STATUS_CREDENTIAL_WEBSITE_HOME_PAGE_PATH,
+  STATUS_CREDENTIAL_WEBSITE_CI_CONFIG_PATH,
+  STATUS_CREDENTIAL_WEBSITE_GEMFILE_PATH
 ];
 
 // Type definition for GitLabCredentialStatusManager constructor method input
@@ -91,29 +88,12 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
   constructor(options: GitLabCredentialStatusManagerOptions) {
     const {
       ownerAccountName,
-      repoName,
       repoId,
-      metaRepoName,
       metaRepoId,
       repoAccessToken,
-      metaRepoAccessToken,
-      didMethod,
-      didSeed,
-      didWebUrl,
-      signStatusCredential,
-      signUserCredential
+      metaRepoAccessToken
     } = options;
-    super({
-      repoName,
-      metaRepoName,
-      repoAccessToken,
-      metaRepoAccessToken,
-      didMethod,
-      didSeed,
-      didWebUrl,
-      signStatusCredential,
-      signUserCredential
-    });
+    super(options);
     this.validateConfiguration(options);
     this.ownerAccountName = ownerAccountName;
     this.repoId = repoId;
@@ -190,28 +170,28 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     return `https://${this.ownerAccountName}.gitlab.io/${this.repoName}`;
   }
 
-  // deploys website to host credential status management resources
-  async deployCredentialStatusWebsite(): Promise<void> {
+  // deploys website to host status credentials
+  async deployStatusCredentialWebsite(): Promise<void> {
     const timestamp = getDateString();
     const message = `[${timestamp}]: deployed status website`;
     const websiteRequestOptions = {
-      branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
+      branch: STATUS_CREDENTIAL_REPO_BRANCH_NAME,
       commit_message: message,
       actions: [
         {
           action: 'create',
-          file_path: CREDENTIAL_STATUS_WEBSITE_HOME_PAGE_PATH,
-          content: CREDENTIAL_STATUS_WEBSITE_HOME_PAGE
+          file_path: STATUS_CREDENTIAL_WEBSITE_HOME_PAGE_PATH,
+          content: STATUS_CREDENTIAL_WEBSITE_HOME_PAGE
         },
         {
           action: 'create',
-          file_path: CREDENTIAL_STATUS_WEBSITE_CI_CONFIG_PATH,
-          content: CREDENTIAL_STATUS_WEBSITE_CI_CONFIG
+          file_path: STATUS_CREDENTIAL_WEBSITE_CI_CONFIG_PATH,
+          content: STATUS_CREDENTIAL_WEBSITE_CI_CONFIG
         },
         {
           action: 'create',
-          file_path: CREDENTIAL_STATUS_WEBSITE_GEMFILE_PATH,
-          content: CREDENTIAL_STATUS_WEBSITE_GEMFILE
+          file_path: STATUS_CREDENTIAL_WEBSITE_GEMFILE_PATH,
+          content: STATUS_CREDENTIAL_WEBSITE_GEMFILE
         }
       ]
     };
@@ -289,7 +269,7 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
   async getRepo(): Promise<any> {
     const repoRequestOptions = {
       params: {
-        ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
+        ref: STATUS_CREDENTIAL_REPO_BRANCH_NAME
       }
     };
     const repoRequestEndpoint = this.repoEndpoint(this.repoId);
@@ -303,20 +283,20 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     let page = 1;
     const repoRequestOptions = {
       params: {
-        ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
+        ref: STATUS_CREDENTIAL_REPO_BRANCH_NAME
       }
     };
     while (true) {
       const repoRequestEndpoint = this.repoTreeEndpoint(this.repoId);
       const repoPartial = (await this.repoClient.get(
-        `${repoRequestEndpoint}?per_page=${CREDENTIAL_STATUS_REPO_RESULTS_PER_PAGE}&page=${page}`,
+        `${repoRequestEndpoint}?per_page=${STATUS_CREDENTIAL_REPO_RESULTS_PER_PAGE}&page=${page}`,
         repoRequestOptions
       )).data;
       if (repoPartial.length === 0) {
         break;
       }
       const repoPartialFiltered = repoPartial.filter((file: any) => {
-        return !CREDENTIAL_STATUS_WEBSITE_FILE_PATHS.includes(file.name);
+        return !STATUS_CREDENTIAL_WEBSITE_FILE_PATHS.includes(file.name);
       });
       repo = repo.concat(repoPartialFiltered);
       page++;
@@ -334,7 +314,7 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
   async getMetaRepo(): Promise<any> {
     const metaRepoRequestOptions = {
       params: {
-        ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
+        ref: STATUS_CREDENTIAL_REPO_BRANCH_NAME
       }
     };
     const metaRepoRequestEndpoint = this.repoEndpoint(this.metaRepoId);
@@ -354,7 +334,7 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     const message = `[${timestamp}]: created status credential`;
     const content = JSON.stringify(statusCredential, null, 2);
     const statusRequestOptions = {
-      branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
+      branch: STATUS_CREDENTIAL_REPO_BRANCH_NAME,
       commit_message: message,
       content
     };
@@ -364,26 +344,20 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // retrieves response from fetching status file
-  async getStatusCredentialResponse(statusCredentialId?: string): Promise<any> {
-    let statusCredentialFinal;
-    if (statusCredentialId) {
-      statusCredentialFinal = statusCredentialId;
-    } else {
-      ({ latestStatusCredentialId: statusCredentialFinal } = await this.getConfig());
-    }
+  async getStatusCredentialResponse(statusCredentialId: string): Promise<any> {
     const statusRequestOptions = {
       params: {
-        ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
+        ref: STATUS_CREDENTIAL_REPO_BRANCH_NAME
       }
     };
-    const statusPath = encodeURIComponent(statusCredentialFinal);
+    const statusPath = encodeURIComponent(statusCredentialId);
     const statusRequestEndpoint = this.filesEndpoint(this.repoId, statusPath);
     const statusResponse = await this.repoClient.get(statusRequestEndpoint, statusRequestOptions);
     return statusResponse.data;
   }
 
   // retrieves status credential
-  async getStatusCredential(statusCredentialId?: string): Promise<VerifiableCredential> {
+  async getStatusCredential(statusCredentialId: string): Promise<VerifiableCredential> {
     const statusResponse = await this.getStatusCredentialResponse(statusCredentialId);
     return decodeSystemData(statusResponse.content);
   }
@@ -400,7 +374,7 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     const message = `[${timestamp}]: updated status credential`;
     const content = JSON.stringify(statusCredential, null, 2);
     const statusRequestOptions = {
-      branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
+      branch: STATUS_CREDENTIAL_REPO_BRANCH_NAME,
       commit_message: message,
       content
     };
@@ -421,7 +395,7 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     const timestamp = getDateString();
     const message = `[${timestamp}]: deleted status credential data: ${repoFilenames.join(', ')}`;
     const statusRequestOptions = {
-      branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
+      branch: STATUS_CREDENTIAL_REPO_BRANCH_NAME,
       commit_message: message,
       actions
     };
@@ -435,13 +409,13 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     const message = `[${timestamp}]: created status credential config`;
     const content = JSON.stringify(config, null, 2);
     const configRequestOptions = {
-      branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
+      branch: STATUS_CREDENTIAL_REPO_BRANCH_NAME,
       commit_message: message,
       content
     };
     const configRequestEndpoint = this.filesEndpoint(
       this.metaRepoId,
-      CREDENTIAL_STATUS_CONFIG_PATH_ENCODED
+      CONFIG_FILE_PATH_ENCODED
     );
     await this.metaRepoClient.post(configRequestEndpoint, configRequestOptions);
   }
@@ -450,12 +424,12 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
   async getConfigResponse(): Promise<any> {
     const configRequestOptions = {
       params: {
-        ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
+        ref: STATUS_CREDENTIAL_REPO_BRANCH_NAME
       }
     };
     const configRequestEndpoint = this.filesEndpoint(
       this.metaRepoId,
-      CREDENTIAL_STATUS_CONFIG_PATH_ENCODED
+      CONFIG_FILE_PATH_ENCODED
     );
     const configResponse = await this.metaRepoClient.get(configRequestEndpoint, configRequestOptions);
     return configResponse.data;
@@ -473,13 +447,13 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     const message = `[${timestamp}]: updated status credential config`;
     const content = JSON.stringify(config, null, 2);
     const configRequestOptions = {
-      branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
+      branch: STATUS_CREDENTIAL_REPO_BRANCH_NAME,
       commit_message: message,
       content
     };
     const configRequestEndpoint = this.filesEndpoint(
       this.metaRepoId,
-      CREDENTIAL_STATUS_CONFIG_PATH_ENCODED
+      CONFIG_FILE_PATH_ENCODED
     );
     await this.metaRepoClient.put(configRequestEndpoint, configRequestOptions);
   }
@@ -490,13 +464,13 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     const message = `[${timestamp}]: deleted config data`;
     const configRequestOptions = {
       data: {
-        branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
+        branch: STATUS_CREDENTIAL_REPO_BRANCH_NAME,
         commit_message: message
       }
     };
     const configRequestEndpoint = this.filesEndpoint(
       this.metaRepoId,
-      CREDENTIAL_STATUS_CONFIG_PATH_ENCODED
+      CONFIG_FILE_PATH_ENCODED
     );
     await this.metaRepoClient.delete(configRequestEndpoint, configRequestOptions);
   }
@@ -507,13 +481,13 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     const message = `[${timestamp}]: created status credential snapshot`;
     const content = JSON.stringify(snapshot, null, 2);
     const snapshotRequestOptions = {
-      branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
+      branch: STATUS_CREDENTIAL_REPO_BRANCH_NAME,
       commit_message: message,
       content
     };
     const snapshotRequestEndpoint = this.filesEndpoint(
       this.metaRepoId,
-      CREDENTIAL_STATUS_SNAPSHOT_PATH_ENCODED
+      SNAPSHOT_FILE_PATH_ENCODED
     );
     await this.metaRepoClient.post(snapshotRequestEndpoint, snapshotRequestOptions);
   }
@@ -522,12 +496,12 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
   async getSnapshotResponse(): Promise<any> {
     const snapshotRequestOptions = {
       params: {
-        ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
+        ref: STATUS_CREDENTIAL_REPO_BRANCH_NAME
       }
     };
     const snapshotRequestEndpoint = this.filesEndpoint(
       this.metaRepoId,
-      CREDENTIAL_STATUS_SNAPSHOT_PATH_ENCODED
+      SNAPSHOT_FILE_PATH_ENCODED
     );
     const snapshotResponse = await this.metaRepoClient.get(snapshotRequestEndpoint, snapshotRequestOptions);
     return snapshotResponse.data;
@@ -545,13 +519,13 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     const message = `[${timestamp}]: deleted snapshot data`;
     const snapshotRequestOptions = {
       data: {
-        branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
+        branch: STATUS_CREDENTIAL_REPO_BRANCH_NAME,
         commit_message: message
       }
     };
     const snapshotRequestEndpoint = this.filesEndpoint(
       this.metaRepoId,
-      CREDENTIAL_STATUS_SNAPSHOT_PATH_ENCODED
+      SNAPSHOT_FILE_PATH_ENCODED
     );
     await this.metaRepoClient.delete(snapshotRequestEndpoint, snapshotRequestOptions);
   }
@@ -561,12 +535,12 @@ export class GitLabCredentialStatusManager extends BaseCredentialStatusManager {
     try {
       const snapshotRequestOptions = {
         params: {
-          ref: CREDENTIAL_STATUS_REPO_BRANCH_NAME
+          ref: STATUS_CREDENTIAL_REPO_BRANCH_NAME
         }
       };
       const snapshotRequestEndpoint = this.filesEndpoint(
         this.metaRepoId,
-        CREDENTIAL_STATUS_SNAPSHOT_PATH_ENCODED
+        SNAPSHOT_FILE_PATH_ENCODED
       );
       await this.metaRepoClient.get(snapshotRequestEndpoint, snapshotRequestOptions);
     } catch (error) {

@@ -88,11 +88,11 @@ const statusManager = await createStatusManager({
 });
 ```
 
-**Note:** A Bitstring Status List credential can be found in the designated status credential repository (`repoName`) of the designated owner account (`ownerAccountName`) which is populated by `createStatusManager`. Additionally, relevant historical data can be found in the designated status metadata repository (`metaRepoName`) in the same owner account. Note that these repositories need to be manually created prior to calling `createStatusManager`. Finally, you can find a publicly visible version of the aforementioned Bitstring Status List credential at the relevant URL for hosted sites in the Git service of choice (e.g., https://`ownerAccountName`.github.io/`repoName`/`statusCredentialId` for GitHub, where `statusCredentialId` is the name of a file that is automatically generated in `repoName`).
+**Note:** A Bitstring Status List credential can be found in the designated status credential repository (`repoName`) of the designated owner account (`ownerAccountName`) which is populated by `createStatusManager`. Additionally, relevant historical data can be found in the designated status metadata repository (`metaRepoName`) in the same owner account. Note that these repositories need to be manually created prior to calling `createStatusManager`. Finally, you can also access this Bitstring Status List credential at the relevant public URL for hosted sites in the Git service of choice (e.g., https://`ownerAccountName`.github.io/`repoName`/`statusCredentialId` for GitHub, where `statusCredentialId` is the name of a file that is automatically generated in `repoName`).
 
 ### Allocate status for credential
 
-`allocateStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts a credential and status purpose as input (options: `revocation` | `suspension`), records its status in the caller's Git service of choice, and returns the credential with status metadata attached.
+`allocateStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts a credential and an array of status purposes as input (options: `revocation` | `suspension`), records its status in a previously configured Git repo, and returns the credential with status metadata attached.
 
 Here is a sample call to `allocateStatus`:
 
@@ -114,7 +114,7 @@ const credential = {
 };
 const credentialWithStatus = await statusManager.allocateStatus({
   credential,
-  statusPurpose: 'revocation'
+  statusPurposes: ['revocation']
 });
 console.log(credentialWithStatus);
 /*
@@ -138,20 +138,21 @@ console.log(credentialWithStatus);
 */
 ```
 
-**Note:** You can also call `allocateRevocationStatus(credential)` to achieve the same effect as `allocateStatus({ credential, statusPurpose: 'revocation' })` and `allocateSuspensionStatus(credential)` tcateStatus({ credential, statusPurpose: 'suspension' })`.
+**Note:** You can also call `allocateRevocationStatus(credential)` to achieve the same effect as `allocateStatus({ credential, statusPurposes: ['revocation'] })` and `allocateSuspensionStatus(credential)` to achieve the same effect as `allocateStatus({ credential, statusPurposes: ['suspension'] })`.
 
-Additionally, if the caller invokes `allocateStatus` multiple times with the same credential ID against the same instance of a credential status manager, the library will not allocate a new entry. It wile same status info as it did in the previous invocation.
+Additionally, if the caller invokes `allocateStatus` multiple times with the same credential ID against the same instance of a credential status manager, the library will not allocate a new entry. It will just return a credential with the same status info as it did in the previous invocation.
 
 ### Update status of credential
 
-`updateStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts a credential ID and the desired credential state as input (options: `active` | `revoked` | `suspended`), records its new status in the caller's Git service of choice, and returns the status credential.
+`updateStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts as input a credential ID, a status purpose (options: `revocation` | `suspension`), and whether to invalidate the status; records its new status in a previously configured Git repo; and returns the status credential.
 
 Here is a sample call to `updateStatus`:
 
 ```ts
 const statusCredential = await statusManager.updateStatus({
   credentialId: credentialWithStatus.id,
-  credentialState: 'revoked'
+  statusPurpose: 'revocation',
+  invalidate: true
 });
 console.log(statusCredential);
 /*
@@ -173,27 +174,29 @@ console.log(statusCredential);
 */
 ```
 
-+**Note:** You can also call `revokeCredential(credentialId)` to achieve the same effect as `updateStatus({ credentialId, credentialState: 'revoked' })` and `suspendCredential(credentialId)` to achieve the same effect as `updredentialId, credentialState: 'suspended' })`.
+**Note:** You can also call `revokeCredential(credentialId)` to achieve the same effect as `updateStatus({ credentialId, statusPurpose: 'revocation', invalidate: true })` and `suspendCredential(credentialId)` to achieve the same effect as `updateStatus({ credentialId, statusPurpose: 'suspension', invalidate: true })`. Also note that `unsuspendCredential(credentialId)` will lift a suspension from a credential, while there is no equivalent reversal logic for revocation, since it is not allowed.
 
 ### Check status of credential
 
-`checkStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts a credential ID as input and returns status information for the credential.
+`getStatus` is an instance method that is called on a credential status manager initialized by `createStatusManager`. It is an asynchronous method that accepts a credential ID as input and returns status information for the credential.
 
-Here is a sample call to `checkStatus`:
+Here is a sample call to `getStatus`:
 
 ```ts
-const credentialStatus = await statusManager.checkStatus(credentialWithStatus.id);
+const credentialStatus = await statusManager.getStatus(credentialWithStatus.id);
 console.log(credentialStatus);
 /*
 {
-  timestamp: '2024-03-15T19:39:06.023Z',
-  credentialId: 'https://university-xyz.edu/credentials/3732',
-  credentialIssuer: 'did:key:z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC',
-  credentialSubject: 'did:example:abcdef',
-  credentialState: 'revoked',
-  verificationMethod: 'did:key:z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC#z6MkhVTX9BF3NGYX6cc7jWpbNnR7cAjH8LUffabZP8Qu4ysC',
-  statusCredentialId: 'V27UAUYPNR',
-  credentialStatusIndex: 1
+  revocation: {
+    statusCredentialId: 'V27UAUYPNR',
+    statusListIndex: 1,
+    valid: true
+  },
+  suspension: {
+    statusCredentialId: '4R7EA3YPTR',
+    statusListIndex: 1,
+    valid: false
+  }
 }
 */
 ```
@@ -210,7 +213,7 @@ console.log(credentialStatus);
 5. Click the plus icon in the top-right corner of the screen and click *New repository*
 6. Configure a **blank private** repository for the credential status metadata repository \*, with an optional description, that is owned by your account \*
 
-**\*Note:** The names you choose for the owner account, status credential repository, and credential status metadata repository should be passed in respectively as `ownerAccountName`, `repoName`, and `metaRepoName` in invocations of `createStatusManager`. When you create these repositories, be sure not to add any files (including common default files like `.gitignore`, `README.md`, or `LICENSE`).
+**\*Note:** The names you choose for the owner account, status credential repository, and credential status metadata repository should be passed in respectively as `ownerAccountName`, `repoName`, and `metaRepoName` in invocations of `createStatusManager`. When you create these repositories, be sure **NOT** to add any files (including common default files like `.gitignore`, `README.md`, or `LICENSE`).
 
 **GitLab**
 1. Login to GitLab
@@ -220,7 +223,7 @@ console.log(credentialStatus);
 5. Click the plus icon in the top-right corner of the screen and click *New project/repository*
 6. Configure a **blank private** repository for the credential status metadata repository \* that is owned by your account \*
 
-**\*Note:** The names you choose for the owner account, status credential repository, and credential status metadata repository, along with their IDs (which can be found at the main view for the repository/group), should be passed in respectively as `ownerAccountName`, `repoName` (ID: `repoId`), and `metaRepoName` (ID: `metaRepoId`) in invocations of `createStatusManager`. When you create these repositories, be sure not to add any files (including common default files like `.gitignore`, `README.md`, or `LICENSE`).
+**\*Note:** The names you choose for the owner account, status credential repository, and credential status metadata repository, along with their IDs (which can be found at the main view for the repository/group), should be passed in respectively as `ownerAccountName`, `repoName` (ID: `repoId`), and `metaRepoName` (ID: `metaRepoId`) in invocations of `createStatusManager`. When you create these repositories, be sure **NOT** to add any files (including common default files like `.gitignore`, `README.md`, or `LICENSE`).
 
 ### Generate access tokens
 

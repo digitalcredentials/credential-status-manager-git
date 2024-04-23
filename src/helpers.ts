@@ -1,6 +1,7 @@
 /*!
  * Copyright (c) 2023-2024 Digital Credentials Consortium. All rights reserved.
  */
+import * as uuid from 'uuid';
 import * as vc1Context from 'credentials-context';
 import * as vc2Context from '@digitalbazaar/credentials-v2-context';
 import * as vcBitstringStatusListContext from '@digitalbazaar/vc-bitstring-status-list-context';
@@ -16,8 +17,6 @@ import * as DidWeb from '@interop/did-web-resolver';
 import { CryptoLD } from '@digitalcredentials/crypto-ld';
 import { BadRequestError, InvalidDidSeedError } from './errors.js';
 
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-
 // Crypto library for linked data
 const cryptoLd = new CryptoLD();
 cryptoLd.use(Ed25519VerificationKey2020);
@@ -29,6 +28,9 @@ const didKeyDriver = DidKey.driver();
 
 // Document loader
 const documentLoader = securityLoader().build();
+
+// Max length for IDs
+export const MAX_ID_LENGTH = 64;
 
 // DID method used to sign credentials
 export enum DidMethod {
@@ -172,6 +174,20 @@ export async function getSigningMaterial({
   };
 }
 
+// decodes DID seed
+function decodeSeed(didSeed: string): Uint8Array {
+  let didSeedBytes;
+  if (didSeed.startsWith('z')) {
+    // This is a multibase-encoded seed
+    didSeedBytes = decodeSecretKeySeed({ secretKeySeed: didSeed });
+  } else if (didSeed.length >= 32) {
+      didSeedBytes = (new TextEncoder()).encode(didSeed).slice(0, 32);
+  } else {
+    throw new InvalidDidSeedError();
+  }
+  return didSeedBytes;
+}
+
 // decodes system data as JSON
 export function decodeSystemData(text: string): any {
   return JSON.parse(decodeBase64AsAscii(text));
@@ -187,20 +203,6 @@ function decodeBase64AsAscii(text: string): string {
   return Buffer.from(text, 'base64').toString('ascii');
 }
 
-// decodes DID seed
-function decodeSeed(didSeed: string): Uint8Array {
-  let didSeedBytes;
-  if (didSeed.startsWith('z')) {
-    // This is a multibase-encoded seed
-    didSeedBytes = decodeSecretKeySeed({ secretKeySeed: didSeed });
-  } else if (didSeed.length >= 32) {
-      didSeedBytes = (new TextEncoder()).encode(didSeed).slice(0, 32);
-  } else {
-    throw new InvalidDidSeedError();
-  }
-  return didSeedBytes;
-}
-
 // extracts ID from object or string
 function extractId(objectOrString: any): string {
   if (typeof objectOrString === 'string') {
@@ -212,6 +214,13 @@ function extractId(objectOrString: any): string {
 // derives abbreviated ID from status credential URL
 export function deriveStatusCredentialId(statusCredentialUrl: string): string {
   return statusCredentialUrl.split('/').slice(-1).pop() as string;
+}
+
+// determines if credential ID is valid
+export function isValidCredentialId(credentialId: string): boolean {
+  const isValidFormat = URL.canParse(credentialId) || uuid.validate(credentialId);
+  const isValidLength = credentialId.length <= MAX_ID_LENGTH;
+  return isValidFormat && isValidLength;
 }
 
 // retrieves current timestamp

@@ -5,12 +5,12 @@ import { VerifiableCredential } from '@digitalcredentials/vc-data-model';
 import { Octokit } from '@octokit/rest';
 import {
   BASE_MANAGER_REQUIRED_OPTIONS,
-  CREDENTIAL_STATUS_CONFIG_FILE,
-  CREDENTIAL_STATUS_REPO_BRANCH_NAME,
-  CREDENTIAL_STATUS_SNAPSHOT_FILE,
   BaseCredentialStatusManager,
   BaseCredentialStatusManagerOptions,
+  CONFIG_FILE_PATH,
   Config,
+  SNAPSHOT_FILE_PATH,
+  STATUS_CREDENTIAL_REPO_BRANCH_NAME,
   Snapshot
 } from './credential-status-manager-base.js';
 import { BadRequestError } from './errors.js';
@@ -42,27 +42,10 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
   constructor(options: GitHubCredentialStatusManagerOptions) {
     const {
       ownerAccountName,
-      repoName,
-      metaRepoName,
       repoAccessToken,
-      metaRepoAccessToken,
-      didMethod,
-      didSeed,
-      didWebUrl,
-      signStatusCredential,
-      signUserCredential
+      metaRepoAccessToken
     } = options;
-    super({
-      repoName,
-      metaRepoName,
-      repoAccessToken,
-      metaRepoAccessToken,
-      didMethod,
-      didSeed,
-      didWebUrl,
-      signStatusCredential,
-      signUserCredential
-    });
+    super(options);
     this.validateConfiguration(options);
     this.ownerAccountName = ownerAccountName;
     this.repoClient = this.getServiceClient(repoAccessToken);
@@ -111,12 +94,12 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     return `https://${this.ownerAccountName}.github.io/${this.repoName}`;
   }
 
-  // deploys website to host credential status management resources
-  async deployCredentialStatusWebsite(): Promise<void> {
+  // deploys website to host status credentials
+  async deployStatusCredentialWebsite(): Promise<void> {
     await this.repoClient.repos.createPagesSite({
       owner: this.ownerAccountName,
       repo: this.repoName,
-      source: { branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME }
+      source: { branch: STATUS_CREDENTIAL_REPO_BRANCH_NAME }
     });
   }
 
@@ -250,7 +233,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     await this.repoClient.repos.createOrUpdateFileContents({
       owner: this.ownerAccountName,
       repo: this.repoName,
-      branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
+      branch: STATUS_CREDENTIAL_REPO_BRANCH_NAME,
       path: statusCredentialId,
       message,
       content
@@ -258,23 +241,17 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
   }
 
   // retrieves response from fetching status file
-  async getStatusCredentialResponse(statusCredentialId?: string): Promise<any> {
-    let statusCredentialFinal;
-    if (statusCredentialId) {
-      statusCredentialFinal = statusCredentialId;
-    } else {
-      ({ latestStatusCredentialId: statusCredentialFinal } = await this.getConfig());
-    }
+  async getStatusCredentialResponse(statusCredentialId: string): Promise<any> {
     const statusResponse = await this.repoClient.repos.getContent({
       owner: this.ownerAccountName,
       repo: this.repoName,
-      path: statusCredentialFinal
+      path: statusCredentialId
     });
     return statusResponse.data;
   }
 
   // retrieves status credential
-  async getStatusCredential(statusCredentialId?: string): Promise<VerifiableCredential> {
+  async getStatusCredential(statusCredentialId: string): Promise<VerifiableCredential> {
     const statusResponse = await this.getStatusCredentialResponse(statusCredentialId);
     return decodeSystemData(statusResponse.content);
   }
@@ -287,7 +264,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
       });
     }
     const statusCredentialId = deriveStatusCredentialId(statusCredential.id as string);
-    const statusResponse = await this.getStatusCredentialResponse();
+    const statusResponse = await this.getStatusCredentialResponse(statusCredentialId);
     const { sha } = statusResponse;
     const timestamp = getDateString();
     const message = `[${timestamp}]: updated status credential`;
@@ -327,8 +304,8 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     await this.metaRepoClient.repos.createOrUpdateFileContents({
       owner: this.ownerAccountName,
       repo: this.metaRepoName,
-      branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
-      path: CREDENTIAL_STATUS_CONFIG_FILE,
+      branch: STATUS_CREDENTIAL_REPO_BRANCH_NAME,
+      path: CONFIG_FILE_PATH,
       message,
       content
     });
@@ -339,7 +316,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     const configResponse = await this.metaRepoClient.repos.getContent({
       owner: this.ownerAccountName,
       repo: this.metaRepoName,
-      path: CREDENTIAL_STATUS_CONFIG_FILE
+      path: CONFIG_FILE_PATH
     });
     return configResponse.data;
   }
@@ -360,7 +337,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     await this.metaRepoClient.repos.createOrUpdateFileContents({
       owner: this.ownerAccountName,
       repo: this.metaRepoName,
-      path: CREDENTIAL_STATUS_CONFIG_FILE,
+      path: CONFIG_FILE_PATH,
       message,
       content,
       sha
@@ -375,7 +352,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     await this.metaRepoClient.repos.deleteFile({
       owner: this.ownerAccountName,
       repo: this.metaRepoName,
-      path: CREDENTIAL_STATUS_CONFIG_FILE,
+      path: CONFIG_FILE_PATH,
       message,
       sha
     });
@@ -389,8 +366,8 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     await this.metaRepoClient.repos.createOrUpdateFileContents({
       owner: this.ownerAccountName,
       repo: this.metaRepoName,
-      branch: CREDENTIAL_STATUS_REPO_BRANCH_NAME,
-      path: CREDENTIAL_STATUS_SNAPSHOT_FILE,
+      branch: STATUS_CREDENTIAL_REPO_BRANCH_NAME,
+      path: SNAPSHOT_FILE_PATH,
       message,
       content
     });
@@ -401,7 +378,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     const snapshotResponse = await this.metaRepoClient.repos.getContent({
       owner: this.ownerAccountName,
       repo: this.metaRepoName,
-      path: CREDENTIAL_STATUS_SNAPSHOT_FILE
+      path: SNAPSHOT_FILE_PATH
     });
     return snapshotResponse.data;
   }
@@ -420,7 +397,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     await this.metaRepoClient.repos.deleteFile({
       owner: this.ownerAccountName,
       repo: this.metaRepoName,
-      path: CREDENTIAL_STATUS_SNAPSHOT_FILE,
+      path: SNAPSHOT_FILE_PATH,
       message,
       sha
     });
@@ -432,7 +409,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
       await this.metaRepoClient.repos.getContent({
         owner: this.ownerAccountName,
         repo: this.metaRepoName,
-        path: CREDENTIAL_STATUS_SNAPSHOT_FILE
+        path: SNAPSHOT_FILE_PATH
       });
     } catch (error) {
       return false;
