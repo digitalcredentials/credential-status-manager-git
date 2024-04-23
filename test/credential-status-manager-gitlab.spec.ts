@@ -11,14 +11,17 @@ import {
   BaseCredentialStatusManager,
   Config,
   GitService,
-  Snapshot
+  Snapshot,
+  StatusPurpose
 } from '../src/credential-status-manager-base.js';
 import * as GitLabStatus from '../src/credential-status-manager-gitlab.js';
+import { deriveStatusCredentialId } from '../src/helpers.js';
 import {
   checkLocalCredentialStatus,
   checkRemoteCredentialStatus,
   checkSnapshot,
   checkStatusCredential,
+  checkUserCredentialInfo,
   didMethod,
   didSeed,
   metaRepoAccessToken,
@@ -28,7 +31,6 @@ import {
   repoAccessToken,
   repoId,
   repoName,
-  statusCredentialId,
   unsignedCredential1,
   unsignedCredential2,
   unsignedCredential3
@@ -37,39 +39,35 @@ import {
 const sandbox = createSandbox();
 
 class MockGitLabCredentialStatusManager extends GitLabStatus.GitLabCredentialStatusManager {
-  private statusCredential: VerifiableCredential;
+  private statusCredentials: { [key: string]: VerifiableCredential };
   private config: Config;
   private snapshot: Snapshot;
 
   constructor(options: GitLabStatus.GitLabCredentialStatusManagerOptions) {
     super(options);
-    this.statusCredential = {} as VerifiableCredential;
+    this.statusCredentials = {} as { [id: string]: VerifiableCredential };
     this.config = {} as Config;
     this.snapshot = {} as Snapshot;
   }
 
-  // generates new status credential ID
-  generateStatusCredentialId(): string {
-    return statusCredentialId;
-  }
-
-  // deploys website to host credential status management resources
-  async deployCredentialStatusWebsite(): Promise<void> {}
+  // deploys website to host status credentials
+  async deployStatusCredentialWebsite(): Promise<void> {}
 
   // checks if caller has authority to update status based on status repo access token
   async hasAuthority(repoAccessToken: string, metaRepoAccessToken?: string): Promise<boolean> { return true; }
 
   // checks if status repos exist
-  async statusReposExist(): Promise<boolean> { return true; }
+  async statusReposExist(): Promise<boolean> {
+    return true;
+  }
 
   // retrieves content of status credential repo
   async getRepo(): Promise<any> {
     throw new Error();
   }
 
-  // retrieves filenames of status credential repo content
   async getRepoFilenames(): Promise<string[]> {
-    return [statusCredentialId];
+    return Object.keys(this.statusCredentials);
   }
 
   // retrieves content of credential status metadata repo
@@ -79,22 +77,30 @@ class MockGitLabCredentialStatusManager extends GitLabStatus.GitLabCredentialSta
 
   // creates status credential
   async createStatusCredential(statusCredential: VerifiableCredential): Promise<void> {
-    this.statusCredential = statusCredential;
+    if (typeof statusCredential === 'string') {
+      throw new Error();
+    }
+    const statusCredentialId = deriveStatusCredentialId(statusCredential.id!);
+    this.statusCredentials[statusCredentialId] = statusCredential;
   }
 
   // retrieves status credential
-  async getStatusCredential(statusCredentialId?: string): Promise<VerifiableCredential> {
-    return this.statusCredential;
+  async getStatusCredential(statusCredentialId: string): Promise<VerifiableCredential> {
+    return this.statusCredentials[statusCredentialId];
   }
 
   // updates status credential
   async updateStatusCredential(statusCredential: VerifiableCredential): Promise<void> {
-    this.statusCredential = statusCredential;
+    if (typeof statusCredential === 'string') {
+      throw new Error();
+    }
+    const statusCredentialId = deriveStatusCredentialId(statusCredential.id!);
+    this.statusCredentials[statusCredentialId] = statusCredential;
   }
 
   // deletes status credentials
   async deleteStatusCredentials(): Promise<void> {
-    this.statusCredential = {} as VerifiableCredential;
+    this.statusCredentials = {} as { [key: string]: VerifiableCredential };
   }
 
   // creates config
@@ -166,29 +172,42 @@ describe('GitLab Credential Status Manager', () => {
     expect(statusManager).to.be.instanceof(GitLabStatus.GitLabCredentialStatusManager);
   });
 
-  it('tests allocateStatus', async () => {
+  it('tests allocateRevocationStatus', async () => {
     // allocate and check status for first credential
     const credentialWithStatus1 = await statusManager.allocateRevocationStatus(unsignedCredential1) as any;
-    checkLocalCredentialStatus(credentialWithStatus1, 1, gitService);
+    checkLocalCredentialStatus(credentialWithStatus1, gitService);
 
     // allocate and check status for second credential
     const credentialWithStatus2 = await statusManager.allocateRevocationStatus(unsignedCredential2) as any;
-    checkLocalCredentialStatus(credentialWithStatus2, 2, gitService);
+    checkLocalCredentialStatus(credentialWithStatus2, gitService);
 
     // allocate and check status for third credential
     const credentialWithStatus3 = await statusManager.allocateRevocationStatus(unsignedCredential3) as any;
-    checkLocalCredentialStatus(credentialWithStatus3, 3, gitService);
+    checkLocalCredentialStatus(credentialWithStatus3, gitService);
 
     // attempt to allocate and check status for existing credential
     const credentialWithStatus2Copy = await statusManager.allocateRevocationStatus(unsignedCredential2) as any;
-    checkLocalCredentialStatus(credentialWithStatus2Copy, 2, gitService);
+    checkLocalCredentialStatus(credentialWithStatus2Copy, gitService);
 
     // check if status repos have valid configuration
     const repoState = await statusManager.getRepoState();
     expect(repoState.valid).to.be.true;
   });
 
-  it('tests updateStatus and checkStatus', async () => {
+  it('tests allocateRevocationStatus and getCredentialInfo', async () => {
+    // allocate status for credential
+    const credentialWithStatus = await statusManager.allocateRevocationStatus(unsignedCredential1) as any;
+
+    // check user credential info
+    const credentialInfo = await statusManager.getCredentialInfo(credentialWithStatus.id);
+    checkUserCredentialInfo(credentialWithStatus.id, credentialInfo, true);
+
+    // check if status repos have valid configuration
+    const repoState = await statusManager.getRepoState();
+    expect(repoState.valid).to.be.true;
+  });
+
+  it('tests revokeCredential and getStatus', async () => {
     // allocate status for credential
     const credentialWithStatus = await statusManager.allocateRevocationStatus(unsignedCredential1) as any;
 
@@ -199,8 +218,8 @@ describe('GitLab Credential Status Manager', () => {
     checkStatusCredential(statusCredential, gitService);
 
     // check status of credential
-    const credentialStatus = await statusManager.checkStatus(credentialWithStatus.id);
-    checkRemoteCredentialStatus(credentialStatus, credentialWithStatus.id, 1);
+    const credentialStatusInfo = await statusManager.getStatus(credentialWithStatus.id);
+    checkRemoteCredentialStatus(credentialStatusInfo, false);
 
     // check if status repos have valid configuration
     const repoState = await statusManager.getRepoState();
@@ -212,14 +231,25 @@ describe('GitLab Credential Status Manager', () => {
     await statusManager.allocateRevocationStatus(unsignedCredential1) as any;
     const credentialWithStatus2 = await statusManager.allocateRevocationStatus(unsignedCredential2) as any;
     await statusManager.allocateRevocationStatus(unsignedCredential3) as any;
-    // update status of one credential
+
+    // update status of credential
     await statusManager.revokeCredential(credentialWithStatus2.id) as any;
 
     // save snapshot of status repos
     await statusManager.saveSnapshot();
 
     // check snapshot
-    await checkSnapshot(statusManager, 3, 1);
+    await checkSnapshot(
+      statusManager,
+      {
+        [StatusPurpose.Revocation]: 3,
+        [StatusPurpose.Suspension]: 0
+      },
+      {
+        [StatusPurpose.Revocation]: 1,
+        [StatusPurpose.Suspension]: 0
+      }
+    );
 
     // save snapshot of status repos
     await statusManager.restoreSnapshot();

@@ -2,7 +2,7 @@
   "compilerOptions": {
     "strict": true,
     "target": "es2022",
-    "lib": ["es2022", "dom"],
+    "lib": ["es2023", "dom"],
     "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "dist",
