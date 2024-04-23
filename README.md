@@ -129,17 +129,17 @@ console.log(credentialWithStatus);
   credentialSubject: { id: 'did:example:abcdef' },
   credentialStatus: [
     {
-      id: 'https://credentials.example.edu/status/Uz42qSDSXTcoLH7kZ6ST#1',
+      id: 'https://credentials.example.edu/status/Uz42qSDSXTcoLH7kZ6ST#6',
       type: 'BitstringStatusListEntry',
       statusPurpose: 'revocation',
-      statusListIndex: '1',
+      statusListIndex: '6',
       statusListCredential: 'https://credentials.example.edu/status/Uz42qSDSXTcoLH7kZ6ST'
     },
     {
-      id: 'https://credentials.example.edu/status/9kGimd8POqM88l32F9aT#1',
+      id: 'https://credentials.example.edu/status/9kGimd8POqM88l32F9aT#3',
       type: 'BitstringStatusListEntry',
       statusPurpose: 'suspension',
-      statusListIndex: '1',
+      statusListIndex: '3',
       statusListCredential: 'https://credentials.example.edu/status/9kGimd8POqM88l32F9aT'
     }
   ]
@@ -198,12 +198,12 @@ console.log(credentialStatus);
 {
   revocation: {
     statusCredentialId: 'Uz42qSDSXTcoLH7kZ6ST',
-    statusListIndex: 1,
+    statusListIndex: 6,
     valid: true
   },
   suspension: {
     statusCredentialId: '9kGimd8POqM88l32F9aT',
-    statusListIndex: 1,
+    statusListIndex: 3,
     valid: false
   }
 }
