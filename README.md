@@ -1,6 +1,6 @@
 # credential-status-manager-git
 
-> A Typescript library for managing the status of [Verifiable Credentials](https://www.w3.org/TR/vc-data-model) in Git using [Bitstring Status List](https://www.w3.org/TR/vc-bitstring-status-list)
+> A Typescript library for managing the status of [Verifiable Credentials](https://www.w3.org/TR/vc-data-model-2.0) in Git using [Bitstring Status List](https://www.w3.org/TR/vc-bitstring-status-list)
 
 [![Build status](https://img.shields.io/github/actions/workflow/status/digitalcredentials/credential-status-manager-git/main.yml?branch=main)](https://github.com/digitalcredentials/credential-status-manager-git/actions?query=workflow%3A%22Node.js+CI%22)
 [![NPM Version](https://img.shields.io/npm/v/@digitalcredentials/credential-status-manager-git.svg)](https://npm.im/@digitalcredentials/credential-status-manager-git)
@@ -35,7 +35,7 @@ Credentials are dynamic artifacts with a lifecycle that goes well beyond issuanc
 
 To install via NPM:
 
-```
+```bash
 npm install @digitalcredentials/credential-status-manager-git
 ```
 
@@ -43,7 +43,7 @@ npm install @digitalcredentials/credential-status-manager-git
 
 To install locally (for development):
 
-```
+```bash
 git clone https://github.com/digitalcredentials/credential-status-manager-git.git
 cd credential-status-manager-git
 npm install
