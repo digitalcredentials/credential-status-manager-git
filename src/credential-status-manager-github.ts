@@ -137,7 +137,7 @@ export class GitHubCredentialStatusManager extends BaseCredentialStatusManager {
     try {
       const metaRepoResponse = await this.metaRepoClient.repos.get({
         owner: this.ownerAccountName,
-        repo: this.repoName
+        repo: this.metaRepoName
       });
       const metaRepo = metaRepoResponse.data;
       hasMetaRepoAccess = metaRepo.full_name === `${this.ownerAccountName}/${this.metaRepoName}`;
