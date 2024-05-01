@@ -29,7 +29,7 @@ const STATUS_CREDENTIAL_LIST_SIZE = 100000;
 const STATUS_CREDENTIAL_ID_LENGTH = 20;
 
 // Character set of status credential ID
-const STATUS_CREDENTIAL_ID_CHAR_SET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+const STATUS_CREDENTIAL_ID_CHAR_SET = '012ABCDEFGHIJKLMnopqrstuvwxyz3456abcdefghijklmNOPQRSTUVWXYZ789';
 
 // Status credential type
 const STATUS_CREDENTIAL_TYPE = 'BitstringStatusListCredential';
@@ -495,9 +495,9 @@ export abstract class BaseCredentialStatusManager {
 
     // persist updates to config
     await this.updateConfig({
+      ...attachCredentialStatusResultRest,
       statusCredentialInfo,
-      eventLog,
-      ...attachCredentialStatusResultRest
+      eventLog
     });
 
     return credentialWithStatus;
@@ -666,7 +666,7 @@ export abstract class BaseCredentialStatusManager {
       timestamp: getDateString()
     };
     eventLog.push(eventLogEntryAfter);
-    await this.updateConfig({ eventLog, ...configRest });
+    await this.updateConfig({ ...configRest, eventLog });
 
     return statusCredential;
   }
